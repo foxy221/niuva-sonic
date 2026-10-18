@@ -2,7 +2,17 @@
 
 Für die Agenten, die die technische Umsetzung übernehmen (Codex, Cline). Das Layout und die visuelle Gestaltung stehen in [ROADMAP-Design.md](ROADMAP-Design.md) und werden separat gemacht.
 
-**Stand:** Die Phasen 1 (Bibliothek), 2 (Wiedergabe) und 3 (Windows-Integration) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Medientasten und System-Overlay wurden manuell geprüft (siehe Phase 3); die Signierung des Installers bleibt offen. Nächste Phase: Android.
+**Stand:** Die Phasen 1 (Bibliothek), 2 (Wiedergabe) und 3 (Windows-Integration) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Medientasten und System-Overlay wurden manuell geprüft (siehe Phase 3); die Signierung des Installers bleibt offen. Nächste Phase: Offline für Windows. Android beginnt erst nach der vollständigen Windows-Abnahme (Phase 6).
+
+## Verbindliche Reihenfolge (18.10.2026)
+
+1. Die abgeschlossenen Grundlagen aus Phase 1–3 bilden die Windows-Basis.
+2. Phase 4 liefert Offline-Funktionen für Windows.
+3. Phase 5 vervollständigt Qualität, Sicherheit und Betrieb für Windows; parallel werden die offenen Windows-Aufgaben der [Design-Roadmap](ROADMAP-Design.md) abgeschlossen.
+4. Phase 6 schließt Veröffentlichung und gemeinsame Windows-Abnahme ab.
+5. Erst danach beginnt Phase 7 mit Android, einschließlich mobiler Gestaltung und Geräteprüfungen.
+
+Bestehende Android-Vorbereitung bleibt erhalten. Neue Android-Funktionen, Android-Build-Pipelines und mobile Detailarbeit sind bis zur Windows-Abnahme zurückgestellt. Die gemeinsame Codebasis wird weiterhin plattformneutral gehalten. Die separat aufgeführten Ideen bleiben optionale Erweiterungen und sind keine Voraussetzung für die Windows-Abnahme.
 
 ## Arbeitsteilung
 
@@ -85,7 +95,7 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
 - **Plugins:** `tauri-plugin-single-instance` (steht als erstes, holt bei einem zweiten Start das Fenster nach vorn), `tauri-plugin-window-state` (Größe, Position, maximiert), `tauri-plugin-global-shortcut` (Medientasten) und `tauri-plugin-updater`. Auf Android fehlen diese Bausteine; die Befehle sagen dort ab, damit die gemeinsame Oberfläche keinen Sonderweg braucht.
 - **Tray:** Symbol aus `icons/32x32.png`, Linksklick holt das Fenster nach vorn, Rechtsklick öffnet das Menü (Fenster anzeigen, Wiedergabe/Pause, nächster und voriger Titel, Beenden). Die Wiedergabe-Befehle gehen als Ereignis `player-command` an die Oberfläche, damit es nur eine Quelle für die Player-Logik gibt.
 - **Schließen:** Standard ist „in den Tray“: das Fenster verschwindet, die Wiedergabe läuft weiter; „Beenden“ im Tray-Menü schließt die App wirklich. Abschaltbar in den Einstellungen. Sicherung: Wurde das Tray-Symbol nicht angelegt, beendet Schließen die App wieder normal – sonst liefe sie unsichtbar weiter und wäre nicht mehr zu erreichen. Windows 11 legt neue Symbole zuerst in den ausgeblendeten Bereich neben der Uhr; das steht auch als Hinweis in den Einstellungen.
-- **Name in der Mediensteuerung:** Windows zeigt „Unbekannte Anwendung“. Die Ursache liegt nicht in dieser App: Die Medien-Sitzung gehört dem WebView2-Prozess (`msedgewebview2.exe`), deshalb zeigt Windows dessen Identität an. Tauri verweist auf [tauri#13352](https://github.com/tauri-apps/tauri/issues/13352) und das Upstream-Issue [WebView2Feedback#2236](https://github.com/MicrosoftEdge/WebView2Feedback/issues/2236), wo Microsoft zuletzt „no update or work currently happening“ schreibt. Geprüft und verworfen: `SetCurrentProcessExplicitAppUserModelID`, ein Eintrag unter `HKCU\Software\Classes\AppUserModelId` und das Markieren des Fensters mit einer AppUserModelID – laut Erfahrungsberichten hilft das nur bei Benachrichtigungen, nicht in der Mediensteuerung. Das eigene EXE trägt einen korrekten Versionsdatensatz (`ProductName: Niuva Sonic`), der hier ebenfalls nicht greift. Bleibt offen, bis WebView2 nachzieht; ein eigener nativer Player (Media3 auf Android, Phase 4) umgeht das Problem.
+- **Name in der Mediensteuerung:** Windows zeigt „Unbekannte Anwendung“. Die Ursache liegt nicht in dieser App: Die Medien-Sitzung gehört dem WebView2-Prozess (`msedgewebview2.exe`), deshalb zeigt Windows dessen Identität an. Tauri verweist auf [tauri#13352](https://github.com/tauri-apps/tauri/issues/13352) und das Upstream-Issue [WebView2Feedback#2236](https://github.com/MicrosoftEdge/WebView2Feedback/issues/2236), wo Microsoft zuletzt „no update or work currently happening“ schreibt. Geprüft und verworfen: `SetCurrentProcessExplicitAppUserModelID`, ein Eintrag unter `HKCU\Software\Classes\AppUserModelId` und das Markieren des Fensters mit einer AppUserModelID – laut Erfahrungsberichten hilft das nur bei Benachrichtigungen, nicht in der Mediensteuerung. Das eigene EXE trägt einen korrekten Versionsdatensatz (`ProductName: Niuva Sonic`), der hier ebenfalls nicht greift. Bleibt offen, bis WebView2 nachzieht; ein eigener nativer Player (Media3 auf Android, Phase 7) umgeht das Problem.
 - **Tastenkürzel:** Leertaste im Fenster hält an und spielt weiter, außer in Eingabefeldern und auf Knöpfen (`src/hooks/useKeyboardShortcuts.ts`). Optional fängt die Hülle zusätzlich die Medientasten systemweit ab (`set_global_shortcuts`); scheitert das Belegen, wird nichts halb belegt und die Oberfläche zeigt den Grund. Standardmäßig aus, weil Windows die Medientasten normalerweise schon über die Media Session regelt.
 - **Einstellungen:** Abschnitt „Windows“ im Einstellungsbildschirm (Tray, Medientasten, Update-Prüfung) plus Hinweis auf die Leertaste.
 - **Review vom 18.10.2026:** Geordnetes Beenden mit Speichern vor dem Prozessende, transaktionale Hüllen-Einstellungen, Listener-Abbau, Tastatur-/Android-Abgrenzung und Update-Status korrigiert. 112 Frontend- und 8 Rust-Tests bestehen. Befunde und Prüfgrenzen: [REVIEW-Phase-3.md](REVIEW-Phase-3.md).
@@ -108,33 +118,57 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
   - Installer: Installation ohne Adminrechte, Eintrag im Startmenü, Deinstallation.
 - **Automatisch geprüft:** `cargo test` (4 Tests für die Einstellungen der Hülle), `pnpm test` (96 Tests, darunter Leertaste, Hüllen-Befehle und Update-Text), Typecheck, Vite-Build und Release-Build mit NSIS-Installer. Dazu Starttests der gebauten Anwendung: Fenster wird erzeugt (Titel „Niuva Sonic“), das Tray-Symbol liegt wirklich vor (Fensterklasse `tray_icon_app` im laufenden Prozess), ein zweiter Start beendet sich mit Code 0 und lässt nur eine Instanz laufen, Schließen legt das Fenster in den Tray und der Prozess läuft weiter, und mit abgeschaltetem „Beim Schließen in den Tray“ beendet Schließen die App und schreibt `.window-state.json` mit Größe und Position.
 
-## Phase 4: Android
-
-- [ ] `pnpm tauri android dev` auf Emulator und echtem Gerät lauffähig
-- [ ] **Hintergrundwiedergabe**: natives Plugin mit Foreground-Service und `MediaSession`/Media3, Benachrichtigung mit Steuerung, Sperrbildschirm
-- [ ] Audio-Fokus (Anruf, andere Apps) und Kopfhörer-Events
-- [ ] Zurück-Taste und Systemleisten (Insets) sauber behandeln
-- [ ] Release-Build, Signierung (Keystore **nicht** ins Repo)
-- [ ] Gemeinsame Logik prüfen: kein Windows-Sonderweg im geteilten Code
-
-Das ist die riskanteste Phase. Mit WebView-Audio allein stoppt die Wiedergabe, sobald die App in den Hintergrund geht.
-
-## Phase 5: Offline
+## Phase 4: Offline für Windows
 
 - [ ] Titel und Alben herunterladen (`download`), lokal ablegen
 - [ ] Offline-Bibliothek und Wiedergabe aus dem lokalen Speicher
 - [ ] Speicherverwaltung: Größe anzeigen, Cache leeren, Limit
 - [ ] Metadaten-Cache (Bibliothek offline durchsuchbar)
 
-## Phase 6: Qualität und Betrieb
+Fertig, wenn: Downloads, Offline-Suche, lokale Wiedergabe und Speicherverwaltung in der Windows-App bedienbar sind und auch nach einem Neustart ohne Serververbindung funktionieren.
+
+## Phase 5: Qualität und Betrieb für Windows
 
 - [ ] Zugangsdaten sicher ablegen (Betriebssystem-Schlüsselbund statt Klartext im Store)
-- [ ] Unit-Tests für `SubsonicClient` (Vitest), Player-Store-Logik
-- [ ] End-to-End-Test gegen den Testserver (Login, Album abspielen)
-- [ ] CI (GitHub Actions): Typecheck, Tests, Windows-Build, Android-Build
+- [ ] Testabdeckung für `SubsonicClient` und Player-Store vervollständigen; vorhandene Regressionstests erhalten
+- [ ] End-to-End-Test gegen den Testserver (Login, Album abspielen), Offline-Abläufe zusätzlich ohne Verbindung prüfen
+- [ ] CI (GitHub Actions): Typecheck, Tests, Windows-Build
 - [ ] Fehlerprotokoll in Datei, Diagnoseansicht für Verbindungsprobleme
 - [ ] Mehrere Server-Profile
-- [ ] OpenSubsonic-Erweiterungen nutzen, wo der Server sie meldet (`getOpenSubsonicExtensions`, z. B. Lyrics, ReplayGain-Felder)
+- [ ] OpenSubsonic-Erweiterungen erkennen und bereits unterstützte Funktionen entsprechend den gemeldeten Fähigkeiten nutzen (`getOpenSubsonicExtensions`, z. B. ReplayGain-Felder); zusätzliche Funktionen wie Songtexte bleiben im Ideen-Backlog
+- [ ] Offene Windows-Gestaltung und Barrierefreiheit aus der [Design-Roadmap](ROADMAP-Design.md) abschließen
+
+Fertig, wenn: die Windows-Funktionen vollständig gestaltet sind, die automatischen Prüfungen bestehen und Fehler-, Verbindungs- und Offline-Szenarien geprüft sind.
+
+## Phase 6: Windows-Veröffentlichung und Abnahme
+
+Die Vorbereitung aus Phase 3 wird hier bis zur nutzbaren Veröffentlichung abgeschlossen:
+
+- [ ] Update-Ablage, öffentlichen Schlüssel und HTTPS-Endpunkt einrichten; signierte Update-Artefakte erzeugen
+- [ ] Herunterladen und Einspielen von Updates einschließlich Fehleranzeige und Neustart verdrahten und mit zwei Windows-Versionen prüfen
+- [ ] Authenticode-Signierung klären und den Windows-Installer signieren (Zertifikat und private Schlüssel außerhalb des Repos)
+- [ ] Installation, Startmenü-Eintrag, Aktualisierung und Deinstallation unter Windows manuell prüfen
+- [ ] Windows-Prüfliste aus Phase 3 vollständig abnehmen: Tray, Schließen/Beenden, Medientasten, Leertaste, Fensterzustand und Persistenz
+- [ ] Gemeinsame Abnahme von Technik und Design: Bibliothek, Suche, Favoriten, Playlists, Player, Queue, Einstellungen, Server-Profile und Offline-Funktionen
+- [ ] Release-Unterlagen mit Versionsstand, Installationshinweisen und bekannten Einschränkungen fertigstellen
+- [ ] Keine offenen releaseblockierenden Windows-Fehler; bekannte Plattformgrenzen dokumentieren (z. B. WebView2-Anwendungsname in der Mediensteuerung)
+- [ ] Windows-Version veröffentlichen und Abschluss der Windows-Abnahme in beiden Roadmaps festhalten
+
+**Startbedingung für Android:** Phasen 4–6 und die Windows-Abnahme der Design-Roadmap sind abgeschlossen. Offene Veröffentlichungsschritte gelten weiterhin als Windows-Arbeit und geben Android nicht automatisch frei.
+
+## Phase 7: Android (nach Windows-Abnahme)
+
+- [ ] `pnpm tauri android dev` auf Emulator und echtem Gerät lauffähig
+- [ ] **Hintergrundwiedergabe**: natives Plugin mit Foreground-Service und `MediaSession`/Media3, Benachrichtigung mit Steuerung, Sperrbildschirm
+- [ ] Audio-Fokus (Anruf, andere Apps) und Kopfhörer-Events
+- [ ] Zurück-Taste und Systemleisten (Insets) sauber behandeln
+- [ ] Mobile Gestaltung aus der Design-Roadmap auf echten Geräten abnehmen
+- [ ] Offline-Funktionen und sichere Ablage an Android anpassen und prüfen
+- [ ] Release-Build, Signierung (Keystore **nicht** ins Repo)
+- [ ] CI um Android-Build ergänzen
+- [ ] Gemeinsame Logik prüfen: kein Windows-Sonderweg im geteilten Code; Windows-Regressionstests bestehen weiterhin
+
+Das ist die riskanteste Plattformphase. Mit WebView-Audio allein stoppt die Wiedergabe, sobald die App in den Hintergrund geht.
 
 ## Ideen mit Mehrwert gegenüber Spotify
 

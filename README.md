@@ -49,5 +49,5 @@ Voraussetzungen: Node 24, pnpm, Rust (MSVC), WebView2. Für Android zusätzlich 
 
 ## Roadmap
 
-- [Technik](docs/ROADMAP-Technik.md): API, Wiedergabe, Windows-Integration, Android, Offline, Qualität. Die Phasen 1 (Bibliothek), 2 (Wiedergabe) und 3 (Windows) sind abgeschlossen.
-- [Design](docs/ROADMAP-Design.md): Tokens, App-Rahmen, Bildschirme, Bewegung. Läuft parallel zur Technik.
+- [Technik](docs/ROADMAP-Technik.md): Die Grundlagen aus Phase 1–3 stehen. Jetzt folgen Offline für Windows (4), Qualität und Betrieb (5) sowie Veröffentlichung und Windows-Abnahme (6). Android (7) beginnt erst nach vollständigem Windows-Abschluss.
+- [Design](docs/ROADMAP-Design.md): Offene Windows-Gestaltung und Barrierefreiheit laufen parallel zu Technik 4–6 und werden vor Android gemeinsam abgenommen. Mobile Detailarbeit und Geräteabnahme folgen danach.

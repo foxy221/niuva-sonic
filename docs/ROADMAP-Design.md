@@ -2,6 +2,21 @@
 
 Wird von Claude (Frontend-Design) umgesetzt, nachdem die Technik-Phasen die Funktionen liefern. Die technische Seite steht in [ROADMAP-Technik.md](ROADMAP-Technik.md).
 
+## Priorität: Windows vollständig abschließen (18.10.2026)
+
+Die offenen Windows-Aufgaben in dieser Roadmap werden parallel zu Technik-Phase 4–6 abgeschlossen. Android-Gestaltung und Geräteabnahme beginnen erst nach der gemeinsamen Windows-Abnahme; bereits umgesetzte mobile Grundlagen bleiben erhalten.
+
+### Windows-Abnahme vor Android
+
+- [ ] Alle offenen Windows-Aufgaben aus Grundlagen, App-Rahmen, Bildschirmen und Bewegung abschließen: WCAG-AA-Kontraste, reduzierte Bewegung, obere Leiste, Titelleisten-Entscheidung, Playlist-Mosaik, Übergänge und Fortschrittsvorschau
+- [ ] Offline-Bibliothek, Downloads, Speicherverwaltung und Offline-/Verbindungszustände mit den echten Funktionen aus Technik-Phase 4 fertig gestalten
+- [ ] Einstellungen für sichere Ablage, Server-Profile und Diagnose aus Technik-Phase 5 vervollständigen
+- [ ] Windows-Einstellungen, Tastenkürzel und Update-Ablauf aus Technik-Phase 6 fertig gestalten, einschließlich Fortschritt, Fehlern und Neustart
+- [ ] Alle Windows-Ansichten bei kleiner Fenstergröße, Desktop und Ultrawide auf Layout, Tastaturbedienung, sichtbaren Fokus und Lesbarkeit prüfen
+- [ ] Gemeinsame Abnahme mit Technik-Phase 6 dokumentieren; keine offenen releaseblockierenden Windows-Designfehler
+
+Synchrone Songtexte und „Beliebteste Titel“ bleiben von der technischen Verfügbarkeit abhängig und gehören zu den optionalen Erweiterungen. Sie blockieren die Windows-Abnahme nicht.
+
 ## Ziel
 
 Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel, kräftige Farbverläufe aus dem Logo, viel Cover-Fläche, flüssige Bewegung. Die Oberfläche soll nach eigener Marke aussehen, nicht nach Spotify-Klon.
@@ -29,11 +44,11 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 - [x] **Login:** Logo groß, Verlauf im Hintergrund, klare Fehlerzustände
 - [x] **Start:** Begrüßung, Schnellzugriff-Kacheln, Reihen (Neu, Zuletzt, Zufällig) mit horizontalem Scrollen
 - [x] **Album:** großes Cover, Verlauf aus Coverfarbe, Trackliste mit Hover-Play, Format-/Bitrate-Badge
-- [x] **Künstler:** Hero-Bild, Beliebteste Titel, Diskografie, Ähnliche Künstler
+- [x] **Künstler:** Hero-Bild, Diskografie, Ähnliche Künstler (Beliebteste Titel technisch noch nicht verfügbar, siehe Abgleich)
 - [~] **Playlist:** Kopf mit Mosaik-Cover, Sortierung, Drag-and-drop (Ziehen fertig, Mosaik-Cover offen)
 - [x] **Suche:** Ergebnisse nach Typ gruppiert, Sofortvorschläge
 - [x] **Queue:** Ausklappbares Panel mit „Als Nächstes“ und Verlauf
-- [~] **Vollbild-Player:** großes Cover, Visualisierung (Klangbänder aus dem Logo-Motiv, folgen dem Spektrum; nur Desktop) fertig, synchrone Songtexte offen
+- [~] **Vollbild-Player:** großes Cover, Visualisierung (Klangbänder aus dem Logo-Motiv, folgen dem Spektrum; nur Desktop) fertig, synchrone Songtexte als optionale Erweiterung offen
 - [x] **Einstellungen:** Server, Wiedergabe-Qualität, Offline-Speicher, Erscheinungsbild
 - [x] Leer-, Lade- und Fehlerzustände für jede Ansicht (Skeletons statt Spinner)
 
@@ -47,8 +62,13 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 ## Responsives Verhalten
 
 - [x] Breiten: Handy, Tablet, Desktop, Ultrawide
+
+### Android nach Windows-Abnahme (Technik-Phase 7)
+
 - [ ] Touch-Ziele mindestens 44 px, Wischgesten im Mini-Player
 - [ ] Insets und Notch auf Android beachten
+- [ ] Bottom-Navigation, Mini-Player und Vollbild-Player mit nativer Hintergrundwiedergabe auf Emulator und echtem Gerät prüfen
+- [ ] Mobile Offline-, Verbindungs- und Fehlerzustände abnehmen
 
 ## Abgleich mit Technik
 
@@ -60,7 +80,10 @@ Design braucht von der Technik, bevor die Bildschirme fertig sein können:
 | Genres, Genre, Favoriten, Albenliste | Technik 1 | **geliefert** |
 | Queue-Panel, Vollbild-Player | Technik 2 | **geliefert** (Entfernen, Umsortieren, Shuffle, Wiederholen sind da) |
 | Windows-Hülle: Tray, Medientasten, Update-Prüfung | Technik 3 | **geliefert** (Abschnitt „Windows“ in den Einstellungen) |
-| Mobile Mini-Player | Technik 4 | offen |
+| Offline-Bibliothek, Downloads, Speicherverwaltung | Technik 4 | offen, vor Android |
+| Server-Profile, sichere Ablage, Diagnose | Technik 5 | offen, vor Android |
+| Windows-Update-Ablauf und Veröffentlichung | Technik 6 | offen, vor Android |
+| Mobile Mini-Player und Android-Systemleisten | Technik 7 | Grundlage vorhanden; Integration und Geräteabnahme nach Windows |
 | Songtexte | Technik „Ideen“ | offen |
 
 ### Was aus Technik 1 schon dasteht
@@ -72,7 +95,7 @@ Roh gebaut, ohne Gestaltung, aber vollständig bedienbar:
 - **Bausteine zum Einkleiden:** `QueryStates` (Lade-, Leer- und Fehlerzustand), `AlbumGrid`, `ArtistGrid`, `SongList`, `FavoriteButton`, `Pager`, `AddToPlaylist`, `AlbumSection` (Startseiten-Reihe).
 - **Provisorische Layout-Regeln:** die aus Technik 1 sind in den aufgeteilten Stylesheets aufgegangen; die aus Technik 2 liegen in `src/styles/glue.css`.
 - **Zustände:** jede Liste liefert Lade-, Leer- und Fehlerzustand. `QueryStates` bekommt die Texte als Props – hier können Skeletons und Illustrationen eingehängt werden.
-- **Noch nicht vorhanden:** „Beliebteste Titel“ auf der Künstlerseite (Navidrome liefert ohne Last.fm-Anbindung keine `getTopSongs`-Daten) und Queue-Panel/Vollbild-Player (Technik 2).
+- **Noch nicht vorhanden:** „Beliebteste Titel“ auf der Künstlerseite (Navidrome liefert ohne Last.fm-Anbindung keine `getTopSongs`-Daten). Queue-Panel und Vollbild-Player sind inzwischen vorhanden; siehe Technik 2 und die Bildschirm-Checkliste.
 
 ### Was aus Technik 2 dazukam
 
@@ -90,6 +113,6 @@ Roh gebaut, ohne Gestaltung, aber vollständig bedienbar:
 - **Sonst nichts im Fenster:** Tray-Symbol, Medientasten, Fenstergedächtnis und Installer liegen außerhalb der Oberfläche. Dafür gibt es keine neuen Flächen zu gestalten.
 - **Fehlerhinweis im Player:** `.player-note` bleibt wie übernommen (Puffern und Fehler mit Wiederholen-Knopf).
 
-Damit ist der App-Rahmen fertig; Phase 4 (Android) bringt vor allem den Mini-Player und die Systemleisten mit.
+Die Windows-Grundlagen des App-Rahmens stehen. Als Nächstes folgen die offenen Windows-Aufgaben und die Gestaltung der Technik-Phasen 4–6 bis zur gemeinsamen Windows-Abnahme. Erst danach folgen Android-Integration, mobile Detailarbeit und Geräteabnahme in Technik-Phase 7.
 
 
