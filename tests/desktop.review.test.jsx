@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -29,7 +30,7 @@ describe("Desktop-Grenzen und Listener", () => {
     window.__TAURI_INTERNALS__ = {};
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Linux; Android 14)");
     expect(isDesktopApp()).toBe(false);
-    render(<Settings />);
+    render(<MemoryRouter><Settings /></MemoryRouter>);
     expect(screen.queryByRole("switch", { name: "Medientasten abfangen" })).toBeNull();
   });
 
@@ -139,7 +140,7 @@ describe("Windows-Einstellungen", () => {
       if (command === "window_prefs" && ++reads === 1) return old.promise;
       return original(command, args);
     });
-    render(<StrictMode><Settings /></StrictMode>);
+    render(<StrictMode><MemoryRouter><Settings /></MemoryRouter></StrictMode>);
     const close = await screen.findByRole("switch", { name: "Beim Schließen in den Tray" });
     fireEvent.click(close);
     await waitFor(() => expect(close.checked).toBe(false));
@@ -152,7 +153,7 @@ describe("Windows-Einstellungen", () => {
     setupInvokes(() => Promise.resolve({ state: "notConfigured", currentVersion: "0.1.0" }));
     const original = invoke.getMockImplementation();
     vi.mocked(invoke).mockImplementation((command, args) => command === "set_close_to_tray" ? pending.promise : original(command, args));
-    render(<Settings />);
+    render(<MemoryRouter><Settings /></MemoryRouter>);
     const close = await screen.findByRole("switch", { name: "Beim Schließen in den Tray" });
     fireEvent.click(close);
     expect(close.disabled).toBe(true);
@@ -166,7 +167,7 @@ describe("Windows-Einstellungen", () => {
     const old = deferred();
     const check = vi.fn().mockReturnValueOnce(old.promise).mockResolvedValue({ state: "available", currentVersion: "0.1.0", version: "0.2.0" });
     setupInvokes(check);
-    render(<Settings />);
+    render(<MemoryRouter><Settings /></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: "Nach Updates suchen" }));
     await screen.findByText(/0.2.0 steht bereit/);
     await act(async () => { old.resolve({ state: "upToDate", currentVersion: "0.1.0" }); });

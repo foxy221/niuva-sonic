@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Activity, CircleAlert, CircleCheck, LoaderCircle, RefreshCw, Trash2 } from "lucide-react";
 import type { ServerInfo } from "../api/types";
 import { formatBytes } from "../format";
 import { isDesktopApp } from "../state/desktop";
@@ -12,9 +13,6 @@ import { useSession } from "../state/session";
 /**
  * Diagnose: Verbindungsprüfung, gemeldete Serverfähigkeiten, Offline-Ablage,
  * Sicherheit der Ablage und die letzten Zeilen des Protokolls.
- *
- * Bewusst schlichtes Markup (Überschriften, Listen, Text, Knöpfe) – die
- * Gestaltung zieht das Design nach.
  */
 
 interface Check {
@@ -29,6 +27,15 @@ function describeCheck(check: Check) {
   if (check.state === "ok") return `Antwort in ${check.ms} ms.`;
   if (check.state === "error") return `Keine Antwort: ${check.message}`;
   return "Noch nicht geprüft.";
+}
+
+function Panel({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section className="diag-panel" aria-labelledby={`diag-${id}`}>
+      <h2 id={`diag-${id}`}>{title}</h2>
+      {children}
+    </section>
+  );
 }
 
 export default function Diagnostics() {
@@ -67,57 +74,75 @@ export default function Diagnostics() {
   }
 
   const names = Object.keys(extensions).sort();
+  const serverLine = server
+    ? `${server.type ?? "Unbekannt"}${server.serverVersion ? ` ${server.serverVersion}` : ""}${server.openSubsonic ? " · OpenSubsonic" : ""}`
+    : capabilitiesError
+      ? `Serverkennung fehlgeschlagen: ${capabilitiesError}`
+      : "Serverkennung wird geladen …";
 
   return (
     <section className="diagnostics">
       <h1>Diagnose</h1>
 
-      <h2>Verbindung</h2>
-      <p className="muted">{creds ? `Angemeldet als ${creds.username} an ${creds.serverUrl}` : "Nicht angemeldet."}</p>
-      <p className="muted">
-        {server
-          ? `Server: ${server.type ?? "unbekannt"}${server.serverVersion ? ` ${server.serverVersion}` : ""}${server.openSubsonic ? ", OpenSubsonic" : ""}`
-          : capabilitiesError
-            ? `Serverkennung fehlgeschlagen: ${capabilitiesError}`
-            : "Serverkennung wird geladen …"}
-      </p>
-      <p className="muted">{describeCheck(check)}</p>
-      <button type="button" className="ghost" onClick={() => void pingNow()} disabled={!client || check.state === "running"}>Verbindung prüfen</button>
+      <Panel id="verbindung" title="Verbindung">
+        <dl className="diag-facts">
+          <div><dt>Konto</dt><dd>{creds ? `${creds.username} an ${creds.serverUrl}` : "Nicht angemeldet."}</dd></div>
+          <div><dt>Server</dt><dd>{serverLine}</dd></div>
+          <div>
+            <dt>Prüfung</dt>
+            <dd className={`diag-check ${check.state}`} role="status">
+              {check.state === "running" && <LoaderCircle size={16} className="spin" aria-hidden="true" />}
+              {check.state === "ok" && <CircleCheck size={16} aria-hidden="true" />}
+              {check.state === "error" && <CircleAlert size={16} aria-hidden="true" />}
+              {describeCheck(check)}
+            </dd>
+          </div>
+        </dl>
+        <div className="diag-actions">
+          <button type="button" onClick={() => void pingNow()} disabled={!client || check.state === "running"}><Activity size={18} /> Verbindung prüfen</button>
+        </div>
+      </Panel>
 
-      <h2>Gemeldete Fähigkeiten</h2>
-      {names.length ? (
-        <ul className="muted">
-          {names.map((name) => (
-            <li key={name}>{name} (Fassung {extensions[name].join(", ")})</li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted">{server ? "Der Server meldet keine OpenSubsonic-Erweiterungen." : "Noch keine Auskunft vom Server."}</p>
-      )}
+      <Panel id="faehigkeiten" title="Gemeldete Fähigkeiten">
+        {names.length ? (
+          <ul className="chips">
+            {names.map((name) => (
+              <li key={name}>{name} <span className="muted">Fassung {extensions[name].join(", ")}</span></li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">{server ? "Der Server meldet keine OpenSubsonic-Erweiterungen." : "Noch keine Auskunft vom Server."}</p>
+        )}
+      </Panel>
 
-      <h2>Offline</h2>
-      <p className="muted">
-        {isDesktopApp()
-          ? `${offlineSongs} Titel, ${formatBytes(offlineUsage ?? 0)}${offlineReady ? "" : " (wird gemessen)"} unter ${offlineBaseDir ?? "unbekannt"}.`
-          : "Downloads und Offline-Wiedergabe gibt es nur in der installierten App."}
-      </p>
+      <Panel id="offline" title="Offline">
+        <p className="muted">
+          {isDesktopApp()
+            ? `${offlineSongs} Titel, ${formatBytes(offlineUsage ?? 0)}${offlineReady ? "" : " (wird gemessen)"} unter ${offlineBaseDir ?? "unbekannt"}.`
+            : "Downloads und Offline-Wiedergabe gibt es nur in der installierten App."}
+        </p>
+      </Panel>
 
-      <h2>Ablage</h2>
-      <p className="muted">
-        {keychain === null ? "Schlüsselbund wird geprüft …" : keychain ? "Die Zugangsdaten liegen im Schlüsselbund des Betriebssystems." : "Kein Schlüsselbund verfügbar; in der App wird die Anmeldung dann nicht gemerkt."}
-      </p>
-      <p className="muted">{profileCount === 1 ? "Ein gemerktes Server-Profil." : `${profileCount} gemerkte Server-Profile.`}</p>
+      <Panel id="ablage" title="Ablage">
+        <p className="muted">
+          {keychain === null ? "Schlüsselbund wird geprüft …" : keychain ? "Die Zugangsdaten liegen im Schlüsselbund des Betriebssystems." : "Kein Schlüsselbund verfügbar; in der App wird die Anmeldung dann nicht gemerkt."}
+        </p>
+        <p className="muted">{profileCount === 1 ? "Ein gemerktes Server-Profil." : `${profileCount} gemerkte Server-Profile.`}</p>
+      </Panel>
 
-      <h2>Protokoll</h2>
-      <p className="muted">{logPath ? `Datei: ${logPath}` : "In der installierten App liegt das Protokoll in einer Datei; im Browser steht es in der Konsole."}</p>
-      {logProblem && <p className="state error" role="alert">{logProblem}</p>}
-      {logLines.length ? (
-        <pre className="muted" aria-label="Letzte Protokollzeilen">{logLines.join("\n")}</pre>
-      ) : (
-        <p className="muted">Keine Einträge.</p>
-      )}
-      <button type="button" className="ghost" onClick={() => void useLog.getState().refresh()}>Neu laden</button>{" "}
-      <button type="button" className="ghost" onClick={() => void useLog.getState().clear()}>Protokoll leeren</button>
+      <Panel id="protokoll" title="Protokoll">
+        <p className="muted diag-path">{logPath ? `Datei: ${logPath}` : "In der installierten App liegt das Protokoll in einer Datei; im Browser steht es in der Konsole."}</p>
+        {logProblem && <p className="form-error" role="alert"><CircleAlert size={18} /> {logProblem}</p>}
+        {logLines.length ? (
+          <pre className="diag-log" tabIndex={0} aria-label="Letzte Protokollzeilen">{logLines.join("\n")}</pre>
+        ) : (
+          <p className="muted">Keine Einträge.</p>
+        )}
+        <div className="diag-actions">
+          <button type="button" className="ghost" onClick={() => void useLog.getState().refresh()}><RefreshCw size={16} /> Neu laden</button>
+          <button type="button" className="ghost" onClick={() => void useLog.getState().clear()}><Trash2 size={16} /> Protokoll leeren</button>
+        </div>
+      </Panel>
     </section>
   );
 }

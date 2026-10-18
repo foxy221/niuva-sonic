@@ -15,3 +15,14 @@
   .login-logo { width: 88vw; }
   .letter-nav { top: 3rem; }
 }
+
+/* Anmeldung: gemerkte Server */
+.login-profiles { width: min(90vw, 24rem); display: grid; gap: .7rem; }
+.login-profiles h2 { margin: 0; font-size: 1rem; }
+.login-profiles ul { display: grid; gap: .5rem; }
+.login-profiles .muted { display: flex; align-items: center; gap: .45rem; font-size: .85rem; }
+button.profile-pick { width: 100%; justify-content: flex-start; padding: .7rem 1rem; text-align: left; background: var(--raised); color: var(--text); box-shadow: none; border-radius: var(--radius); }
+button.profile-pick:hover:not(:disabled) { background: var(--raised-hover); filter: none; box-shadow: none; }
+.profile-name { font-weight: 600; }
+.profile-server { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .85rem; font-weight: 400; }
+.login-error { width: min(90vw, 24rem); }

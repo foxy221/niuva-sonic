@@ -231,6 +231,27 @@ describe("Server-Profile", () => {
     expect(storeValue("profiles.json", "profiles")).toEqual([]);
   });
 
+  it("meldet beim Entfernen des aktiven Profils ab", async () => {
+    window.__TAURI_INTERNALS__ = {};
+    await useSession.getState().login("musik.example", "A", "geheim");
+
+    await useProfiles.getState().remove({ serverUrl: creds.serverUrl, username: "A" });
+
+    expect(useSession.getState().creds).toBeNull();
+    expect(storeValue("session.json", "credentials")).toBeNull();
+  });
+
+  it("überschreibt gemerkte Profile nicht, wenn die Sitzung vor dem Login-Bildschirm zurückkommt", async () => {
+    window.__TAURI_INTERNALS__ = {};
+    files.set("profiles.json", new Map([["profiles", [{ serverUrl: other.serverUrl, username: "B" }]]]));
+    useProfiles.setState({ ready: false, list: [] });
+
+    await useSession.getState().login("musik.example", "A", "geheim");
+
+    await vi.waitFor(() => expect(storeValue("profiles.json", "profiles")).toHaveLength(2));
+    expect(useProfiles.getState().list.map((p) => p.username).sort()).toEqual(["A", "B"]);
+  });
+
   it("liest gespeicherte Profile ohne Zugangsdaten wieder ein", async () => {
     files.set("profiles.json", new Map([["profiles", [{ serverUrl: creds.serverUrl, username: "A" }]]]));
 

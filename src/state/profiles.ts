@@ -91,6 +91,9 @@ export const useProfiles = create<ProfilesState>((set, get) => ({
     await persist(list);
     await deleteSecret(profileId(profile));
     logWrite("info", `Profil entfernt: ${profile.username}`);
+    // Das aktive Profil ohne Zugangsdaten weiterlaufen zu lassen, hielte beim nächsten Start nur eine tote Anmeldung.
+    const { creds, logout } = useSession.getState();
+    if (creds && same(creds, profile)) await logout();
   },
 }));
 
@@ -98,9 +101,14 @@ export const useProfiles = create<ProfilesState>((set, get) => ({
 useSession.subscribe((session, previous) => {
   if (!session.creds || session.creds === previous.creds) return;
   const profile = { serverUrl: session.creds.serverUrl, username: session.creds.username };
-  const { list } = useProfiles.getState();
-  if (list.some((known) => same(known, profile))) return;
-  const next = [...list, profile];
-  useProfiles.setState({ list: next });
-  void persist(next);
+  void (async () => {
+    // Erst die gespeicherte Liste laden: Sonst überschriebe der erste Eintrag
+    // nach dem Start (Sitzung wiederhergestellt, Login nie gezeigt) die übrigen Profile.
+    if (!useProfiles.getState().ready) await useProfiles.getState().restore();
+    const { list } = useProfiles.getState();
+    if (list.some((known) => same(known, profile))) return;
+    const next = [...list, profile];
+    useProfiles.setState({ list: next });
+    await persist(next);
+  })();
 });

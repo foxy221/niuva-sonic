@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CircleAlert, LoaderCircle, LogIn, UserRound } from "lucide-react";
+import { CircleAlert, LoaderCircle, LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { profileId, useProfiles } from "../state/profiles";
 import { describeLoginError, useSession } from "../state/session";
 
@@ -47,22 +47,23 @@ export default function Login() {
       <img className="login-logo" src="/logo.png" alt="Niuva Sonic" />
       <p className="login-tagline">Deine Musik. Dein Server.</p>
       {profilesReady && profiles.length > 0 && (
-        <div>
-          <h2>Gemerkte Server</h2>
+        <section className="login-profiles" aria-labelledby="login-profiles-title">
+          <h2 id="login-profiles-title">Gemerkte Server</h2>
           <ul>
             {profiles.map((profile) => (
               <li key={profileId(profile)}>
-                <button type="button" className="ghost" disabled={profileBusy} onClick={() => void choose(profile)}>
-                  <UserRound size={18} /> {profile.username}
-                </button>{" "}
-                <span className="muted">{profile.serverUrl}</span>
+                <button type="button" className="profile-pick" disabled={profileBusy} onClick={() => void choose(profile)}>
+                  {profileBusy ? <LoaderCircle size={20} className="spin" /> : <UserRound size={20} />}
+                  <span className="profile-name">{profile.username}</span>
+                  <span className="profile-server">{profile.serverUrl}</span>
+                </button>
               </li>
             ))}
           </ul>
-          <p className="muted">Die Zugangsdaten liegen im Schlüsselbund von Windows.</p>
-        </div>
+          <p className="muted"><ShieldCheck size={16} /> Die Zugangsdaten liegen im Schlüsselbund von Windows.</p>
+        </section>
       )}
-      {profileError && <p className="form-error" role="alert"><CircleAlert size={18} /> {profileError}</p>}
+      {profileError && <p className="form-error login-error" role="alert"><CircleAlert size={18} /> {profileError}</p>}
       <form className="login-form" onSubmit={submit}>
         <label>Navidrome-Server<input type="url" inputMode="url" placeholder="https://musik.example.de" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} required autoFocus /></label>
         <label>Benutzername<input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>

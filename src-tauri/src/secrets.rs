@@ -12,9 +12,10 @@ pub const SERVICE: &str = "de.niuva.sonic";
 /// Obergrenze des Schluessels: die Anmeldeinformationsverwaltung begrenzt den
 /// Benutzernamen, und ein Server samt Benutzer soll bequem hineinpassen.
 const MAX_KEY: usize = 400;
-/// Obergrenze des Geheimnisses; die Anmeldeinformationsverwaltung nimmt rund
-/// 2500 Byte auf. Ein Zugangsobjekt der Oberflaeche bleibt weit darunter.
-const MAX_SECRET: usize = 2000;
+/// Obergrenze des Geheimnisses: die Anmeldeinformationsverwaltung nimmt 2560 Byte
+/// auf, `keyring` legt den Text als UTF-16 ab (bis zu doppelt so gross wie in
+/// UTF-8). Ein Zugangsobjekt der Oberflaeche bleibt weit darunter.
+const MAX_SECRET: usize = 1200;
 
 /// Der Schluessel kommt aus der Oberflaeche (`<Serveradresse>|<Benutzer>`).
 /// Steuerzeichen wuerden die Anmeldeinformationsverwaltung verwirren, ein

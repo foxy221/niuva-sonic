@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { LogOut } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CircleAlert, LogOut, Stethoscope, UserRound } from "lucide-react";
 import Segmented from "../components/Segmented";
 import Switch from "../components/Switch";
 import { formatBytes } from "../format";
@@ -188,8 +189,8 @@ export default function Settings() {
           <Setting title="Updates" hint={describeUpdate(updateStatus)}>
             <button type="button" className="ghost" onClick={() => void searchUpdate()} disabled={busy}>Nach Updates suchen</button>
           </Setting>
-          {!hasTray && <p className="muted">Das Tray-Symbol konnte nicht angelegt werden. Schließen beendet die App dann normal, damit sie nicht unsichtbar weiterläuft.</p>}
-          {problem && <p className="muted">{problem}</p>}
+          {!hasTray && <p className="settings-note muted">Das Tray-Symbol konnte nicht angelegt werden. Schließen beendet die App dann normal, damit sie nicht unsichtbar weiterläuft.</p>}
+          {problem && <p className="form-error" role="alert"><CircleAlert size={18} /> {problem}</p>}
         </>
       ) : (
         <p className="muted">Tray-Symbol, Medientasten und Update-Prüfung gibt es nur in der installierten App.</p>
@@ -233,26 +234,40 @@ export default function Settings() {
               : "Kein Schlüsselbund verfügbar. In der App gilt die Anmeldung dann nur für diese Sitzung; in der Entwicklung im Browser liegt sie in der lokalen Ablage."
         }
       >
-        <a className="ghost" href="#/diagnostics">Diagnose öffnen</a>
+        <Link className="button-link ghost" to="/diagnostics"><Stethoscope size={18} /> Diagnose öffnen</Link>
       </Setting>
-      {profileProblem && <p className="muted">{profileProblem}</p>}
+
       <h2>Server-Profile</h2>
+      {profileProblem && <p className="form-error" role="alert"><CircleAlert size={18} /> {profileProblem}</p>}
       {profiles.length ? (
-        <ul>
-          {profiles.map((profile) => (
-            <li key={profileId(profile)}>
-              <span>{profile.username} <span className="muted">{profile.serverUrl}</span></span>{" "}
-              <button
-                type="button"
-                className="ghost"
-                disabled={profileBusy || profileId(profile) === activeProfile}
-                onClick={() => void switchProfile(profile)}
-              >
-                {profileId(profile) === activeProfile ? "Aktiv" : "Wechseln"}
-              </button>{" "}
-              <button type="button" className="ghost" disabled={profileBusy} onClick={() => void removeProfile(profile)}>Entfernen</button>
-            </li>
-          ))}
+        <ul className="profile-list">
+          {profiles.map((profile) => {
+            const active = profileId(profile) === activeProfile;
+            return (
+              <li key={profileId(profile)} className={active ? "profile active" : "profile"}>
+                <UserRound size={20} aria-hidden="true" />
+                <div className="profile-text">
+                  <strong>{profile.username}</strong>
+                  <span className="muted">{profile.serverUrl}</span>
+                </div>
+                {active && <span className="badge">Aktiv</span>}
+                {!active && (
+                  <button type="button" className="ghost" disabled={profileBusy} onClick={() => void switchProfile(profile)} aria-label={`Zu ${profile.username} auf ${profile.serverUrl} wechseln`}>
+                    Wechseln
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={profileBusy}
+                  onClick={() => { if (confirm(`Profil ${profile.username} entfernen? Die Zugangsdaten werden aus dem Schlüsselbund gelöscht${active ? " und du wirst abgemeldet" : ""}.`)) void removeProfile(profile); }}
+                  aria-label={`Profil ${profile.username} auf ${profile.serverUrl} entfernen`}
+                >
+                  Entfernen
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="muted">Noch kein Server gemerkt. Nach der ersten Anmeldung erscheint er hier zum Umschalten.</p>

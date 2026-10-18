@@ -2,7 +2,9 @@ button { font: inherit; font-weight: 600; cursor: pointer; border: 0; border-rad
 button:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 .5rem 1.6rem -.5rem var(--pink); }
 button:active:not(:disabled) { transform: scale(.97); }
 button:disabled { opacity: .45; cursor: not-allowed; }
-button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: .45rem 1rem; font-weight: 500; box-shadow: none; }
+a.button-link { display: inline-flex; align-items: center; gap: .55rem; border-radius: 999px; font-weight: 500; white-space: nowrap; }
+a.button-link:hover { color: var(--text); border-color: var(--muted); }
+button.ghost, a.button-link.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: .45rem 1rem; font-weight: 500; box-shadow: none; }
 button.ghost:hover:not(:disabled) { color: var(--text); border-color: var(--muted); filter: none; box-shadow: none; }
 button.icon { background: transparent; box-shadow: none; padding: .5rem; color: var(--muted); border-radius: 50%; }
 button.icon:hover:not(:disabled) { color: var(--text); background: var(--raised); filter: none; box-shadow: none; }
