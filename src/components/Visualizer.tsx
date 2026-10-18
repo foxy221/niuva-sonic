@@ -1,4 +1,5 @@
-import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { cloudPaletteFromImage } from "../design/colors";
 import { getAnalyser } from "../design/analyser";
 import { usePlayer } from "../state/player";
 
@@ -25,29 +26,43 @@ interface Cloud {
   anchored?: boolean;
 }
 
-const ACCENT = "var(--accent)";
-const VIOLET = "#8a3cff";
-const AMBER = "#ffb347";
-const BLEND = "color-mix(in srgb, var(--accent) 50%, #8a3cff)";
+/** Logo-Farben, solange das Cover keine Palette hergibt. */
+export const BRAND_PALETTE = ["var(--accent)", "#8a3cff", "#ffb347"];
+
+const A = "var(--viz-a)";
+const B = "var(--viz-b)";
+const C = "var(--viz-c)";
+const BLEND = "color-mix(in srgb, var(--viz-a) 50%, var(--viz-b))";
 
 const CLOUDS: Cloud[] = [
-  { from: 0, to: 3, x: 0.3, y: 0.5, driftX: 0.02, driftY: 0.03, speed: 0.00018, phase: 0, size: 0.62, aspect: 0.9, spin: 3, tone: ACCENT, anchored: true },
-  { from: 3, to: 8, x: 0.45, y: 0.3, driftX: 0.12, driftY: 0.1, speed: 0.00023, phase: 1.3, size: 0.46, aspect: 0.55, spin: -6, tone: VIOLET },
-  { from: 8, to: 14, x: 0.7, y: 0.68, driftX: 0.14, driftY: 0.1, speed: 0.00019, phase: 2.6, size: 0.5, aspect: 0.5, spin: 5, tone: AMBER },
+  { from: 0, to: 3, x: 0.3, y: 0.5, driftX: 0.02, driftY: 0.03, speed: 0.00018, phase: 0, size: 0.62, aspect: 0.9, spin: 3, tone: A, anchored: true },
+  { from: 3, to: 8, x: 0.45, y: 0.3, driftX: 0.12, driftY: 0.1, speed: 0.00023, phase: 1.3, size: 0.46, aspect: 0.55, spin: -6, tone: B },
+  { from: 8, to: 14, x: 0.7, y: 0.68, driftX: 0.14, driftY: 0.1, speed: 0.00019, phase: 2.6, size: 0.5, aspect: 0.5, spin: 5, tone: C },
   { from: 14, to: 22, x: 0.8, y: 0.3, driftX: 0.12, driftY: 0.12, speed: 0.00027, phase: 4.0, size: 0.42, aspect: 0.6, spin: -7, tone: BLEND },
-  { from: 22, to: 32, x: 0.22, y: 0.78, driftX: 0.1, driftY: 0.08, speed: 0.00022, phase: 5.2, size: 0.4, aspect: 0.5, spin: 6, tone: VIOLET },
-  { from: 32, to: 47, x: 0.9, y: 0.6, driftX: 0.08, driftY: 0.16, speed: 0.0003, phase: 3.3, size: 0.36, aspect: 0.55, spin: 8, tone: AMBER },
+  { from: 22, to: 32, x: 0.22, y: 0.78, driftX: 0.1, driftY: 0.08, speed: 0.00022, phase: 5.2, size: 0.4, aspect: 0.5, spin: 6, tone: B },
+  { from: 32, to: 47, x: 0.9, y: 0.6, driftX: 0.08, driftY: 0.16, speed: 0.0003, phase: 3.3, size: 0.36, aspect: 0.55, spin: 8, tone: C },
 ];
 
 /**
- * Weicher Nebel hinter dem Vollbild: Wolken in den Logo-Farben treiben langsam
+ * Weicher Nebel hinter dem Vollbild: Wolken in den Farben des Covers (ohne Farbe: Logo-Farben) treiben langsam
  * über die Fläche und schwellen mit ihrem Frequenzbereich an. Die tiefste Wolke
  * glüht hinter dem Cover im Takt der Bässe. Jede Wolke ist ein eigenes Element
  * mit CSS-Verlauf; bewegt werden nur `transform` und `opacity`, das übernimmt
  * die Grafikkarte ohne Neuzeichnen. Ohne Analyse (Android, Server ohne CORS)
  * treiben sie nur ruhig.
  */
-export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement | null> }) {
+export default function Visualizer({ anchor, coverUrl }: { anchor: RefObject<HTMLElement | null>; coverUrl?: string }) {
+  const [palette, setPalette] = useState<string[]>(BRAND_PALETTE);
+
+  useEffect(() => {
+    let stale = false;
+    if (!coverUrl) setPalette(BRAND_PALETTE);
+    else cloudPaletteFromImage(coverUrl).then((p) => !stale && setPalette(p ?? BRAND_PALETTE));
+    return () => {
+      stale = true;
+    };
+  }, [coverUrl]);
+
   const rootRef = useRef<HTMLDivElement>(null);
   const cloudRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
@@ -79,7 +94,7 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       CLOUDS.forEach((cloud, k) => {
         const el = cloudRefs.current[k];
         if (!el) return;
-        const d = unit * cloud.size * 1.18;
+        const d = unit * cloud.size * 1.08;
         el.style.width = `${d}px`;
         el.style.height = `${d}px`;
         el.style.marginLeft = `${-d / 2}px`;
@@ -133,8 +148,8 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
         average[k] += (value - average[k]) * (1 - Math.exp(-dt / 1400));
         const delta = (value - average[k]) / Math.max(average[k], 0.1);
         const previous = energy[k];
-        energy[k] = Math.max(0, Math.min(1, 0.4 + delta * 2.8));
-        kick[k] = Math.min(1, Math.max(kick[k] * Math.exp(-dt / 210), Math.max(0, energy[k] - previous) * 6));
+        energy[k] = Math.max(0, Math.min(1, 0.37 + delta * 2.5));
+        kick[k] = Math.min(1, Math.max(kick[k] * Math.exp(-dt / 190), Math.max(0, energy[k] - previous) * 5.5));
       });
     }
 
@@ -153,10 +168,10 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
         const cy = Math.cos(t * cloud.speed * 0.8 + cloud.phase * 1.7);
         const x = cloud.anchored ? coverX + sx * unit * cloud.driftX : width * (cloud.x + sx * cloud.driftX);
         const y = cloud.anchored ? coverY + cy * unit * cloud.driftY : height * (cloud.y + cy * cloud.driftY);
-        const scale = 0.55 + e * 0.95 + kick[k] * 0.45;
+        const scale = 0.5 + e * 0.82 + kick[k] * 0.37;
         const angle = (t / 1000) * cloud.spin + cloud.phase * 40;
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${angle.toFixed(2)}deg) scale(${scale.toFixed(3)}, ${(scale * cloud.aspect).toFixed(3)})`;
-        el.style.opacity = Math.min(0.95, 0.07 + e * 0.55 + kick[k] * 0.4).toFixed(3);
+        el.style.opacity = Math.min(0.85, 0.05 + e * 0.46 + kick[k] * 0.35).toFixed(3);
       });
       if (!reduceMotion) frame = requestAnimationFrame(draw);
     }
@@ -175,7 +190,7 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
   }, [anchor]);
 
   return (
-    <div ref={rootRef} className="full-viz" aria-hidden="true">
+    <div ref={rootRef} className="full-viz" aria-hidden="true" style={{ "--viz-a": palette[0], "--viz-b": palette[1], "--viz-c": palette[2] } as CSSProperties}>
       {CLOUDS.map((cloud, k) => (
         <span key={k} ref={(el) => { cloudRefs.current[k] = el; }} className="cloud" style={{ "--tone": cloud.tone } as CSSProperties} />
       ))}

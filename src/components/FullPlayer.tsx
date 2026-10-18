@@ -5,6 +5,7 @@ import { useUi } from "../design/ui";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
 import { useCoverUrl } from "../hooks/useCoverUrl";
+import { useT } from "../i18n";
 import FavoriteButton from "./FavoriteButton";
 import QueuePanel from "./QueuePanel";
 import SeekBar from "./SeekBar";
@@ -14,6 +15,7 @@ import VolumeControl from "./VolumeControl";
 
 /** Vollbild-Player: großes Cover vor dem unscharfen Cover als Hintergrund. Schließt mit Escape. */
 export default function FullPlayer() {
+  const t = useT();
   const { fullOpen, setFull, queueOpen, toggleQueue } = useUi();
   const song = usePlayer((s) => s.queue[s.index]);
   const client = useSession((s) => s.client);
@@ -32,12 +34,12 @@ export default function FullPlayer() {
   const close = () => setFull(false);
 
   return (
-    <div className={`full${queueOpen ? " queue-open" : ""}`} role="dialog" aria-label="Vollbild-Player">
+    <div className={`full${queueOpen ? " queue-open" : ""}`} role="dialog" aria-label={t("player.full")}>
       {backdrop && <img className="full-backdrop" src={backdrop} alt="" />}
-      <Visualizer anchor={coverRef} />
+      <Visualizer anchor={coverRef} coverUrl={backdrop} />
       <header className="full-top">
-        <button className="icon" onClick={close} aria-label="Vollbild schließen"><ChevronDown size={26} /></button>
-        <button className={`icon${queueOpen ? " on" : ""}`} onClick={toggleQueue} aria-label="Warteschlange" aria-pressed={queueOpen}><ListMusic size={22} /></button>
+        <button className="icon" onClick={close} aria-label={t("player.closeFull")}><ChevronDown size={26} /></button>
+        <button className={`icon${queueOpen ? " on" : ""}`} onClick={toggleQueue} aria-label={t("player.queue")} aria-pressed={queueOpen}><ListMusic size={22} /></button>
       </header>
       <div className="full-body">
         {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
@@ -50,7 +52,7 @@ export default function FullPlayer() {
                 {song.album && <span className="muted"> · {song.albumId ? <Link to={`/album/${song.albumId}`} onClick={close}>{song.album}</Link> : song.album}</span>}
               </p>
             </div>
-            <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label="Titel" />
+            <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("common.track")} />
           </div>
           <SeekBar />
           <Transport size={28} />

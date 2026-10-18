@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readableLightness } from "../src/design/colors";
+import { completeSwatches, extractSwatches, readableLightness } from "../src/design/colors";
 
 /** Unabhängige Gegenrechnung: HSL → sRGB → relative Luminanz → Kontrast gegen `--raised-hover` (#231742). */
 function contrastOnSurface(h, s, l) {
@@ -28,5 +28,35 @@ describe("Akzentfarbe aus dem Cover", () => {
   it("lässt helle Farbtöne bei der Ausgangshelligkeit und hellt blaue auf", () => {
     expect(readableLightness(330, 0.9)).toBeCloseTo(0.62, 2);
     expect(readableLightness(240, 0.9)).toBeGreaterThan(0.62);
+  });
+});
+
+/** RGBA-Pixel aus Blöcken gleicher Farbe: [[r, g, b, Anzahl], ...]. */
+const pixels = (blocks) => Uint8ClampedArray.from(blocks.flatMap(([r, g, b, n]) => Array(n).fill([r, g, b, 255]).flat()));
+
+describe("Wolkenpalette aus dem Cover", () => {
+  it("findet drei Leitfarben aus Rot, Blau und Grün", () => {
+    const found = extractSwatches(pixels([[230, 30, 40, 300], [30, 60, 230, 200], [40, 200, 70, 150]]));
+    expect(found).toHaveLength(3);
+    expect(found[0].h).toBeLessThan(10 + 360 * Number(found[0].h > 350));
+    expect(new Set(found.map((w) => Math.round(w.h / 60))).size).toBe(3);
+  });
+
+  it("lässt Nebenfarben mit zu wenig Gewicht und zu ähnliche Farbtöne weg", () => {
+    const found = extractSwatches(pixels([[230, 30, 40, 400], [230, 80, 30, 380], [30, 60, 230, 20]]));
+    expect(found).toHaveLength(1);
+  });
+
+  it("liefert nichts bei Grau, Schwarz oder Weiß (Rückfall auf die Logo-Farben)", () => {
+    expect(extractSwatches(pixels([[128, 128, 128, 500], [0, 0, 0, 300], [255, 255, 255, 200]]))).toEqual([]);
+    expect(completeSwatches([])).toEqual([]);
+  });
+
+  it("ergänzt fehlende Leitfarben durch Abwandlungen der ersten", () => {
+    const [first, second, third] = completeSwatches([{ h: 300, s: 0.8 }]);
+    expect(first).toEqual({ h: 300, s: 0.8 });
+    expect(second.h).toBeCloseTo(335);
+    expect(third.h).toBeCloseTo(265);
+    expect(completeSwatches([{ h: 10, s: 0.7 }, { h: 200, s: 0.7 }, { h: 100, s: 0.7 }])).toHaveLength(3);
   });
 });
