@@ -1,8 +1,10 @@
 mod commands;
 #[cfg(desktop)]
 mod desktop;
+mod logfile;
 mod offline;
 mod prefs;
+mod secrets;
 
 use tauri::Manager;
 
@@ -37,11 +39,28 @@ pub fn run() {
             offline::cancel_download,
             offline::offline_disk_usage,
             offline::delete_offline_file,
-            offline::clear_offline
+            offline::clear_offline,
+            logfile::log_message,
+            logfile::log_location,
+            logfile::read_log,
+            logfile::clear_log,
+            secrets::keychain_available,
+            secrets::save_credential,
+            secrets::load_credential,
+            secrets::delete_credential
         ])
         .setup(|app| {
             app.manage(prefs::PrefsState::load(app.handle()));
             app.manage(offline::Downloads::new());
+
+            let version = app.package_info().version.to_string();
+            if let Err(error) = logfile::write(
+                app.handle(),
+                "info",
+                &format!("Niuva Sonic {version} gestartet"),
+            ) {
+                eprintln!("{error}");
+            }
 
             #[cfg(desktop)]
             {
@@ -55,6 +74,11 @@ pub fn run() {
                     Ok(()) => true,
                     Err(error) => {
                         eprintln!("Tray-Symbol konnte nicht angelegt werden: {error}");
+                        let _ = logfile::write(
+                            app.handle(),
+                            "error",
+                            &format!("Tray-Symbol konnte nicht angelegt werden: {error}"),
+                        );
                         false
                     }
                 };
@@ -65,6 +89,11 @@ pub fn run() {
                     desktop::apply_global_shortcuts(app.handle(), prefs.global_shortcuts)
                 {
                     eprintln!("Medientasten konnten nicht belegt werden: {error}");
+                    let _ = logfile::write(
+                        app.handle(),
+                        "warn",
+                        &format!("Medientasten konnten nicht belegt werden: {error}"),
+                    );
                     let fallback = prefs::Prefs {
                         global_shortcuts: false,
                         ..prefs

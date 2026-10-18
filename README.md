@@ -45,7 +45,13 @@ Niuva Sonic spielt die Musik von deinem eigenen Server ab: ohne Abo, ohne Werbun
 
 **Datenschutz**
 - Dein Passwort wird nicht gespeichert. Die Anmeldung läuft über Token und Salt der Subsonic-API.
+- Token und Salt liegen im Schlüsselbund von Windows (Anmeldeinformationsverwaltung), nicht in einer Datei der App.
 - Die App spricht ausschließlich mit dem Server, den du angibst.
+
+**Mehrere Server und Betrieb**
+- Mehrere Server-Profile zum Umschalten; je Profil liegen die Zugangsdaten im Schlüsselbund
+- Diagnoseansicht mit Verbindungsprüfung, gemeldeten Serverfähigkeiten und Protokoll
+- Fehlerprotokoll in einer Datei (`niuva-sonic.log` im Protokollordner der App)
 
 ## Installation
 
@@ -59,10 +65,17 @@ Voraussetzungen: [Node.js](https://nodejs.org/) 24, [pnpm](https://pnpm.io/), [R
 
 ```bash
 pnpm install
-pnpm test          # Regressionstests für Sitzung, Bibliothek, Playlists, Player und Windows-Hülle
+pnpm test          # Regressionstests für Sitzung, Bibliothek, Playlists, Player, Offline und Windows-Hülle
+pnpm typecheck     # TypeScript ohne Ausgabe prüfen
+pnpm e2e           # End-to-End gegen den eigenen Server (liest zugangsdaten.txt, ändert nichts)
 pnpm tauri dev     # Entwicklungsmodus
 pnpm tauri build   # Release-Build, Installer unter src-tauri/target/release/bundle/nsis
 ```
+
+Für `pnpm e2e` liegt neben dem Projekt eine `zugangsdaten.txt` mit Serveradresse,
+Benutzername und Passwort (eine Angabe je Zeile). Der Lauf prüft Anmeldung,
+Bibliothek, ein Album und das Abspielen eines Titels; er verändert keine Daten
+auf dem Server.
 
 ## Technik
 
@@ -74,16 +87,17 @@ pnpm tauri build   # Release-Build, Installer unter src-tauri/target/release/bun
 | App-Zustand | Zustand |
 | Routing | React Router |
 | Netzwerk | `tauri-plugin-http` (läuft auf der Rust-Seite, daher kein CORS-Problem mit dem Server) |
-| Ablage | `tauri-plugin-store` |
-| Tests | Vitest, `cargo test` |
+| Ablage | `tauri-plugin-store`, Zugangsdaten im Windows-Schlüsselbund (`keyring`) |
+| Tests | Vitest, `cargo test`, End-to-End gegen den Testserver (`pnpm e2e`) |
 
 ```
 src/api/          Subsonic-Client und Typen
 src/hooks/        Datenzugriff über TanStack Query
-src/state/        Stores für Sitzung, Player, Einstellungen und Offline
+src/state/        Stores für Sitzung, Player, Einstellungen, Offline, Profile und Fähigkeiten
 src/components/   Bausteine und App-Rahmen
-src/screens/      Ansichten
-src-tauri/        Rust-Hülle (Tray, Fenster, Medientasten, Updater)
+src/screens/      Ansichten (u. a. Einstellungen und Diagnose)
+src-tauri/        Rust-Hülle (Tray, Fenster, Medientasten, Updater, Schlüsselbund, Protokoll)
+scripts/          End-to-End-Lauf gegen den Testserver
 branding/         Logos
 ```
 

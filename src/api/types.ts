@@ -5,6 +5,23 @@ export interface Credentials {
   salt: string;
 }
 
+/** `ping` – Kennung des Servers; `openSubsonic` sagt, ob Erweiterungen abfragbar sind. */
+export interface ServerInfo {
+  /** Fassung der Subsonic-API, die der Server beantwortet. */
+  version?: string;
+  /** Serversoftware, z. B. `navidrome`. */
+  type?: string;
+  serverVersion?: string;
+  openSubsonic?: boolean;
+}
+
+/** Ein Eintrag aus `getOpenSubsonicExtensions` (OpenSubsonic-Erweiterung). */
+export interface OpenSubsonicExtension {
+  name: string;
+  /** Fassungen der Erweiterung, die der Server beherrscht. */
+  versions?: number[];
+}
+
 export interface Artist {
   id: string;
   name: string;

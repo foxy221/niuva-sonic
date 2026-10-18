@@ -65,6 +65,7 @@ fn request_exit<R: Runtime>(app: &AppHandle<R>) {
     {
         return;
     }
+    let _ = crate::logfile::write(app, "info", "Beenden angefordert");
     let _ = app.emit_to("main", "app-exit-requested", ());
     // Auch bei einem defekten WebView muss Beenden möglich bleiben.
     let app = app.clone();

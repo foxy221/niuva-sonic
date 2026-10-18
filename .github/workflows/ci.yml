@@ -6,7 +6,11 @@ on:
   pull_request:
 
 jobs:
-  test:
+  # Typprüfung, Frontend-Tests und die Rust-Tests. Läuft ohne Netz und ohne
+  # Zugangsdaten; der End-to-End-Lauf gegen den Testserver bleibt Handarbeit
+  # (`pnpm e2e`).
+  pruefen:
+    name: Typprüfung und Tests
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +24,27 @@ jobs:
         with:
           workspaces: src-tauri
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: pnpm typecheck
       - run: pnpm test
       - run: cargo test
         working-directory: src-tauri
+
+  # Der Windows-Build der Anwendung. Das Bündeln des Installers passiert bei
+  # einem Tag in `release.yml`; hier zählt, dass die Anwendung übersetzt.
+  windows-build:
+    name: Windows-Build
+    runs-on: windows-latest
+    needs: pruefen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm tauri build --no-bundle

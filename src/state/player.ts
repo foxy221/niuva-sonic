@@ -19,6 +19,7 @@ import {
 import { useSession } from "./session";
 import { useSettings } from "./settings";
 import { useOffline } from "./offline";
+import { logError } from "./log";
 import { flushWrites, readValue, removeValue, writeValue } from "./storage";
 
 const FILE = "player.json";
@@ -243,6 +244,7 @@ function handleEnded() {
  */
 function handleError(failure: MediaFailure) {
   cancelFailure();
+  logError(failure.message, "Wiedergabe fehlgeschlagen");
   usePlayer.setState({ playing: false, buffering: false, error: failure.message });
   setPlaybackState("paused");
   const { queue, index } = usePlayer.getState();

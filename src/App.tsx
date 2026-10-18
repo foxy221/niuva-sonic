@@ -16,11 +16,14 @@ import Search from "./screens/Search";
 import Settings from "./screens/Settings";
 import Offline from "./screens/Offline";
 import OfflineAlbum from "./screens/OfflineAlbum";
+import Diagnostics from "./screens/Diagnostics";
 import Layout from "./components/Layout";
 import { useDesktopExit } from "./hooks/useDesktopExit";
+import { useErrorLog } from "./hooks/useErrorLog";
 
 export default function App() {
   useDesktopExit();
+  useErrorLog();
   const { ready, client, restore } = useSession();
 
   useEffect(() => {
@@ -48,6 +51,7 @@ export default function App() {
           <Route path="offline" element={<Offline />} />
           <Route path="offline/album/:id" element={<OfflineAlbum />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="diagnostics" element={<Diagnostics />} />
         </Route>
       </Routes>
     </HashRouter>

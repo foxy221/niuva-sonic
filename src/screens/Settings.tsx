@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import Segmented from "../components/Segmented";
 import Switch from "../components/Switch";
 import { formatBytes } from "../format";
+import { replayGainSupported, useCapabilities } from "../state/capabilities";
 import {
   checkForUpdate,
   isDesktopApp,
@@ -14,6 +15,8 @@ import {
   type WindowPrefs,
 } from "../state/desktop";
 import { offlineSupported, useOffline } from "../state/offline";
+import { profileId, useProfiles } from "../state/profiles";
+import { credentialsKey, keychainAvailable } from "../state/secrets";
 import { bitRateOptions, formatOptions, limitOptions, useSettings, type PlaybackSettings } from "../state/settings";
 import { useSession } from "../state/session";
 
@@ -51,6 +54,13 @@ export default function Settings() {
   const { settings, update } = useSettings();
   const { creds, logout } = useSession();
   const desktop = isDesktopApp();
+  const server = useCapabilities((s) => s.server);
+  const capabilitiesReady = useCapabilities((s) => s.ready);
+  const profiles = useProfiles((s) => s.list);
+  const switchProfile = useProfiles((s) => s.activate);
+  const removeProfile = useProfiles((s) => s.remove);
+  const profileBusy = useProfiles((s) => s.busy);
+  const profileProblem = useProfiles((s) => s.error);
   const offlineReady = useOffline((s) => s.ready);
   const usage = useOffline((s) => s.usage);
   const offlineCount = useOffline((s) => Object.keys(s.songs).length);
@@ -58,10 +68,18 @@ export default function Settings() {
   const [windowPrefs, setWindowPrefs] = useState<WindowPrefs | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [hasTray, setHasTray] = useState(true);
+  const [keychain, setKeychain] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const inFlight = useRef(false);
   const updateRequest = useRef(0);
+  const activeProfile = creds ? credentialsKey(creds) : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    void keychainAvailable().then((available) => { if (!cancelled) setKeychain(available); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!desktop) return;
@@ -123,8 +141,17 @@ export default function Settings() {
       <Setting title="Audioformat" hint="Der Server rechnet die Datei dafür um. Original lässt sie unverändert.">
         <Segmented label="Audioformat" value={settings.format} options={formats} onChange={(format) => update({ format })} />
       </Setting>
-      <Setting title="Lautstärke angleichen" hint="Gleicht laute und leise Aufnahmen an. Wirkt nur bei Titeln, die ReplayGain-Werte in den Tags tragen.">
-        <Segmented label="Lautstärke angleichen" value={settings.replayGain} options={gains} onChange={(replayGain) => update({ replayGain })} />
+      <Setting
+        title="Lautstärke angleichen"
+        hint={
+          replayGainSupported(server)
+            ? "Gleicht laute und leise Aufnahmen an. Wirkt nur bei Titeln, die ReplayGain-Werte in den Tags tragen."
+            : capabilitiesReady
+              ? "Der Server meldet keine OpenSubsonic-Erweiterungen und liefert damit keine ReplayGain-Werte. Die Auswahl bleibt hier ohne Wirkung."
+              : "Es wird noch geprüft, ob der Server ReplayGain-Werte liefert."
+        }
+      >
+        <Segmented label="Lautstärke angleichen" value={settings.replayGain} options={gains} disabled={!replayGainSupported(server)} onChange={(replayGain) => update({ replayGain })} />
       </Setting>
 
       <h2>Wiedergabe</h2>
@@ -196,6 +223,40 @@ export default function Settings() {
       <Setting title={creds?.username ?? "Nicht angemeldet"} hint={creds ? `${creds.serverUrl}. Dein Passwort wird nicht gespeichert, die Anmeldung läuft über einen Token.` : "Melde dich an, um deine Musik zu hören."}>
         {creds && <button type="button" className="ghost" onClick={logout}><LogOut size={18} /> Abmelden</button>}
       </Setting>
+      <Setting
+        title="Zugangsdaten"
+        hint={
+          keychain === null
+            ? "Der Schlüsselbund wird geprüft …"
+            : keychain
+              ? "Token und Salt liegen im Schlüsselbund von Windows, nicht in der Datei der App. Passwörter werden nie gespeichert."
+              : "Kein Schlüsselbund verfügbar. In der App gilt die Anmeldung dann nur für diese Sitzung; in der Entwicklung im Browser liegt sie in der lokalen Ablage."
+        }
+      >
+        <a className="ghost" href="#/diagnostics">Diagnose öffnen</a>
+      </Setting>
+      {profileProblem && <p className="muted">{profileProblem}</p>}
+      <h2>Server-Profile</h2>
+      {profiles.length ? (
+        <ul>
+          {profiles.map((profile) => (
+            <li key={profileId(profile)}>
+              <span>{profile.username} <span className="muted">{profile.serverUrl}</span></span>{" "}
+              <button
+                type="button"
+                className="ghost"
+                disabled={profileBusy || profileId(profile) === activeProfile}
+                onClick={() => void switchProfile(profile)}
+              >
+                {profileId(profile) === activeProfile ? "Aktiv" : "Wechseln"}
+              </button>{" "}
+              <button type="button" className="ghost" disabled={profileBusy} onClick={() => void removeProfile(profile)}>Entfernen</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">Noch kein Server gemerkt. Nach der ersten Anmeldung erscheint er hier zum Umschalten.</p>
+      )}
     </section>
   );
 }

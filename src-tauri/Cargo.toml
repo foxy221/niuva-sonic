@@ -44,6 +44,12 @@ tauri-plugin-global-shortcut = "2"
 # Auto-Update nur auf dem Desktop; die Einrichtung steht in docs/ROADMAP-Technik.md.
 tauri-plugin-updater = "2"
 
+# Zugangsdaten liegen in der Windows-Anmeldeinformationsverwaltung statt im
+# Klartext-Store der Oberflaeche. Nur Windows; auf anderen Systemen sagt der
+# Befehl ab und die Oberflaeche faellt auf die alte Ablage zurueck.
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
+
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

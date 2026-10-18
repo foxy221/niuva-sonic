@@ -14,6 +14,7 @@ import {
   startDownload,
 } from "./desktop";
 import { readValue, writeValue } from "./storage";
+import { logError } from "./log";
 import { useSession } from "./session";
 import { useSettings } from "./settings";
 
@@ -197,6 +198,7 @@ async function runJob(job: DownloadJob, pending: Song[], album: AlbumWithSongs |
         canceled = true;
         break;
       }
+      logError(error, `Download fehlgeschlagen: ${song.title}`);
       bump("failedCount");
     }
   }

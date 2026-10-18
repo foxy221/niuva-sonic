@@ -10,9 +10,11 @@ import type {
   ArtistWithAlbums,
   Credentials,
   Genre,
+  OpenSubsonicExtension,
   Playlist,
   PlaylistWithSongs,
   SearchResult3,
+  ServerInfo,
   Song,
   StarIds,
   Starred,
@@ -78,8 +80,19 @@ export class SubsonicClient {
     return body as T;
   }
 
+  /** Kennung des Servers. `openSubsonic` sagt, ob Erweiterungen abfragbar sind. */
   ping() {
-    return this.call<{ type?: string; serverVersion?: string }>("ping");
+    return this.call<ServerInfo>("ping");
+  }
+
+  /**
+   * Vom Server gemeldete OpenSubsonic-Erweiterungen. Server ohne OpenSubsonic
+   * kennen den Aufruf nicht; der Aufrufer fragt ihn nur nach `ping` mit
+   * gesetztem `openSubsonic` ab.
+   */
+  async getOpenSubsonicExtensions(): Promise<OpenSubsonicExtension[]> {
+    const r = await this.call<{ openSubsonicExtensions?: OpenSubsonicExtension[] }>("getOpenSubsonicExtensions");
+    return (r.openSubsonicExtensions ?? []).map((entry) => ({ name: entry.name, versions: entry.versions ?? [] }));
   }
 
   // --- Bibliothek -------------------------------------------------------
