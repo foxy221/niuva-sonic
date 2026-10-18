@@ -55,20 +55,29 @@ pub fn tray_ready(app: AppHandle) -> bool {
 
 /// Schliessen legt das Fenster in den Tray oder beendet die App.
 #[tauri::command]
-pub fn set_close_to_tray(app: AppHandle, state: State<PrefsState>, enabled: bool) -> Result<Prefs, String> {
-    let next = Prefs {
-        close_to_tray: enabled,
-        ..state.get()
-    };
-    prefs::write(&app, next)?;
-    state.set(next);
-    Ok(next)
+pub fn set_close_to_tray(
+    app: AppHandle,
+    state: State<PrefsState>,
+    enabled: bool,
+) -> Result<Prefs, String> {
+    state.update(
+        |p| Prefs {
+            close_to_tray: enabled,
+            ..p
+        },
+        |_| Ok(()),
+        |p| prefs::write(&app, p),
+    )
 }
 
 /// Medientasten systemweit abfangen. Erst belegen, dann merken: schlaegt das
 /// Belegen fehl, bleibt die Einstellung aus und die Oberflaeche zeigt den Grund.
 #[tauri::command]
-pub fn set_global_shortcuts(app: AppHandle, state: State<PrefsState>, enabled: bool) -> Result<Prefs, String> {
+pub fn set_global_shortcuts(
+    app: AppHandle,
+    state: State<PrefsState>,
+    enabled: bool,
+) -> Result<Prefs, String> {
     #[cfg(not(desktop))]
     {
         let _ = (&app, &state, enabled);
@@ -76,15 +85,24 @@ pub fn set_global_shortcuts(app: AppHandle, state: State<PrefsState>, enabled: b
     }
     #[cfg(desktop)]
     {
-        crate::desktop::apply_global_shortcuts(&app, enabled)?;
-        let next = Prefs {
-            global_shortcuts: enabled,
-            ..state.get()
-        };
-        prefs::write(&app, next)?;
-        state.set(next);
-        Ok(next)
+        state.update(
+            |p| Prefs {
+                global_shortcuts: enabled,
+                ..p
+            },
+            |p| crate::desktop::apply_global_shortcuts(&app, p.global_shortcuts),
+            |p| prefs::write(&app, p),
+        )
     }
+}
+
+/// Die Oberfläche hat ihren letzten Player-Zustand gespeichert.
+#[tauri::command]
+pub fn finish_exit(app: AppHandle) {
+    #[cfg(desktop)]
+    crate::desktop::finish_exit(&app);
+    #[cfg(not(desktop))]
+    let _ = app;
 }
 
 /// Nach einer neuen Fassung suchen. Ohne hinterlegte Adresse meldet die Pruefung

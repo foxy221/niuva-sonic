@@ -29,7 +29,8 @@ pub fn run() {
             commands::tray_ready,
             commands::set_close_to_tray,
             commands::set_global_shortcuts,
-            commands::check_for_update
+            commands::check_for_update,
+            commands::finish_exit
         ])
         .setup(|app| {
             app.manage(prefs::PrefsState::load(app.handle()));
@@ -37,6 +38,7 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 app.manage(desktop::TrayState::new());
+                app.manage(desktop::ExitState::default());
 
                 // Ein fehlendes Tray-Symbol oder eine belegte Medientaste darf den
                 // Start nicht verhindern. Ohne Symbol beendet Schliessen die App
@@ -51,8 +53,20 @@ pub fn run() {
                 app.state::<desktop::TrayState>().set_ready(tray_ready);
 
                 let prefs = app.state::<prefs::PrefsState>().get();
-                if let Err(error) = desktop::apply_global_shortcuts(app.handle(), prefs.global_shortcuts) {
+                if let Err(error) =
+                    desktop::apply_global_shortcuts(app.handle(), prefs.global_shortcuts)
+                {
                     eprintln!("Medientasten konnten nicht belegt werden: {error}");
+                    let fallback = prefs::Prefs {
+                        global_shortcuts: false,
+                        ..prefs
+                    };
+                    app.state::<prefs::PrefsState>().set(fallback);
+                    if let Err(error) = prefs::write(app.handle(), fallback) {
+                        eprintln!(
+                            "Deaktivierte Medientasten konnten nicht gespeichert werden: {error}"
+                        );
+                    }
                 }
             }
 

@@ -15,8 +15,10 @@ import Playlist from "./screens/Playlist";
 import Search from "./screens/Search";
 import Settings from "./screens/Settings";
 import Layout from "./components/Layout";
+import { useDesktopExit } from "./hooks/useDesktopExit";
 
 export default function App() {
+  useDesktopExit();
   const { ready, client, restore } = useSession();
 
   useEffect(() => {

@@ -18,7 +18,7 @@ import {
 } from "./player.logic";
 import { useSession } from "./session";
 import { useSettings } from "./settings";
-import { readValue, removeValue, writeValue } from "./storage";
+import { flushWrites, readValue, removeValue, writeValue } from "./storage";
 
 const FILE = "player.json";
 const KEY = "playerQueue";
@@ -76,6 +76,7 @@ interface PlayerState {
   reset: (forgetSaved?: boolean) => void;
   /** Warteschlange der letzten Sitzung laden (nur bei gleichem Server). */
   restore: () => Promise<void>;
+  flush: () => Promise<void>;
 }
 let scrobbleState: { songId: string; startedAt: number; submitted: boolean } | null = null;
 let listened = 0;
@@ -561,6 +562,12 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const position = typeof saved.position === "number" && Number.isFinite(saved.position) ? Math.max(0, saved.position) : 0;
     set({ queue, index, shuffle: Boolean(saved.shuffle), unshuffled: validOrder ? order.map((i) => queue[i]) : null, repeat: repeatOrder.includes(saved.repeat) ? saved.repeat : "off" });
     load(index, { autoplay: false, position });
+  },
+
+  async flush() {
+    cancelSave();
+    await saveNow();
+    await flushWrites();
   },
 }));
 

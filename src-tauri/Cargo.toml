@@ -25,6 +25,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-http = "2"
 tauri-plugin-store = "2"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 # Zweite Instanz meldet sich bei der laufenden und beendet sich.
 tauri-plugin-single-instance = "2"
 # Fenstergroesse, -position und Maximierung ueber den Neustart.
@@ -33,7 +35,6 @@ tauri-plugin-window-state = "2"
 tauri-plugin-global-shortcut = "2"
 
 # Auto-Update nur auf dem Desktop; die Einrichtung steht in docs/ROADMAP-Technik.md.
-[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-updater = "2"
 
 

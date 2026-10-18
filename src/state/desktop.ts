@@ -22,7 +22,7 @@ export interface UpdateStatus {
 /** Befehle, die Tray-Menü und Medientasten auslösen. */
 export type PlayerCommand = "toggle" | "next" | "previous";
 
-export const isDesktopApp = () => "__TAURI_INTERNALS__" in window;
+export const isDesktopApp = () => "__TAURI_INTERNALS__" in window && !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export function readWindowPrefs(): Promise<WindowPrefs> {
   return invoke<WindowPrefs>("window_prefs");

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import Segmented from "../components/Segmented";
 import Switch from "../components/Switch";
@@ -53,23 +53,29 @@ export default function Settings() {
   const [hasTray, setHasTray] = useState(true);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const inFlight = useRef(false);
+  const updateRequest = useRef(0);
 
   useEffect(() => {
     if (!desktop) return;
+    let cancelled = false;
     void readWindowPrefs()
-      .then(setWindowPrefs)
-      .catch(() => setProblem("Die Windows-Einstellungen konnten nicht gelesen werden."));
+      .then((prefs) => { if (!cancelled) setWindowPrefs(prefs); })
+      .catch(() => { if (!cancelled) setProblem("Die Windows-Einstellungen konnten nicht gelesen werden."); });
     void trayReady()
-      .then(setHasTray)
-      .catch(() => setHasTray(true));
+      .then((ready) => { if (!cancelled) setHasTray(ready); })
+      .catch(() => { if (!cancelled) setHasTray(true); });
+    const request = ++updateRequest.current;
     void checkForUpdate()
-      .then(setUpdateStatus)
-      .catch(() => setUpdateStatus(null));
+      .then((status) => { if (!cancelled && request === updateRequest.current) setUpdateStatus(status); })
+      .catch(() => { if (!cancelled && request === updateRequest.current) setUpdateStatus(null); });
+    return () => { cancelled = true; };
   }, [desktop]);
 
   /** Änderung an der Hülle: erst übernehmen lassen, dann anzeigen. */
   async function change(action: () => Promise<WindowPrefs>) {
-    if (busy) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setProblem(null);
     try {
@@ -77,18 +83,24 @@ export default function Settings() {
     } catch (error) {
       setProblem(typeof error === "string" ? error : "Die Änderung wurde nicht übernommen.");
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
 
   async function searchUpdate() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    const request = ++updateRequest.current;
     setBusy(true);
     setProblem(null);
     try {
-      setUpdateStatus(await checkForUpdate());
+      const status = await checkForUpdate();
+      if (request === updateRequest.current) setUpdateStatus(status);
     } catch {
       setProblem("Die Update-Prüfung ist fehlgeschlagen.");
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
@@ -127,14 +139,14 @@ export default function Settings() {
         <>
           <Setting title="Beim Schließen in den Tray" hint="Das Fenster verschwindet, die Wiedergabe läuft weiter. Linksklick auf das Tray-Symbol holt es zurück, „Beenden“ im Menü schließt die App. Windows 11 legt neue Symbole zuerst in den ausgeblendeten Bereich neben der Uhr.">
             {windowPrefs ? (
-              <Switch label="Beim Schließen in den Tray" checked={windowPrefs.closeToTray} onChange={(closeToTray) => void change(() => setCloseToTray(closeToTray))} />
+              <Switch label="Beim Schließen in den Tray" checked={windowPrefs.closeToTray} disabled={busy} onChange={(closeToTray) => void change(() => setCloseToTray(closeToTray))} />
             ) : (
               <span className="muted">…</span>
             )}
           </Setting>
           <Setting title="Medientasten abfangen" hint="Windows regelt die Medientasten normalerweise über die Media Session. Nur einschalten, wenn das nicht greift.">
             {windowPrefs ? (
-              <Switch label="Medientasten abfangen" checked={windowPrefs.globalShortcuts} onChange={(globalShortcuts) => void change(() => setGlobalShortcuts(globalShortcuts))} />
+              <Switch label="Medientasten abfangen" checked={windowPrefs.globalShortcuts} disabled={busy} onChange={(globalShortcuts) => void change(() => setGlobalShortcuts(globalShortcuts))} />
             ) : (
               <span className="muted">…</span>
             )}

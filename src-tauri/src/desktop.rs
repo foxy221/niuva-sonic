@@ -44,6 +44,36 @@ impl Default for TrayState {
 /// Befehle aus wie die Knoepfe im Fenster.
 pub const EVENT_PLAYER_COMMAND: &str = "player-command";
 
+#[derive(Default)]
+pub struct ExitState {
+    requested: AtomicBool,
+    finished: AtomicBool,
+}
+
+pub fn finish_exit<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<ExitState>();
+    if state.requested.load(Ordering::SeqCst) && !state.finished.swap(true, Ordering::SeqCst) {
+        app.exit(0);
+    }
+}
+
+fn request_exit<R: Runtime>(app: &AppHandle<R>) {
+    if app
+        .state::<ExitState>()
+        .requested
+        .swap(true, Ordering::SeqCst)
+    {
+        return;
+    }
+    let _ = app.emit_to("main", "app-exit-requested", ());
+    // Auch bei einem defekten WebView muss Beenden möglich bleiben.
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        finish_exit(&app);
+    });
+}
+
 const COMMAND_TOGGLE: &str = "toggle";
 const COMMAND_NEXT: &str = "next";
 const COMMAND_PREVIOUS: &str = "previous";
@@ -79,7 +109,8 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let before = PredefinedMenuItem::separator(app)?;
     let after = PredefinedMenuItem::separator(app)?;
 
-    let items: Vec<&dyn IsMenuItem<R>> = vec![&show, &before, &toggle, &next, &previous, &after, &quit];
+    let items: Vec<&dyn IsMenuItem<R>> =
+        vec![&show, &before, &toggle, &next, &previous, &after, &quit];
     let menu = Menu::with_items(app, &items)?;
 
     TrayIconBuilder::with_id("main")
@@ -92,7 +123,7 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             "toggle" => emit_command(app, COMMAND_TOGGLE),
             "next" => emit_command(app, COMMAND_NEXT),
             "previous" => emit_command(app, COMMAND_PREVIOUS),
-            "quit" => app.exit(0),
+            "quit" => request_exit(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -117,11 +148,14 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 pub fn handle_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     if let WindowEvent::CloseRequested { api, .. } = event {
         let app = window.app_handle();
-        let hide = app.state::<PrefsState>().get().close_to_tray && app.state::<TrayState>().ready();
+        let hide =
+            app.state::<PrefsState>().get().close_to_tray && app.state::<TrayState>().ready();
+        api.prevent_close();
         if hide {
             // Die Wiedergabe laeuft weiter: das Fenster verschwindet nur.
-            api.prevent_close();
             let _ = window.hide();
+        } else {
+            request_exit(app);
         }
     }
 }
@@ -132,17 +166,20 @@ pub fn handle_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) 
 /// haelt die Taste dann womoeglich schon.
 pub fn apply_global_shortcuts<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> Result<(), String> {
     let shortcuts = app.global_shortcut();
-    shortcuts.unregister_all().map_err(|error| error.to_string())?;
+    shortcuts
+        .unregister_all()
+        .map_err(|error| error.to_string())?;
     if !enabled {
         return Ok(());
     }
 
     for (code, command) in MEDIA_KEYS {
-        let registered = shortcuts.on_shortcut(Shortcut::new(None, code), move |app, _shortcut, event| {
-            if event.state == ShortcutState::Pressed {
-                emit_command(app, command);
-            }
-        });
+        let registered =
+            shortcuts.on_shortcut(Shortcut::new(None, code), move |app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    emit_command(app, command);
+                }
+            });
         if let Err(error) = registered {
             let _ = shortcuts.unregister_all();
             return Err(format!("{code:?} konnte nicht belegt werden: {error}"));
@@ -156,13 +193,24 @@ pub fn apply_global_shortcuts<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> 
 /// werden; das ist der Normalfall, solange kein Update-Server eingerichtet ist.
 pub async fn check_for_update<R: Runtime>(app: &AppHandle<R>) -> UpdateStatus {
     let current_version = app.package_info().version.to_string();
-    let Ok(updater) = app.updater_builder().build() else {
+    if !updater_configured(app.config().plugins.0.get("updater")) {
         return UpdateStatus {
             state: "notConfigured",
             current_version,
             version: None,
             message: None,
         };
+    }
+    let updater = match app.updater_builder().build() {
+        Ok(updater) => updater,
+        Err(error) => {
+            return UpdateStatus {
+                state: "error",
+                current_version,
+                version: None,
+                message: Some(error.to_string()),
+            };
+        }
     };
 
     match updater.check().await {
@@ -184,5 +232,38 @@ pub async fn check_for_update<R: Runtime>(app: &AppHandle<R>) -> UpdateStatus {
             version: None,
             message: Some(error.to_string()),
         },
+    }
+}
+
+fn updater_configured(config: Option<&serde_json::Value>) -> bool {
+    config.is_some_and(|config| {
+        config
+            .get("endpoints")
+            .and_then(|v| v.as_array())
+            .is_some_and(|urls| !urls.is_empty())
+            && config
+                .get("pubkey")
+                .and_then(|v| v.as_str())
+                .is_some_and(|key| !key.trim().is_empty())
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::updater_configured;
+    use serde_json::json;
+
+    #[test]
+    fn update_braucht_adresse_und_schluessel() {
+        assert!(!updater_configured(None));
+        assert!(!updater_configured(Some(
+            &json!({"endpoints": [], "pubkey": "key"})
+        )));
+        assert!(!updater_configured(Some(
+            &json!({"endpoints": ["https://example.org/update"], "pubkey": " "})
+        )));
+        assert!(updater_configured(Some(
+            &json!({"endpoints": ["https://example.org/update"], "pubkey": "key"})
+        )));
     }
 }

@@ -85,7 +85,7 @@ Roh gebaut, ohne Gestaltung, aber vollständig bedienbar:
 
 ### Was aus Technik 3 dazukam
 
-- **Einstellungen „Windows“:** neuer Abschnitt mit zwei Schaltern („Beim Schließen in den Tray“, „Medientasten abfangen“) und der Update-Prüfung, gebaut mit `Setting` und `Switch` in deinem Stil. Zu gestalten bleibt hier nur Feinschliff: `Switch` kennt kein `disabled`, deshalb zeigt Technik beim Lesen der Werte kurz „…“ statt einen gesperrten Schalter. Sobald `Switch` ein `disabled` bekommt, lässt sich das umstellen.
+- **Einstellungen „Windows“:** neuer Abschnitt mit zwei Schaltern („Beim Schließen in den Tray“, „Medientasten abfangen“) und der Update-Prüfung, gebaut mit `Setting` und `Switch` in deinem Stil. `Switch` unterstützt seit dem Technik-Review `disabled`; während Änderungen sind die beiden Windows-Schalter gesperrt. Beim ersten Lesen der Werte steht weiterhin kurz „…“. Zu gestalten bleibt hier Feinschliff.
 - **Hinweis auf die Leertaste:** Zeile „Tastenkürzel“ im Abschnitt Wiedergabe. Bewusst schlicht (`<span className="muted">Leertaste</span>`) – ein `<kbd>`-Stil wäre der nächste Schritt.
 - **Sonst nichts im Fenster:** Tray-Symbol, Medientasten, Fenstergedächtnis und Installer liegen außerhalb der Oberfläche. Dafür gibt es keine neuen Flächen zu gestalten.
 - **Fehlerhinweis im Player:** `.player-note` bleibt wie übernommen (Puffern und Fehler mit Wiederholen-Knopf).

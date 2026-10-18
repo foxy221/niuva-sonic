@@ -8,6 +8,11 @@ import { load } from "@tauri-apps/plugin-store";
 const isTauri = () => "__TAURI_INTERNALS__" in window;
 const pendingWrites = new Map<string, Promise<void>>();
 
+/** Vor dem nativen Beenden auch bereits angestoßene Einstellungen/Deletes abwarten. */
+export async function flushWrites(): Promise<void> {
+  await Promise.all([...pendingWrites.values()].map((task) => task.catch(() => {})));
+}
+
 /** Pro Datei in Aufrufreihenfolge schreiben: ein spätes Save darf kein Delete überholen. */
 function writeNative(file: string, change: () => Promise<void>) {
   const task = (pendingWrites.get(file) ?? Promise.resolve()).catch(() => {}).then(change);

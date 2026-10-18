@@ -17,9 +17,11 @@ export function usePlayerCommands() {
     let stop: (() => void) | null = null;
     let cancelled = false;
 
-    void onPlayerCommand(runPlayerCommand).then((unlisten) => {
+    void onPlayerCommand((command) => { if (!cancelled) runPlayerCommand(command); }).then((unlisten) => {
       if (cancelled) unlisten();
       else stop = unlisten;
+    }).catch((error: unknown) => {
+      if (!cancelled) console.error("Desktop-Steuerung konnte nicht verbunden werden.", error);
     });
 
     return () => {

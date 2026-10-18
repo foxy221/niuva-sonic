@@ -6,10 +6,9 @@ import { usePlayer } from "../state/player";
  * Element auslösen. Dort darf die Wiedergabe nicht umschalten.
  */
 export function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  if (target.isContentEditable) return true;
-  if (["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(target.tagName)) return true;
-  return target.closest("[role='textbox'], [role='slider'], [role='menu'], [role='menuitem']") !== null;
+  if (!(target instanceof Element)) return false;
+  if (target instanceof HTMLElement && target.isContentEditable) return true;
+  return target.closest("input, textarea, select, button, a[href], summary, [role='button'], [role='checkbox'], [role='switch'], [role='radio'], [role='textbox'], [role='slider'], [role='menu'], [role='menuitem'], [role='combobox'], [role='listbox']") !== null;
 }
 
 /**
@@ -19,7 +18,7 @@ export function isTypingTarget(target: EventTarget | null): boolean {
 export function useKeyboardShortcuts() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat || event.defaultPrevented) return;
+      if (event.code !== "Space" || event.repeat || event.defaultPrevented || event.isComposing) return;
       if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
       if (isTypingTarget(event.target)) return;
       event.preventDefault();

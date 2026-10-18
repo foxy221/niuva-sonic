@@ -50,6 +50,45 @@ impl PrefsState {
     pub fn set(&self, prefs: Prefs) {
         *self.0.lock().unwrap_or_else(|broken| broken.into_inner()) = prefs;
     }
+
+    /// Serialisiert Lesen, Anwenden und Speichern auch bei gleichzeitigen IPC-Aufrufen.
+    pub fn update(
+        &self,
+        change: impl FnOnce(Prefs) -> Prefs,
+        apply: impl Fn(Prefs) -> Result<(), String>,
+        persist: impl Fn(Prefs) -> Result<(), String>,
+    ) -> Result<Prefs, String> {
+        let mut current = self.0.lock().unwrap_or_else(|broken| broken.into_inner());
+        let previous = *current;
+        let next = change(previous);
+        if next == previous {
+            return Ok(previous);
+        }
+        if let Err(error) = apply(next) {
+            let rollback = apply(previous);
+            return Err(format!(
+                "{error}{}",
+                rollback
+                    .err()
+                    .map(|e| format!("; Wiederherstellung fehlgeschlagen: {e}"))
+                    .unwrap_or_default()
+            ));
+        }
+        if let Err(error) = persist(next) {
+            let rollback = apply(previous);
+            // Auch den Cache des Store-Plugins auf den alten Wert zurücksetzen.
+            let _ = persist(previous);
+            return Err(format!(
+                "{error}{}",
+                rollback
+                    .err()
+                    .map(|e| format!("; Wiederherstellung fehlgeschlagen: {e}"))
+                    .unwrap_or_default()
+            ));
+        }
+        *current = next;
+        Ok(next)
+    }
 }
 
 /// Liest die Einstellungen. Fehlende Felder und unbrauchbare Eintraege fallen auf
@@ -70,7 +109,8 @@ pub fn write<R: Runtime>(app: &AppHandle<R>, prefs: Prefs) -> Result<(), String>
 
 #[cfg(test)]
 mod tests {
-    use super::Prefs;
+    use super::{Prefs, PrefsState};
+    use std::sync::Mutex;
 
     #[test]
     fn vorgaben_halten_die_wiedergabe_am_leben() {
@@ -100,5 +140,90 @@ mod tests {
     #[test]
     fn unbrauchbare_werte_werden_abgelehnt() {
         assert!(serde_json::from_str::<Prefs>(r#"{"closeToTray":"ja"}"#).is_err());
+    }
+
+    #[test]
+    fn speicherfehler_rollt_registrierung_und_cache_zurueck() {
+        let state = PrefsState(Mutex::new(Prefs::default()));
+        let applied = Mutex::new(Vec::new());
+        let saved = Mutex::new(Vec::new());
+        let result = state.update(
+            |p| Prefs {
+                global_shortcuts: true,
+                ..p
+            },
+            |p| {
+                applied.lock().unwrap().push(p.global_shortcuts);
+                Ok(())
+            },
+            |p| {
+                saved.lock().unwrap().push(p.global_shortcuts);
+                Err("Disk voll".into())
+            },
+        );
+        assert!(result.is_err());
+        assert_eq!(*applied.lock().unwrap(), vec![true, false]);
+        assert_eq!(*saved.lock().unwrap(), vec![true, false]);
+        assert_eq!(state.get(), Prefs::default());
+    }
+
+    #[test]
+    fn registrierungsfehler_speichert_keine_neue_einstellung() {
+        let state = PrefsState(Mutex::new(Prefs::default()));
+        assert!(
+            state
+                .update(
+                    |p| Prefs {
+                        global_shortcuts: true,
+                        ..p
+                    },
+                    |p| if p.global_shortcuts {
+                        Err("Taste belegt".into())
+                    } else {
+                        Ok(())
+                    },
+                    |_| panic!("Darf nicht gespeichert werden"),
+                )
+                .is_err()
+        );
+        assert_eq!(state.get(), Prefs::default());
+    }
+
+    #[test]
+    fn parallele_aenderungen_behalten_beide_felder() {
+        let state = PrefsState(Mutex::new(Prefs::default()));
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                state
+                    .update(
+                        |p| Prefs {
+                            close_to_tray: false,
+                            ..p
+                        },
+                        |_| Ok(()),
+                        |_| Ok(()),
+                    )
+                    .unwrap()
+            });
+            scope.spawn(|| {
+                state
+                    .update(
+                        |p| Prefs {
+                            global_shortcuts: true,
+                            ..p
+                        },
+                        |_| Ok(()),
+                        |_| Ok(()),
+                    )
+                    .unwrap()
+            });
+        });
+        assert_eq!(
+            state.get(),
+            Prefs {
+                close_to_tray: false,
+                global_shortcuts: true
+            }
+        );
     }
 }
