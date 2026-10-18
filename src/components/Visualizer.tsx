@@ -4,10 +4,14 @@ import { usePlayer } from "../state/player";
 
 const BANDS = 48;
 const RING_COUNT = 7;
-const RING_POINTS = 90;
+const RING_POINTS = 56;
 /** Wie viele Bilder Spektrum-Verlauf vorgehalten werden; jeder Ring liest ein Stück weiter zurück. */
 const HISTORY = 48;
 const RING_LAG = 5;
+/** Der Glow wird klein gezeichnet und weich hochskaliert: billig und von selbst unscharf. */
+const GLOW_SCALE = 0.25;
+/** Auch die sichtbare Fläche ist nur halb aufgelöst: weiche Ringe brauchen keine Pixelschärfe. */
+const VIEW_SCALE = 0.5;
 const TAU = Math.PI * 2;
 
 interface Cloud {
@@ -79,7 +83,10 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     const root = rootRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d", { alpha: true });
-    if (!root || !canvas || !ctx) return;
+    // Der Glow lebt auf einer unsichtbaren Fläche und wird in die sichtbare kopiert: nur eine Ebene im Compositor.
+    const glowCanvas = document.createElement("canvas");
+    const glowCtx = glowCanvas.getContext("2d", { alpha: true });
+    if (!root || !canvas || !ctx || !glowCtx) return;
     const scratch = document.createElement("canvas");
     scratch.width = scratch.height = 1;
     const scratchCtx = scratch.getContext("2d", { willReadFrequently: true })!;
@@ -92,6 +99,7 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     const kick = new Float32Array(CLOUDS.length);
     const history: Float32Array[] = Array.from({ length: HISTORY }, () => new Float32Array(BANDS));
     let head = 0;
+    let tick = 0;
     const idle = { level: 0.2 };
     let width = 0;
     let height = 0;
@@ -117,9 +125,10 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     function resize() {
       width = root!.clientWidth;
       height = root!.clientHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      canvas!.width = Math.max(1, Math.round(width * dpr));
-      canvas!.height = Math.max(1, Math.round(height * dpr));
+      canvas!.width = Math.max(1, Math.round(width * VIEW_SCALE));
+      canvas!.height = Math.max(1, Math.round(height * VIEW_SCALE));
+      glowCanvas!.width = Math.max(1, Math.round(width * GLOW_SCALE));
+      glowCanvas!.height = Math.max(1, Math.round(height * GLOW_SCALE));
       const unit = Math.max(width, height);
       CLOUDS.forEach((cloud, k) => {
         const el = cloudRefs.current[k];
@@ -196,6 +205,23 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       return shape[i] + (shape[Math.min(BANDS - 1, i + 1)] - shape[i]) * (f - i);
     };
 
+    /** Glättet die Bänder über Nachbarn, damit die Ringe weich schwingen statt zu zacken. */
+    const smoothed = new Float32Array(BANDS);
+    function smooth(shape: Float32Array) {
+      for (let i = 0; i < BANDS; i++) {
+        let sum = 0;
+        let n = 0;
+        for (let k = -3; k <= 3; k++) {
+          const j = i + k;
+          if (j < 0 || j >= BANDS) continue;
+          sum += shape[j];
+          n++;
+        }
+        smoothed[i] = sum / n;
+      }
+      return smoothed;
+    }
+
     /**
      * Sieben Ringe an festen Plätzen um das Cover. Jeder zeigt das Spektrum von
      * vor ein paar Bildern, der innerste das jüngste: so läuft eine Welle von
@@ -205,19 +231,27 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       const dpr = canvas!.width / Math.max(1, width);
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, width, height);
+      // Der Glow ist ohnehin weich und langsam: jedes zweite Bild reicht und halbiert die Arbeit.
+      const paintGlow = tick++ % 2 === 0;
+      if (paintGlow) {
+        glowCtx!.setTransform(GLOW_SCALE, 0, 0, GLOW_SCALE, 0, 0);
+        glowCtx!.clearRect(0, 0, width, height);
+      }
       ctx!.lineJoin = "round";
+      glowCtx!.lineJoin = "round";
       history[head].set(bands);
 
+      const lines: { path: Path2D; css: string; alpha: number }[] = [];
       for (let ring = RING_COUNT - 1; ring >= 0; ring--) {
-        const shape = history[(head - ring * RING_LAG + HISTORY * 4) % HISTORY];
+        const shape = smooth(history[(head - ring * RING_LAG + HISTORY * 4) % HISTORY]);
         let level = 0;
         for (let i = 0; i < BANDS; i++) level += shape[i];
         level /= BANDS;
         const strength = Math.min(1, level / 0.45);
         const base = coverR * (1.14 + ring * 0.2);
-        const swell = coverR * 0.16 * strength;
-        const wobble = coverR * (0.34 - ring * 0.025);
-        const turn = t * 0.000018 * (ring % 2 ? 1 : -1);
+        const swell = coverR * 0.22 * strength;
+        const wobble = coverR * (0.46 - ring * 0.03);
+        const turn = t * 0.00003 * (ring % 2 ? 1 : -1);
         const pts: [number, number][] = [];
         for (let k = 0; k < RING_POINTS; k++) {
           const u = k / RING_POINTS;
@@ -225,29 +259,42 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
           const r = base + swell + (shapeAt(shape, u + turn) - level) * wobble;
           pts.push([coverX + Math.cos(a) * r, coverY + Math.sin(a) * r]);
         }
-        ctx!.beginPath();
-        ctx!.moveTo((pts[0][0] + pts[RING_POINTS - 1][0]) / 2, (pts[0][1] + pts[RING_POINTS - 1][1]) / 2);
+        const path = new Path2D();
+        path.moveTo((pts[0][0] + pts[RING_POINTS - 1][0]) / 2, (pts[0][1] + pts[RING_POINTS - 1][1]) / 2);
         for (let k = 0; k < RING_POINTS; k++) {
           const p = pts[k];
           const n = pts[(k + 1) % RING_POINTS];
-          ctx!.quadraticCurveTo(p[0], p[1], (p[0] + n[0]) / 2, (p[1] + n[1]) / 2);
+          path.quadraticCurveTo(p[0], p[1], (p[0] + n[0]) / 2, (p[1] + n[1]) / 2);
         }
-        ctx!.closePath();
+        path.closePath();
         const color = tones[ring % tones.length];
-        // Außen leiser als innen, bei Schlägen heller. Zwei Durchgänge: Schimmer und dünne Linie.
-        const alpha = (0.28 + strength * 0.62) * (1 - ring * 0.085);
-        ctx!.strokeStyle = rgba(color, 1);
-        ctx!.lineWidth = 10 + strength * 10;
-        ctx!.globalAlpha = alpha * 0.14;
-        ctx!.stroke();
-        ctx!.lineWidth = 4;
-        ctx!.globalAlpha = alpha * 0.3;
-        ctx!.stroke();
-        ctx!.lineWidth = 1.5;
-        ctx!.globalAlpha = Math.min(1, alpha);
-        ctx!.stroke();
+        // Außen leiser als innen, bei Schlägen heller.
+        const alpha = (0.22 + strength * 0.5) * (1 - ring * 0.08);
+        const css = rgba(color, 1);
+
+        // Glow: breite, blasse Durchgänge auf der kleinen Fläche.
+        if (paintGlow) {
+          glowCtx!.strokeStyle = css;
+          for (const [w, weight] of [[48, 0.14], [20, 0.28]] as const) {
+            glowCtx!.lineWidth = w * (0.75 + strength * 0.5);
+            glowCtx!.globalAlpha = Math.min(1, alpha * weight);
+            glowCtx!.stroke(path);
+          }
+        }
+        lines.push({ path, css, alpha });
+      }
+      // Erst der weiche Glow (hochskaliert, deshalb von selbst unscharf), dann die dünnen Linien darüber.
+      ctx!.globalAlpha = 1;
+      ctx!.imageSmoothingEnabled = true;
+      ctx!.drawImage(glowCanvas, 0, 0, glowCanvas.width, glowCanvas.height, 0, 0, width, height);
+      for (const line of lines) {
+        ctx!.strokeStyle = line.css;
+        ctx!.lineWidth = 1.6;
+        ctx!.globalAlpha = Math.min(1, line.alpha * 0.4);
+        ctx!.stroke(line.path);
       }
       ctx!.globalAlpha = 1;
+      glowCtx!.globalAlpha = 1;
       head = (head + 1) % HISTORY;
     }
 
