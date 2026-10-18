@@ -28,7 +28,16 @@ Voraussetzungen: Node 24, pnpm, Rust (MSVC), WebView2. Für Android zusätzlich 
 
 ## Struktur
 
-- `src/` React-Frontend
+- `src/api/` Subsonic-Client und Typen
+- `src/hooks/` Datenzugriff über TanStack Query (Bibliothek, Favoriten, Playlists)
+- `src/state/` Zustand-Stores (Sitzung, Player)
+- `src/components/` Bausteine und App-Rahmen
+- `src/screens/` Ansichten
 - `src-tauri/` Rust-Backend und Tauri-Konfiguration
 - `src-tauri/gen/android/` generiertes Android-Projekt
-- `branding/` Logos, `docs/` Notizen
+- `branding/` Logos, `docs/` Notizen und Roadmaps
+
+## Roadmap
+
+- [Technik](docs/ROADMAP-Technik.md): API, Wiedergabe, Windows-Integration, Android, Offline, Qualität. Phase 1 (Bibliothek) ist abgeschlossen.
+- [Design](docs/ROADMAP-Design.md): Tokens, App-Rahmen, Bildschirme, Bewegung. Läuft parallel zur Technik.

@@ -54,11 +54,23 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 
 Design braucht von der Technik, bevor die Bildschirme fertig sein können:
 
-| Bildschirm | Benötigt aus Phase |
-| --- | --- |
-| Künstler, Suche, Playlist | Technik 1 |
-| Queue-Panel, Vollbild-Player | Technik 2 |
-| Mobile Mini-Player | Technik 4 |
-| Songtexte | Technik „Ideen“ |
+| Bildschirm | Benötigt aus Phase | Stand |
+| --- | --- | --- |
+| Start, Album, Künstler, Suche, Playlist | Technik 1 | **geliefert** |
+| Genres, Genre, Favoriten, Albenliste | Technik 1 | **geliefert** |
+| Queue-Panel, Vollbild-Player | Technik 2 | offen |
+| Mobile Mini-Player | Technik 4 | offen |
+| Songtexte | Technik „Ideen“ | offen |
 
-Bis dahin entsteht zuerst das Fundament (Tokens, Icons, App-Rahmen), das nichts Neues voraussetzt.
+### Was aus Technik 1 schon dasteht
+
+Roh gebaut, ohne Gestaltung, aber vollständig bedienbar:
+
+- **Routen:** `#/` (Start), `#/search`, `#/artists`, `#/artist/:id`, `#/albums`, `#/album/:id`, `#/genres`, `#/genre/:name`, `#/favorites`, `#/playlists`, `#/playlist/:id`.
+- **Navigation:** `src/components/Layout.tsx` hat jetzt eine `<nav className="topbar-nav">` mit Links auf alle Ansichten. Frei umbaubar (Seitenleiste, Suchfeld in der oberen Leiste).
+- **Bausteine zum Einkleiden:** `QueryStates` (Lade-, Leer- und Fehlerzustand), `AlbumGrid`, `ArtistGrid`, `SongList`, `FavoriteButton` (heute Textzeichen `♥ ♡` statt Icons), `Pager`, `AddToPlaylist`, `AlbumSection` (Startseiten-Reihe).
+- **Provisorische Layout-Regeln** am Ende von `src/styles.css` (`.topbar-nav`, `.filters`, `.pager`, `.letter-nav`, `.track-row`, `.song-actions`, `.add-to-playlist`, `.playlist-edit`, `.playlist-danger`): nur so viel Layout, dass alles bedienbar ist. Beim Aufteilen von `styles.css` einfach ersetzen.
+- **Zustände:** jede Liste liefert Lade-, Leer- und Fehlerzustand. `QueryStates` bekommt die Texte als Props – hier können Skeletons und Illustrationen eingehängt werden.
+- **Noch nicht vorhanden:** „Beliebteste Titel“ auf der Künstlerseite (Navidrome liefert ohne Last.fm-Anbindung keine `getTopSongs`-Daten) und Queue-Panel/Vollbild-Player (Technik 2).
+
+Bis Phase 2 entsteht zuerst das Fundament (Tokens, Icons, App-Rahmen), das nichts Neues voraussetzt.

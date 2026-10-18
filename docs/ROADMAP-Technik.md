@@ -2,6 +2,8 @@
 
 Für die Agenten, die die technische Umsetzung übernehmen (Codex, Cline). Das Layout und die visuelle Gestaltung stehen in [ROADMAP-Design.md](ROADMAP-Design.md) und werden separat gemacht.
 
+**Stand:** Phase 1 (Bibliothek) ist abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Nächste Phase: Wiedergabe (Queue, Scrobbling, Gapless).
+
 ## Arbeitsteilung
 
 - **Technik besitzt:** `src/api/`, `src/state/`, `src/hooks/` (neu), `src-tauri/`, Build, Tests, Android-Anbindung.
