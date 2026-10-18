@@ -78,3 +78,17 @@ export function useReorderPlaylist(playlistId: string) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: keys.playlist(playlistId) }),
   });
 }
+
+/** Titel an eine beliebige Playlist hängen (für das Menü an einer Titelzeile). */
+export function useAddToPlaylist() {
+  const client = useClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ playlistId, songIds }: { playlistId: string; songIds: string[] }) =>
+      client.updatePlaylist({ playlistId, songIdsToAdd: songIds }),
+    onSettled: (_result, _error, { playlistId }) => Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.playlist(playlistId) }),
+      queryClient.invalidateQueries({ queryKey: libraryPrefixes.playlists }),
+    ]),
+  });
+}

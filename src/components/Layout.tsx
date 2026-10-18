@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlayerCommands } from "../hooks/usePlayerCommands";
 import { useSession } from "../state/session";
 import { usePlayer } from "../state/player";
+import { useUi } from "../design/ui";
 import { useCoverUrl } from "../hooks/useCoverUrl";
 import FullPlayer from "./FullPlayer";
 import PlayerBar from "./PlayerBar";
@@ -27,6 +28,7 @@ const NAV = [
 export default function Layout() {
   const { creds, logout } = useSession();
   const navigate = useNavigate();
+  const fullOpen = useUi((s) => s.fullOpen);
   const current = usePlayer((s) => s.queue[s.index]);
   useNowPlayingAccent(useCoverUrl(current?.coverArt, current?.albumId, 64));
   // Leertaste im Fenster sowie Befehle aus Tray-Menü und Medientasten.
@@ -60,7 +62,8 @@ export default function Layout() {
         </div>
         <Outlet />
       </main>
-      <QueuePanel />
+      {/* Im Vollbild zeigt der Vollbild-Player die Warteschlange selbst. */}
+      {!fullOpen && <QueuePanel />}
       <PlayerBar />
       <FullPlayer />
     </div>

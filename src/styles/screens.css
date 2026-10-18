@@ -7,7 +7,14 @@
 .login-form button { margin-top: .6rem; padding: .95rem; font-size: 1rem; }
 
 .playlist-danger { align-items: center; margin-top: 2rem; }
-.playlist-edit { padding: 1.25rem 0; margin-bottom: 1.5rem; }
+form.playlist-edit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: end; gap: 1rem 1.25rem; padding: 1.25rem 1.4rem; margin: 0 0 2rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.playlist-edit .field { display: grid; gap: .4rem; font-size: .85rem; color: var(--muted); }
+.playlist-edit .field input { width: 100%; color: var(--text); }
+.playlist-edit .public { display: flex; align-items: center; gap: .6rem; min-height: 2.9rem; font-size: .9rem; }
+form.playlist-edit button[type="submit"] { justify-self: end; }
+.playlist-danger button.ghost { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+.playlist-danger button.ghost:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+@media (max-width: 640px) { form.playlist-edit { grid-template-columns: minmax(0, 1fr); } }
 .letter-section h2 { margin-top: 1.6rem; color: var(--accent); }
 .artist-list { display: grid; }
 

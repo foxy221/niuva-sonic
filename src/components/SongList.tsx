@@ -5,6 +5,7 @@ import { formatTime } from "../format";
 import { usePlayer } from "../state/player";
 import { offlineSupported, useOffline } from "../state/offline";
 import FavoriteButton from "./FavoriteButton";
+import SongPlaylistMenu from "./SongPlaylistMenu";
 import { SortableList, SortableRow } from "./Sortable";
 
 interface SongListProps {
@@ -19,6 +20,8 @@ interface SongListProps {
   action?: { label: string; onClick: (index: number) => void; disabled?: boolean };
   /** Zeilenaktionen „Als Nächste“ und „Anhängen“ zeigen. */
   queueActions?: boolean;
+  /** Menü „Zu Playlist hinzufügen“ je Zeile zeigen. */
+  playlistMenu?: boolean;
   /** Aktion „Für offline verfügbar machen“ zeigen; nur in der App. */
   downloads?: boolean;
   /** Macht die Liste per Ziehen umsortierbar; `from` und `to` sind Positionen in `songs`. */
@@ -47,7 +50,7 @@ function SongDownloadAction({ song }: { song: Song }) {
 }
 
 /** Titelliste mit Wiedergabe, Herz, Warteschlangen-Aktionen und optionaler Zusatzaktion. */
-export default function SongList({ songs, onPlay, numbers = "index", showAlbum = false, action, queueActions = true, downloads = true, onMove }: SongListProps) {
+export default function SongList({ songs, onPlay, numbers = "index", showAlbum = false, action, queueActions = true, playlistMenu = true, downloads = true, onMove }: SongListProps) {
   // Nur die Felder abonnieren, die sich auf die Zeilen auswirken; sonst
   // zeichnet die Liste bei jedem Fortschrittswechsel neu.
   const currentId = usePlayer((s) => s.queue[s.index]?.id);
@@ -82,6 +85,7 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
           </>
         )}
         <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label="Titel" />
+        {playlistMenu && <SongPlaylistMenu songId={song.id} />}
         {downloads && <SongDownloadAction song={song} />}
         {action && (
           <button type="button" className="icon row-action" onClick={() => action.onClick(i)} disabled={action.disabled} aria-label={action.label} title={action.label}>

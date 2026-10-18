@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ListMusic, Play, Save, Trash2 } from "lucide-react";
 import QueryStates from "../components/QueryStates";
+import Switch from "../components/Switch";
 import SongList from "../components/SongList";
 import { formatTime } from "../format";
 import { useClient } from "../hooks/useClient";
@@ -95,17 +96,18 @@ export default function Playlist() {
               <p className="muted">Diese Playlist wird vom Server verwaltet und lässt sich hier nicht ändern.</p>
             ) : (
               <form className="playlist-edit" onSubmit={save}>
-                <label>
+                <label className="field">
                   Name
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
                 </label>
-                <label>
+                <label className="field">
                   Kommentar
                   <input type="text" value={comment} onChange={(e) => setComment(e.target.value)} />
                 </label>
-                <label>
-                  <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} /> öffentlich
-                </label>
+                <div className="public">
+                  <Switch label="Öffentlich" checked={isPublic} onChange={setIsPublic} disabled={editingDisabled} />
+                  <span aria-hidden="true">Öffentlich</span>
+                </div>
                 <button type="submit" disabled={editingDisabled}>
                   <Save size={18} /> {update.isPending ? "Speichere …" : "Speichern"}
                 </button>
@@ -122,7 +124,7 @@ export default function Playlist() {
                 onMove={readonly ? undefined : moveSong}
               />
             ) : (
-              <p className="muted">Noch keine Titel. Auf einer Album-Seite hängt „Album anhängen“ Titel hier an.</p>
+              <p className="muted">Noch keine Titel. Das Playlist-Symbol an einem Titel oder „Album anhängen“ auf einer Album-Seite fügt welche hinzu.</p>
             )}
 
             {!readonly && (

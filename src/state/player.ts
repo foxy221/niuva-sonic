@@ -63,6 +63,8 @@ interface PlayerState {
   playNext: (songs: Song[]) => void;
   removeFromQueue: (index: number) => void;
   moveInQueue: (from: number, to: number) => void;
+  /** Favoritenstatus gesetzter Titel in der Warteschlange nachziehen, damit Player und Vollbild das Herz richtig zeigen. */
+  markStarred: (songIds: string[], starred: boolean) => void;
   clearQueue: () => void;
   toggle: () => void;
   play: () => void;
@@ -441,6 +443,14 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     else if (from > index && to <= index) nextIndex = index + 1;
     set({ queue: moveItem(queue, from, to), index: nextIndex });
     preloadNext();
+    scheduleSave();
+  },
+
+  markStarred(songIds, starred) {
+    const mark = (song: Song) => (songIds.includes(song.id) ? { ...song, starred: starred ? new Date().toISOString() : undefined } : song);
+    const { queue, unshuffled } = get();
+    if (!queue.some((song) => songIds.includes(song.id))) return;
+    set({ queue: queue.map(mark), unshuffled: unshuffled ? unshuffled.map(mark) : null });
     scheduleSave();
   },
 

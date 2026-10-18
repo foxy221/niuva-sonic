@@ -6,6 +6,7 @@ import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
 import { useCoverUrl } from "../hooks/useCoverUrl";
 import FavoriteButton from "./FavoriteButton";
+import QueuePanel from "./QueuePanel";
 import SeekBar from "./SeekBar";
 import Transport from "./Transport";
 import Visualizer from "./Visualizer";
@@ -31,12 +32,12 @@ export default function FullPlayer() {
   const close = () => setFull(false);
 
   return (
-    <div className="full" role="dialog" aria-label="Vollbild-Player">
+    <div className={`full${queueOpen ? " queue-open" : ""}`} role="dialog" aria-label="Vollbild-Player">
       {backdrop && <img className="full-backdrop" src={backdrop} alt="" />}
       <Visualizer anchor={coverRef} />
       <header className="full-top">
         <button className="icon" onClick={close} aria-label="Vollbild schließen"><ChevronDown size={26} /></button>
-        <button className={`icon${queueOpen ? " on" : ""}`} onClick={() => { toggleQueue(); close(); }} aria-label="Warteschlange"><ListMusic size={22} /></button>
+        <button className={`icon${queueOpen ? " on" : ""}`} onClick={toggleQueue} aria-label="Warteschlange" aria-pressed={queueOpen}><ListMusic size={22} /></button>
       </header>
       <div className="full-body">
         {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
@@ -56,6 +57,7 @@ export default function FullPlayer() {
           <VolumeControl />
         </div>
       </div>
+      <QueuePanel />
     </div>
   );
 }
