@@ -32,8 +32,8 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 - [x] **Künstler:** Hero-Bild, Beliebteste Titel, Diskografie, Ähnliche Künstler
 - [ ] **Playlist:** Kopf mit Mosaik-Cover, Sortierung, Drag-and-drop
 - [x] **Suche:** Ergebnisse nach Typ gruppiert, Sofortvorschläge
-- [ ] **Queue:** Ausklappbares Panel mit „Als Nächstes“ und Verlauf
-- [ ] **Vollbild-Player:** großes Cover, Songtexte synchron, Visualisierung (Wellenform aus dem Logo-Motiv)
+- [x] **Queue:** Ausklappbares Panel mit „Als Nächstes“ und Verlauf
+- [~] **Vollbild-Player:** großes Cover, Songtexte synchron, Visualisierung (Wellenform aus dem Logo-Motiv)
 - [ ] **Einstellungen:** Server, Wiedergabe-Qualität, Offline-Speicher, Erscheinungsbild
 - [x] Leer-, Lade- und Fehlerzustände für jede Ansicht (Skeletons statt Spinner)
 
@@ -58,7 +58,7 @@ Design braucht von der Technik, bevor die Bildschirme fertig sein können:
 | --- | --- | --- |
 | Start, Album, Künstler, Suche, Playlist | Technik 1 | **geliefert** |
 | Genres, Genre, Favoriten, Albenliste | Technik 1 | **geliefert** |
-| Queue-Panel, Vollbild-Player | Technik 2 | offen |
+| Queue-Panel, Vollbild-Player | Technik 2 | gebaut mit vorhandenem Store; Entfernen, Umsortieren, Shuffle, Wiederholen warten auf Technik 2 |
 | Mobile Mini-Player | Technik 4 | offen |
 | Songtexte | Technik „Ideen“ | offen |
 

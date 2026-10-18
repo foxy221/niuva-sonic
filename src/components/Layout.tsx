@@ -3,7 +3,9 @@ import { ChevronLeft, ChevronRight, Disc3, Heart, House, ListMusic, LogOut, Mic2
 import { useNowPlayingAccent } from "../design/useAccent";
 import { useSession } from "../state/session";
 import { usePlayer } from "../state/player";
+import FullPlayer from "./FullPlayer";
 import PlayerBar from "./PlayerBar";
+import QueuePanel from "./QueuePanel";
 
 const NAV = [
   { to: "/", label: "Start", Icon: House, end: true },
@@ -45,7 +47,9 @@ export default function Layout() {
         </div>
         <Outlet />
       </main>
+      <QueuePanel />
       <PlayerBar />
+      <FullPlayer />
     </div>
   );
 }

@@ -1,0 +1,67 @@
+import { useEffect, useRef } from "react";
+import { ListMusic, X } from "lucide-react";
+import { useUi } from "../design/ui";
+import { formatTime } from "../format";
+import { usePlayer } from "../state/player";
+import { useSession } from "../state/session";
+
+/**
+ * Warteschlange als Seitenpanel: laufender Titel, was als Nächstes kommt, was schon lief.
+ * Springen geht über `playQueue` mit derselben Liste; Entfernen und Umsortieren folgen mit Technik 2.
+ */
+export default function QueuePanel() {
+  const { queueOpen, setQueue } = useUi();
+  const queue = usePlayer((s) => s.queue);
+  const index = usePlayer((s) => s.index);
+  const playing = usePlayer((s) => s.playing);
+  const playQueue = usePlayer((s) => s.playQueue);
+  const client = useSession((s) => s.client);
+  const currentRef = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    if (queueOpen) currentRef.current?.scrollIntoView({ block: "center" });
+  }, [queueOpen]);
+
+  if (!queueOpen || !client || index < 0) return null;
+
+  const row = (i: number) => {
+    const song = queue[i];
+    const current = i === index;
+    return (
+      <li key={`${song.id}-${i}`} ref={current ? currentRef : undefined} className={`queue-item${current ? " active" : ""}${i < index ? " played" : ""}`}>
+        <button type="button" onClick={() => playQueue(queue, i)}>
+          {song.coverArt ? <img src={client.coverArtUrl(song.coverArt, 80)} alt="" loading="lazy" /> : <div className="cover-empty" />}
+          <span className="queue-text">
+            <strong>{song.title}</strong>
+            <span className="muted">{song.artist}</span>
+          </span>
+          {current && playing ? <span className="eq" aria-label="Läuft"><i /><i /><i /></span> : <span className="track-time">{formatTime(song.duration ?? 0)}</span>}
+        </button>
+      </li>
+    );
+  };
+
+  const upcoming = queue.slice(index + 1).map((_, k) => row(index + 1 + k));
+  const played = queue.slice(0, index).map((_, i) => row(i));
+
+  return (
+    <aside className="queue" aria-label="Warteschlange">
+      <header>
+        <h2><ListMusic size={20} /> Warteschlange</h2>
+        <button className="icon" onClick={() => setQueue(false)} aria-label="Schließen"><X size={20} /></button>
+      </header>
+      <div className="queue-scroll">
+        <h3>Läuft jetzt</h3>
+        <ol>{row(index)}</ol>
+        <h3>Als Nächstes</h3>
+        {upcoming.length ? <ol>{upcoming}</ol> : <p className="muted">Danach ist Schluss. Starte ein Album oder eine Playlist, um die Warteschlange zu füllen.</p>}
+        {played.length > 0 && (
+          <>
+            <h3>Bereits gespielt</h3>
+            <ol>{played}</ol>
+          </>
+        )}
+      </div>
+    </aside>
+  );
+}
