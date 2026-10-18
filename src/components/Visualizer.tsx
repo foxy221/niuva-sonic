@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import { getAnalyser } from "../design/analyser";
+import { BeatFx, type FxInput } from "../design/fx";
 import { usePlayer } from "../state/player";
 
 const BANDS = 48;
@@ -40,7 +41,9 @@ const CLOUDS: Cloud[] = [
 ];
 
 /**
- * Weicher Nebel hinter dem Vollbild: Wolken in den Logo-Farben treiben langsam
+ * Weicher Nebel hinter dem Vollbild, darüber Schlag-Effekte (`design/fx.ts`):
+ * gespiegeltes Spektrum am unteren Rand, Schockwellen und Funken bei Bass-Schlägen,
+ * aufsteigende Glut, und das Cover atmet im Takt. Der Nebel: Wolken in den Logo-Farben treiben langsam
  * über die Fläche und schwellen mit ihrem Frequenzbereich an. Die tiefste Wolke
  * glüht hinter dem Cover im Takt der Bässe. Jede Wolke ist ein eigenes Element
  * mit CSS-Verlauf; bewegt werden nur `transform` und `opacity`, das übernimmt
@@ -50,6 +53,7 @@ const CLOUDS: Cloud[] = [
 export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement | null> }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cloudRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -71,10 +75,23 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     let analyserData: Uint8Array<ArrayBuffer> | null = null;
     let analyserNode: AnalyserNode | null = null;
     let edges: number[] = [];
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d") ?? null;
+    const fx = new BeatFx();
+    let dpr = 1;
+    let colors = ["#ff3d9a", VIOLET, AMBER, "#ffffff"];
+    let coverRadius = 0;
+    let pulse = 0;
 
     function resize() {
       width = root!.clientWidth;
       height = root!.clientHeight;
+      if (canvas && ctx) {
+        dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        canvas.width = Math.round(width * dpr);
+        canvas.height = Math.round(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
       const unit = Math.max(width, height);
       CLOUDS.forEach((cloud, k) => {
         const el = cloudRefs.current[k];
@@ -96,10 +113,15 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       if (box && box.width > 0) {
         coverX = box.left - origin.left + box.width / 2;
         coverY = box.top - origin.top + box.height / 2;
+        coverRadius = box.width / 2;
       } else {
+        coverRadius = Math.min(width, height) * 0.25;
         coverX = width * 0.3;
         coverY = height * 0.5;
       }
+      // Die Akzentfarbe wechselt mit dem Cover; Canvas versteht keine CSS-Variablen.
+      const accent = getComputedStyle(root!).getPropertyValue("--accent").trim();
+      colors = [accent || "#ff3d9a", VIOLET, AMBER, "#ffffff"];
     }
 
     function sample(t: number, dt: number, playing: boolean) {
@@ -158,6 +180,26 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
         el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${angle.toFixed(2)}deg) scale(${scale.toFixed(3)}, ${(scale * cloud.aspect).toFixed(3)})`;
         el.style.opacity = Math.min(0.75, 0.03 + e * 0.38 + kick[k] * 0.3).toFixed(3);
       });
+
+      if (!reduceMotion && ctx) {
+        const playing = usePlayer.getState().playing;
+        const input: FxInput = {
+          dt,
+          bands,
+          kicks: { bass: kick[0], mid: Math.max(kick[2], kick[3]), high: Math.max(kick[4], kick[5]) },
+          energy: energy.reduce((sum, value) => sum + value, 0) / energy.length,
+          width,
+          height,
+          cover: { x: coverX, y: coverY, r: coverRadius },
+          playing,
+        };
+        fx.update(input);
+        fx.draw(ctx, input, colors, Math.min(1.8, Math.max(0.8, unit / 1400)));
+        // Das Cover atmet mit dem Bass: schnell hoch, weich zurück.
+        pulse += (kick[0] - pulse) * (kick[0] > pulse ? 0.5 : 0.12);
+        const cover = anchor.current;
+        if (cover) cover.style.transform = `scale(${(1 + pulse * 0.04).toFixed(4)})`;
+      }
       if (!reduceMotion) frame = requestAnimationFrame(draw);
     }
 
@@ -171,11 +213,13 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      if (anchor.current) anchor.current.style.transform = "";
     };
   }, [anchor]);
 
   return (
     <div ref={rootRef} className="full-viz" aria-hidden="true">
+      <canvas ref={canvasRef} className="full-fx" />
       {CLOUDS.map((cloud, k) => (
         <span key={k} ref={(el) => { cloudRefs.current[k] = el; }} className="cloud" style={{ "--tone": cloud.tone } as CSSProperties} />
       ))}
