@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlayerCommands } from "../hooks/usePlayerCommands";
 import { useSession } from "../state/session";
 import { usePlayer } from "../state/player";
+import { useCoverUrl } from "../hooks/useCoverUrl";
 import FullPlayer from "./FullPlayer";
 import PlayerBar from "./PlayerBar";
 import QueuePanel from "./QueuePanel";
@@ -24,10 +25,10 @@ const NAV = [
 ];
 
 export default function Layout() {
-  const { client, creds, logout } = useSession();
+  const { creds, logout } = useSession();
   const navigate = useNavigate();
-  const cover = usePlayer((s) => s.queue[s.index]?.coverArt);
-  useNowPlayingAccent(cover && client ? client.coverArtUrl(cover, 64) : undefined);
+  const current = usePlayer((s) => s.queue[s.index]);
+  useNowPlayingAccent(useCoverUrl(current?.coverArt, current?.albumId, 64));
   // Leertaste im Fenster sowie Befehle aus Tray-Menü und Medientasten.
   useKeyboardShortcuts();
   usePlayerCommands();

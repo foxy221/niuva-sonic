@@ -5,7 +5,15 @@ import { useUi } from "../design/ui";
 import { formatTime } from "../format";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
+import { useCoverUrl } from "../hooks/useCoverUrl";
+import type { Song } from "../api/types";
 import { SortableList, SortableRow } from "./Sortable";
+
+/** Cover einer Zeile: lokal, wenn der Titel offline vorliegt. */
+function QueueCover({ song }: { song: Song }) {
+  const src = useCoverUrl(song.coverArt, song.albumId, 80);
+  return src ? <img src={src} alt="" loading="lazy" /> : <div className="cover-empty" />;
+}
 
 /**
  * Warteschlange als Seitenpanel: laufender Titel, was als Nächstes kommt, was schon lief.
@@ -33,7 +41,7 @@ export default function QueuePanel() {
       <>
         {handle}
         <button type="button" className="queue-jump" onClick={() => jumpTo(i)}>
-          {song.coverArt ? <img src={client.coverArtUrl(song.coverArt, 80)} alt="" loading="lazy" /> : <div className="cover-empty" />}
+          <QueueCover song={song} />
           <span className="queue-text">
             <strong>{song.title}</strong>
             <span className="muted">{song.artist}</span>

@@ -4,6 +4,7 @@ import { ChevronDown, ListMusic } from "lucide-react";
 import { useUi } from "../design/ui";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
+import { useCoverUrl } from "../hooks/useCoverUrl";
 import FavoriteButton from "./FavoriteButton";
 import SeekBar from "./SeekBar";
 import Transport from "./Transport";
@@ -16,6 +17,8 @@ export default function FullPlayer() {
   const song = usePlayer((s) => s.queue[s.index]);
   const client = useSession((s) => s.client);
   const coverRef = useRef<HTMLElement | null>(null);
+  const backdrop = useCoverUrl(song?.coverArt, song?.albumId, 64);
+  const cover = useCoverUrl(song?.coverArt, song?.albumId, 800);
 
   useEffect(() => {
     if (!fullOpen) return;
@@ -29,14 +32,14 @@ export default function FullPlayer() {
 
   return (
     <div className="full" role="dialog" aria-label="Vollbild-Player">
-      {song.coverArt && <img className="full-backdrop" src={client.coverArtUrl(song.coverArt, 64)} alt="" />}
+      {backdrop && <img className="full-backdrop" src={backdrop} alt="" />}
       <Visualizer anchor={coverRef} />
       <header className="full-top">
         <button className="icon" onClick={close} aria-label="Vollbild schließen"><ChevronDown size={26} /></button>
         <button className={`icon${queueOpen ? " on" : ""}`} onClick={() => { toggleQueue(); close(); }} aria-label="Warteschlange"><ListMusic size={22} /></button>
       </header>
       <div className="full-body">
-        {song.coverArt ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={client.coverArtUrl(song.coverArt, 800)} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
+        {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
         <div className="full-info">
           <div className="full-title">
             <div>

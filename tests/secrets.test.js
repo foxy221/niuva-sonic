@@ -127,13 +127,13 @@ describe("Sitzung mit Schlüsselbund", () => {
     expect(storeValue("session.json", "credentials")).toBeNull();
   });
 
-  it("entfernt beim Abmelden den Eintrag aus dem Schlüsselbund", async () => {
+  it("beendet beim Abmelden nur die Sitzung und lässt die Zugangsdaten im Schlüsselbund", async () => {
     window.__TAURI_INTERNALS__ = {};
     await useSession.getState().login("musik.example", "A", "geheim");
 
     await useSession.getState().logout();
 
-    expect(keychain.size).toBe(0);
+    expect(keychain.has(key)).toBe(true);
     expect(storeValue("session.json", "credentials")).toBeNull();
     expect(useSession.getState().creds).toBeNull();
   });
@@ -194,6 +194,20 @@ describe("Server-Profile", () => {
 
     // Ohne Zugangsdaten im Schlüsselbund sagt der Wechsel ab.
     expect(await useProfiles.getState().activate({ serverUrl: "https://dritt.example", username: "C" })).toBe(false);
+  });
+
+  it("behält das erste Profil, wenn man sich für ein zweites an- und wieder abmeldet", async () => {
+    window.__TAURI_INTERNALS__ = {};
+    await useSession.getState().login("musik.example", "A", "geheim");
+    await useSession.getState().logout();
+    await useSession.getState().login("zweit.example", "B", "geheim2");
+    await useSession.getState().logout();
+
+    const ok = await useProfiles.getState().activate({ serverUrl: creds.serverUrl, username: "A" });
+
+    expect(ok).toBe(true);
+    expect(useProfiles.getState().error).toBeNull();
+    expect(useSession.getState().creds?.username).toBe("A");
   });
 
   it("meldet fehlende Zugangsdaten, statt die Sitzung zu wechseln", async () => {

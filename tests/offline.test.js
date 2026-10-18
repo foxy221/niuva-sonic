@@ -137,6 +137,9 @@ describe("Offline-Ablage", () => {
     expect(state.has("mf-2")).toBe(true);
     expect(state.albums["al-1"]?.coverRel).toMatch(/covers\/al-1\.jpg$/);
     expect(state.coverSource("al-1")).toMatch(/^http:\/\/asset\.localhost\//);
+    // Titel tragen eine eigene Cover-ID (Navidrome: mf-…); ihr lokales Cover gehört zum Album.
+    expect(state.coverSource("mf-1", "al-1")).toBe(state.coverSource("al-1"));
+    expect(state.coverSource("mf-1", "al-9")).toBeNull();
     // Download-Adresse nutzt `download` mit der Originaldatei.
     const calls = vi.mocked(invoke).mock.calls.filter(([command]) => command === "download_file");
     expect(calls[0][1].url).toContain("/rest/download?");

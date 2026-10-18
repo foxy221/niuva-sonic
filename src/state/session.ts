@@ -3,7 +3,7 @@ import { SubsonicClient, SubsonicError, createAuth, normalizeServerUrl } from ".
 import type { Credentials } from "../api/types";
 import { isDesktopApp } from "./desktop";
 import { logError, logWrite } from "./log";
-import { credentialsKey, deleteSecret, loadSecret, saveSecret } from "./secrets";
+import { credentialsKey, loadSecret, saveSecret } from "./secrets";
 import { readValue, removeValue, writeValue } from "./storage";
 
 const STORE_FILE = "session.json";
@@ -42,14 +42,6 @@ function isRef(value: unknown): value is CredentialsRef {
   return value.keychain === true && typeof value.username === "string" && value.username.trim().length > 0 && validServerUrl(value.serverUrl);
 }
 
-/** Schlüssel im Schlüsselbund, aus einem vollständigen Satz oder einem Verweis. */
-function keyOf(value: unknown): string | null {
-  if (!isRecord(value)) return null;
-  const { serverUrl, username } = value;
-  if (typeof serverUrl !== "string" || typeof username !== "string") return null;
-  return credentialsKey({ serverUrl, username });
-}
-
 export function credentialsFromSecret(secret: string | null): Credentials | null {
   if (!secret) return null;
   try {
@@ -71,9 +63,8 @@ const writeStored = (value: Credentials | CredentialsRef | null) =>
  */
 async function persistCredentials(creds: Credentials | null): Promise<void> {
   if (!creds) {
-    const stored = await readStored().catch(() => null);
-    const key = keyOf(stored);
-    if (key) await deleteSecret(key);
+    // Abmelden beendet nur die Sitzung. Die Zugangsdaten bleiben im Schlüsselbund,
+    // solange das Profil gemerkt ist; sonst ginge mit jedem Wechsel das vorige Profil verloren.
     await writeStored(null).catch(() => {});
     return;
   }

@@ -288,7 +288,7 @@ export default function Settings() {
       )}
 
       <h2>Konto</h2>
-      <Setting title={creds?.username ?? "Nicht angemeldet"} hint={creds ? `${creds.serverUrl}. Dein Passwort wird nicht gespeichert, die Anmeldung läuft über einen Token.` : "Melde dich an, um deine Musik zu hören."}>
+      <Setting title={creds?.username ?? "Nicht angemeldet"} hint={creds ? `${creds.serverUrl}. Dein Passwort wird nicht gespeichert, die Anmeldung läuft über einen Token. Abmelden beendet nur die Sitzung; das Profil bleibt gemerkt. Zum Vergessen entfernst du es unter „Server-Profile“.` : "Melde dich an, um deine Musik zu hören."}>
         {creds && <button type="button" className="ghost" onClick={logout}><LogOut size={18} /> Abmelden</button>}
       </Setting>
       <Setting

@@ -3,6 +3,7 @@ import { CircleAlert, ListMusic, LoaderCircle, Maximize2, RefreshCw } from "luci
 import { useUi } from "../design/ui";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
+import { useCoverUrl } from "../hooks/useCoverUrl";
 import SeekBar from "./SeekBar";
 import Transport from "./Transport";
 import VolumeControl from "./VolumeControl";
@@ -14,13 +15,14 @@ export default function PlayerBar() {
   const retry = usePlayer((s) => s.retry);
   const client = useSession((s) => s.client);
   const { queueOpen, toggleQueue, setFull } = useUi();
+  const cover = useCoverUrl(song?.coverArt, song?.albumId, 120);
   if (!song || !client) return null;
 
   return (
     <footer className="player">
       <div className="player-track">
         <button className="cover-button" onClick={() => setFull(true)} aria-label="Vollbild-Player öffnen" title="Vollbild-Player">
-          {song.coverArt ? <img src={client.coverArtUrl(song.coverArt, 120)} alt="" /> : <div className="cover-empty" />}
+          {cover ? <img src={cover} alt="" /> : <div className="cover-empty" />}
           <Maximize2 size={16} />
         </button>
         <div>

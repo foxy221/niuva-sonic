@@ -75,8 +75,8 @@ interface OfflineState {
   has: (songId: string) => boolean;
   /** WebView-Adresse der lokalen Datei oder `null`. */
   sourceFor: (songId: string) => string | null;
-  /** Lokales Cover zu einer Cover-ID oder `null`. */
-  coverSource: (coverArt: string) => string | null;
+  /** Lokales Cover zu einer Cover-ID oder `null`; Titel tragen eine andere ID als ihr Album, deshalb zählt auch die Album-ID. */
+  coverSource: (coverArt: string, albumId?: string) => string | null;
   download: (songs: Song[], album?: AlbumWithSongs) => void;
   cancel: (jobId: string) => void;
   removeSong: (songId: string) => Promise<void>;
@@ -293,9 +293,11 @@ export const useOffline = create<OfflineState>((set, get) => ({
     return localSrc(base, entry.rel);
   },
 
-  coverSource(coverArt) {
+  coverSource(coverArt, albumId) {
     const base = get().baseDir;
     if (!base || !offlineSupported()) return null;
+    const byAlbum = albumId ? get().albums[albumId]?.coverRel : undefined;
+    if (byAlbum) return localSrc(base, byAlbum);
     for (const entry of Object.values(get().albums)) {
       if (entry.album.coverArt === coverArt && entry.coverRel) return localSrc(base, entry.coverRel);
     }
