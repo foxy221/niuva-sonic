@@ -33,7 +33,7 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 - [~] **Playlist:** Kopf mit Mosaik-Cover, Sortierung, Drag-and-drop (Ziehen fertig, Mosaik-Cover offen)
 - [x] **Suche:** Ergebnisse nach Typ gruppiert, Sofortvorschläge
 - [x] **Queue:** Ausklappbares Panel mit „Als Nächstes“ und Verlauf
-- [~] **Vollbild-Player:** großes Cover, Songtexte synchron, Visualisierung (Wellenform aus dem Logo-Motiv)
+- [~] **Vollbild-Player:** großes Cover, Visualisierung (Klangbänder aus dem Logo-Motiv, folgen dem Spektrum; nur Desktop) fertig, synchrone Songtexte offen
 - [x] **Einstellungen:** Server, Wiedergabe-Qualität, Offline-Speicher, Erscheinungsbild
 - [x] Leer-, Lade- und Fehlerzustände für jede Ansicht (Skeletons statt Spinner)
 

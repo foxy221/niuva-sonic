@@ -7,6 +7,7 @@ import { useSession } from "../state/session";
 import FavoriteButton from "./FavoriteButton";
 import SeekBar from "./SeekBar";
 import Transport from "./Transport";
+import Visualizer from "./Visualizer";
 import VolumeControl from "./VolumeControl";
 
 /** Vollbild-Player: großes Cover vor dem unscharfen Cover als Hintergrund. Schließt mit Escape. */
@@ -28,6 +29,7 @@ export default function FullPlayer() {
   return (
     <div className="full" role="dialog" aria-label="Vollbild-Player">
       {song.coverArt && <img className="full-backdrop" src={client.coverArtUrl(song.coverArt, 200)} alt="" />}
+      <Visualizer />
       <header className="full-top">
         <button className="icon" onClick={close} aria-label="Vollbild schließen"><ChevronDown size={26} /></button>
         <button className={`icon${queueOpen ? " on" : ""}`} onClick={() => { toggleQueue(); close(); }} aria-label="Warteschlange"><ListMusic size={22} /></button>

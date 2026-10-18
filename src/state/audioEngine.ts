@@ -33,6 +33,16 @@ export interface EngineHandlers {
   onReady: () => void;
 }
 
+/**
+ * Die Klanganalyse für den Visualizer braucht CORS-fähige Audio-Elemente und
+ * leitet den Ton über Web Audio um. Das gilt vorerst nur am Desktop: auf Android
+ * bleibt der Ton unberührt, bis die Hintergrundwiedergabe dort steht.
+ */
+export function analysisSupported() {
+  if (typeof AudioContext === "undefined" || typeof navigator === "undefined") return false;
+  return !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 export class AudioEngine {
   private elements: [HTMLAudioElement, HTMLAudioElement];
   private primary: HTMLAudioElement;
@@ -41,14 +51,27 @@ export class AudioEngine {
   private revision = 0;
   private changing = false;
   private active = false;
+  private analysis: boolean;
 
-  constructor(private handlers: EngineHandlers) {
+  constructor(private handlers: EngineHandlers, options: { analysis?: boolean } = {}) {
+    this.analysis = Boolean(options.analysis);
     this.elements = [new Audio(), new Audio()];
     for (const el of this.elements) {
       el.preload = "auto";
+      if (this.analysis) el.crossOrigin = "anonymous";
       this.wire(el);
     }
     this.primary = this.elements[0];
+  }
+
+  /** Die beiden Elemente, damit der Visualizer den Ton abgreifen kann. */
+  get audioElements(): readonly HTMLAudioElement[] {
+    return this.elements;
+  }
+
+  /** false, sobald der Server kein CORS erlaubt hat und die Analyse abgeschaltet wurde. */
+  get analysisActive() {
+    return this.analysis;
   }
 
   get element() {
@@ -187,10 +210,33 @@ export class AudioEngine {
     el.addEventListener("durationchange", (e) => this.ifPrimary(e, () => Number.isFinite(el.duration) && this.handlers.onDuration(el.duration)));
     el.addEventListener("loadedmetadata", (e) => this.ifPrimary(e, () => this.applyPendingSeek(el)));
     el.addEventListener("ended", (e) => this.ifPrimary(e, () => this.handlers.onEnded()));
-    el.addEventListener("error", (e) => this.ifPrimary(e, () => this.handlers.onError(describeMediaError(el.error))));
+    el.addEventListener("error", (e) => {
+      if (this.retryWithoutCors(el)) return;
+      this.ifPrimary(e, () => this.handlers.onError(describeMediaError(el.error)));
+    });
     el.addEventListener("waiting", (e) => this.ifPrimary(e, () => this.handlers.onWaiting()));
     el.addEventListener("playing", (e) => this.ifPrimary(e, () => this.handlers.onReady()));
     el.addEventListener("canplay", (e) => this.ifPrimary(e, () => this.handlers.onReady()));
+  }
+
+  /**
+   * Erlaubt der Server kein CORS, lädt das Element mit `crossOrigin` gar nicht.
+   * Dann ohne Analyse neu starten, statt die Wiedergabe zu verlieren.
+   */
+  private retryWithoutCors(el: HTMLAudioElement): boolean {
+    if (!this.analysis || !el.crossOrigin || !el.src) return false;
+    this.analysis = false;
+    const wasPrimary = el === this.primary;
+    const position = el.currentTime || 0;
+    for (const other of this.elements) other.removeAttribute("crossorigin");
+    const src = el.src;
+    el.src = src;
+    el.load();
+    if (wasPrimary) {
+      this.pendingSeek = position;
+      this.play();
+    }
+    return true;
   }
 
   private applyPendingSeek(el: HTMLAudioElement) {

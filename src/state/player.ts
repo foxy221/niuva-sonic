@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Song } from "../api/types";
-import { AudioEngine, type MediaFailure } from "./audioEngine";
+import { AudioEngine, analysisSupported, type MediaFailure } from "./audioEngine";
 import {
   addListened,
   applyGain,
@@ -261,7 +261,12 @@ const engine = new AudioEngine({
   onError: handleError,
   onWaiting: handleWaiting,
   onReady: handleReady,
-});
+}, { analysis: analysisSupported() });
+
+/** Die Audio-Elemente für den Visualizer; `null`, wenn die Analyse nicht läuft. */
+export function analysisSource(): readonly HTMLAudioElement[] | null {
+  return engine.analysisActive ? engine.audioElements : null;
+}
 
 /**
  * Titel laden. Ist der nächste schon vorgeladen, übernimmt ihn das zweite

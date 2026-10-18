@@ -25,11 +25,13 @@
 @keyframes slide-in { from { translate: 2rem 0; opacity: 0; } }
 
 .full { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; overflow: hidden; background: var(--ink); animation: rise .35s var(--ease); }
-.full::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60rem 40rem at 30% 20%, color-mix(in srgb, var(--accent) 38%, transparent), transparent), linear-gradient(transparent 30%, var(--ink) 100%); }
-.full-backdrop { position: absolute; inset: -3rem; width: calc(100% + 6rem); height: calc(100% + 6rem); object-fit: cover; filter: blur(60px) saturate(1.3); opacity: .45; }
+.full::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60rem 40rem at 30% 20%, color-mix(in srgb, var(--accent) 30%, transparent), transparent), linear-gradient(rgb(10 6 18 / .52), rgb(10 6 18 / .52)), linear-gradient(transparent 30%, var(--ink) 100%); }
+.full-backdrop { position: absolute; inset: -3rem; width: calc(100% + 6rem); height: calc(100% + 6rem); object-fit: cover; filter: blur(60px) saturate(1.25) brightness(.38); opacity: .85; }
+.full-viz { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; }
 .full-top { position: relative; display: flex; justify-content: space-between; padding: 1rem 1.25rem; }
 .full-body { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 4rem; padding: 0 clamp(2rem, 7vw, 7rem) 3rem; }
 .full-cover { justify-self: end; width: min(100%, 62vh); aspect-ratio: 1; object-fit: cover; border-radius: 1.2rem; box-shadow: 0 3rem 6rem -2rem color-mix(in srgb, var(--accent) 70%, black); }
+.full .muted { color: rgb(255 255 255 / .78); }
 .full-info { display: grid; gap: 1.6rem; max-width: 32rem; }
 .full-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .full-title h1 { margin: 0 0 .5rem; font-size: clamp(1.6rem, 3.4vw, 2.8rem); }
