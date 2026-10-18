@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ListMusic, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import CoverTile from "../components/CoverTile";
+import PlaylistCover from "../components/PlaylistCover";
 import QueryStates from "../components/QueryStates";
 import { formatTime } from "../format";
 import { useClient } from "../hooks/useClient";
@@ -50,10 +51,9 @@ export default function Playlists() {
             <CoverTile
               key={playlist.id}
               to={`/playlist/${playlist.id}`}
-              image={playlist.coverArt ? client.coverArtUrl(playlist.coverArt, 400) : undefined}
+              media={<PlaylistCover id={playlist.id} serverImage={playlist.coverArt ? client.coverArtUrl(playlist.coverArt, 400) : undefined} />}
               title={playlist.name}
               subtitle={`${t("count.tracks", { count: playlist.songCount ?? 0 })}${playlist.duration ? ` · ${formatTime(playlist.duration)}` : ""}${playlist.readonly ? ` · ${t("playlists.fromServer")}` : ""}`}
-              fallback={<ListMusic size={36} />}
             />
           ))}
         </ul>

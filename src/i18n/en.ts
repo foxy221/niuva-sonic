@@ -37,6 +37,7 @@ export const en = {
   "nav.logout": "Sign out",
   "nav.back": "Back",
   "nav.forward": "Forward",
+  "topbar.search": "Search",
 
   // Player
   "player.full": "Full-screen player",

@@ -58,3 +58,30 @@
   .play { width: 2.5rem; height: 2.5rem; }
   .seek { grid-template-columns: 2.2rem 1fr 2.2rem; }
 }
+
+/* Obere Leiste: Suche und Profil */
+.topbar { align-items: center; }
+.topbar-search { position: relative; flex: 0 1 22rem; margin-left: .5rem; }
+.topbar-search input { width: 100%; padding: .55rem 1rem .55rem 2.5rem; border-radius: 999px; background: color-mix(in srgb, var(--ink) 65%, transparent); backdrop-filter: blur(8px); }
+.topbar-search svg { position: absolute; left: .85rem; top: 50%; translate: 0 -50%; color: var(--muted); pointer-events: none; }
+.topbar-profile { display: flex; align-items: center; gap: .55rem; margin-left: auto; padding: .2rem .8rem .2rem .25rem; border-radius: 999px; background: color-mix(in srgb, var(--ink) 65%, transparent); backdrop-filter: blur(8px); color: var(--text); }
+.topbar-profile:hover { background: var(--raised); }
+.topbar-profile .avatar { width: 1.9rem; height: 1.9rem; font-size: .8rem; }
+.topbar-name { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+
+/* Seitenübergang */
+.page { animation: page-in .28s var(--ease); }
+@keyframes page-in { from { opacity: 0; translate: 0 .6rem; } to { opacity: 1; translate: 0 0; } }
+
+/* Fortschrittsbalken: Vorschau am Mauszeiger */
+.seek-track { position: relative; display: grid; }
+.seek-preview { position: absolute; bottom: 1.2rem; translate: -50% 0; padding: .15rem .45rem; border-radius: .35rem; background: var(--raised-hover); color: var(--text); font-size: .75rem; pointer-events: none; white-space: nowrap; box-shadow: 0 .4rem .9rem -.3rem rgb(0 0 0 / .6); }
+
+/* Schmale Fenster: Seitenleiste nur mit Symbolen */
+@media (min-width: 721px) and (max-width: 1000px) {
+  .app { --sidebar-w: 4.6rem; }
+  .sidebar { padding-inline: .5rem; align-items: center; }
+  .sidebar-logo, .sidebar-user span:not(.avatar), .sidebar-user .icon { display: none; }
+  .nav a { font-size: 0; gap: 0; justify-content: center; padding: .7rem; }
+  .topbar-name { display: none; }
+}

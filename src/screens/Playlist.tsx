@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ListMusic, Play, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, Play, Save, Trash2 } from "lucide-react";
+import PlaylistCover from "../components/PlaylistCover";
 import QueryStates from "../components/QueryStates";
 import Switch from "../components/Switch";
 import SongList from "../components/SongList";
@@ -77,7 +78,7 @@ export default function Playlist() {
         {data && (
           <>
             <div className="album-head">
-              {data.coverArt ? <img src={client.coverArtUrl(data.coverArt, 500)} alt="" /> : <div className="cover-empty"><ListMusic size={56} /></div>}
+              <PlaylistCover id={data.id} serverImage={data.coverArt ? client.coverArtUrl(data.coverArt, 500) : undefined} />
               <div>
                 <h1>{data.name}</h1>
                 <p className="muted">

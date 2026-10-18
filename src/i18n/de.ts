@@ -35,6 +35,7 @@ export const de: Record<keyof Messages, string> = {
   "nav.logout": "Abmelden",
   "nav.back": "Zurück",
   "nav.forward": "Vor",
+  "topbar.search": "Suchen",
 
   // Player
   "player.full": "Vollbild-Player",
