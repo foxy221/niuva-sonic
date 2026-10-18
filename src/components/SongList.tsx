@@ -52,8 +52,8 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
             <span className="song-actions row-actions">
               {queueActions && (
                 <>
-                  <button type="button" className="icon row-action" onClick={() => playNext([song])} aria-label="Als Nächstes abspielen" title="Als Nächstes"><ListStart size={18} /></button>
-                  <button type="button" className="icon row-action" onClick={() => appendToQueue([song])} aria-label="An die Warteschlange anhängen" title="Anhängen"><ListPlus size={18} /></button>
+                  <button type="button" className="icon row-action queue-action" onClick={() => playNext([song])} aria-label="Als Nächstes abspielen" title="Als Nächstes"><ListStart size={18} /></button>
+                  <button type="button" className="icon row-action queue-action" onClick={() => appendToQueue([song])} aria-label="An die Warteschlange anhängen" title="Anhängen"><ListPlus size={18} /></button>
                 </>
               )}
               <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label="Titel" />

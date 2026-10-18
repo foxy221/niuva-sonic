@@ -40,7 +40,8 @@
 .track-title .muted { font-size: .9rem; }
 .track-time { color: var(--muted); font-variant-numeric: tabular-nums; }
 .track-row.active .track-title, .track-row.active .track-no { color: var(--accent); }
-.song-actions.row-actions { padding-right: .5rem; gap: .1rem; }
+.song-actions.row-actions { padding-right: .5rem; gap: 0; }
+.row-action { padding: .4rem; }
 @media (hover: hover) { .track-row:not(:hover):not(:focus-within) .fav:not(.on), .track-row:not(:hover):not(:focus-within) .row-action { opacity: 0; } }
 
 .bio { color: var(--muted); max-width: 70ch; white-space: pre-line; }
@@ -51,4 +52,5 @@
   .album-head { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
   .album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem .9rem; }
   .album-grid.row { grid-template-columns: none; grid-auto-columns: 8.5rem; }
+  .queue-action { display: none; }
 }

@@ -34,7 +34,7 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 - [x] **Suche:** Ergebnisse nach Typ gruppiert, Sofortvorschläge
 - [x] **Queue:** Ausklappbares Panel mit „Als Nächstes“ und Verlauf
 - [~] **Vollbild-Player:** großes Cover, Songtexte synchron, Visualisierung (Wellenform aus dem Logo-Motiv)
-- [ ] **Einstellungen:** Server, Wiedergabe-Qualität, Offline-Speicher, Erscheinungsbild
+- [x] **Einstellungen:** Server, Wiedergabe-Qualität, Offline-Speicher, Erscheinungsbild
 - [x] Leer-, Lade- und Fehlerzustände für jede Ansicht (Skeletons statt Spinner)
 
 ## Bewegung

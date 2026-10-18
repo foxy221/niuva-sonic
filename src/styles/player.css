@@ -1,12 +1,20 @@
 .queue { grid-area: queue; width: 22rem; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); animation: slide-in .28s var(--ease); }
-.queue > header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1rem .5rem 1.25rem; }
+.queue > header { display: flex; align-items: center; gap: .25rem; padding: 1rem 1rem .5rem 1.25rem; }
+.queue > header h2 { margin-right: auto; }
 .queue h2 { display: flex; align-items: center; gap: .6rem; margin: 0; font-size: 1rem; }
 .queue-scroll { flex: 1; overflow-y: auto; padding: 0 .6rem 1.5rem; }
 .queue h3 { margin: 1.4rem .65rem .5rem; font-size: .9rem; font-weight: 600; color: var(--muted); }
 .queue p.muted { margin: 0 .65rem; font-size: .9rem; }
-.queue-item button { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; width: 100%; padding: .4rem .5rem; text-align: left; background: none; color: var(--text); font-weight: 400; border-radius: var(--radius); box-shadow: none; }
-.queue-item button:hover:not(:disabled) { background: var(--raised); filter: none; box-shadow: none; }
-.queue-item button:active:not(:disabled) { transform: none; }
+.queue-item { position: relative; border-radius: var(--radius); transition: background .12s; }
+.queue-item:hover, .queue-item:focus-within { background: var(--raised); }
+.queue-jump { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; width: 100%; padding: .4rem .5rem; text-align: left; background: none; color: var(--text); font-weight: 400; border-radius: var(--radius); box-shadow: none; }
+.queue-jump:hover:not(:disabled) { filter: none; box-shadow: none; }
+.queue-jump:active:not(:disabled) { transform: none; }
+.queue-actions { position: absolute; right: .35rem; top: 50%; translate: 0 -50%; display: flex; align-items: center; background: var(--raised); border-radius: 999px; box-shadow: -.8rem 0 .8rem var(--raised); }
+.queue-actions .icon { padding: .35rem; }
+.queue-actions .icon:disabled { opacity: .25; }
+@media (hover: hover) { .queue-item:not(:hover):not(:focus-within) .queue-actions { display: none; } }
+@media (hover: none) { .queue-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; } .queue-actions { position: static; translate: none; background: none; box-shadow: none; } }
 .queue-item img, .queue-item .cover-empty { width: 2.6rem; height: 2.6rem; border-radius: .4rem; object-fit: cover; }
 .queue-text { display: grid; min-width: 0; }
 .queue-text strong, .queue-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,73 +1,64 @@
+import type { ReactNode } from "react";
+import { LogOut } from "lucide-react";
+import Segmented from "../components/Segmented";
+import Switch from "../components/Switch";
 import { bitRateOptions, formatOptions, useSettings, type PlaybackSettings } from "../state/settings";
 import { useSession } from "../state/session";
 
-const bitRateLabel = (value: number) => (value === 0 ? "Original" : `${value} kbit/s`);
-const formatLabel = (value: string) => (value === "" ? "Originalformat" : value.toUpperCase());
+function Setting({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+  return (
+    <div className="setting">
+      <div className="setting-text">
+        <strong>{title}</strong>
+        <p className="muted">{hint}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
 
-/** Einstellungen zur Wiedergabe. Roh gebaut: Überschrift, Auswahlfelder, Hinweise. */
+const bitRates = bitRateOptions.map((value) => ({ value, label: value === 0 ? "Original" : String(value) }));
+const formats = formatOptions.map((value) => ({ value, label: value === "" ? "Original" : value.toUpperCase() }));
+const gains: { value: PlaybackSettings["replayGain"]; label: string }[] = [
+  { value: "off", label: "Aus" },
+  { value: "track", label: "Pro Titel" },
+  { value: "album", label: "Pro Album" },
+];
+
 export default function Settings() {
   const { settings, update } = useSettings();
-  const creds = useSession((s) => s.creds);
+  const { creds, logout } = useSession();
 
   return (
     <section className="settings">
       <h1>Einstellungen</h1>
 
+      <h2>Klang</h2>
+      <Setting title="Streaming-Qualität" hint="Höchste Bitrate in kbit/s. Niedrigere Werte sparen mobile Daten. Gilt sofort, auch für den laufenden Titel.">
+        <Segmented label="Streaming-Qualität" value={settings.maxBitRate} options={bitRates} onChange={(maxBitRate) => update({ maxBitRate })} />
+      </Setting>
+      <Setting title="Audioformat" hint="Der Server rechnet die Datei dafür um. Original lässt sie unverändert.">
+        <Segmented label="Audioformat" value={settings.format} options={formats} onChange={(format) => update({ format })} />
+      </Setting>
+      <Setting title="Lautstärke angleichen" hint="Gleicht laute und leise Aufnahmen an. Wirkt nur bei Titeln, die ReplayGain-Werte in den Tags tragen.">
+        <Segmented label="Lautstärke angleichen" value={settings.replayGain} options={gains} onChange={(replayGain) => update({ replayGain })} />
+      </Setting>
+
       <h2>Wiedergabe</h2>
-      <div className="filters">
-        <label>
-          Maximale Bitrate
-          <select value={settings.maxBitRate} onChange={(e) => update({ maxBitRate: Number(e.target.value) })}>
-            {bitRateOptions.map((value) => (
-              <option key={value} value={value}>{bitRateLabel(value)}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Format
-          <select value={settings.format} onChange={(e) => update({ format: e.target.value })}>
-            {formatOptions.map((value) => (
-              <option key={value || "original"} value={value}>{formatLabel(value)}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          ReplayGain
-          <select value={settings.replayGain} onChange={(e) => update({ replayGain: e.target.value as PlaybackSettings["replayGain"] })}>
-            <option value="off">Aus</option>
-            <option value="track">Titel</option>
-            <option value="album">Album</option>
-          </select>
-        </label>
-      </div>
-      <p className="muted">
-        Bitrate und Format gelten sofort, auch für den laufenden Titel: der Server liefert die Datei dann umgerechnet.
-        Springen funktioniert auch dabei. ReplayGain wirkt nur bei Titeln, die entsprechende Werte in den Tags tragen.
-      </p>
+      <Setting title="Nahtlose Übergänge" hint="Lädt den nächsten Titel schon vor, damit zwischen zwei Titeln nichts stockt.">
+        <Switch label="Nahtlose Übergänge" checked={settings.gapless} onChange={(gapless) => update({ gapless })} />
+      </Setting>
+      <Setting title="Wiedergaben melden" hint="Navidrome zählt mit, was du hörst: ab 30 Sekunden und der halben Länge, spätestens nach vier Minuten.">
+        <Switch label="Wiedergaben melden" checked={settings.scrobble} onChange={(scrobble) => update({ scrobble })} />
+      </Setting>
+      <Setting title="Warteschlange merken" hint="Beim nächsten Start geht es mit Titel und Position weiter, wo du aufgehört hast.">
+        <Switch label="Warteschlange merken" checked={settings.rememberQueue} onChange={(rememberQueue) => update({ rememberQueue })} />
+      </Setting>
 
-      <h2>Verhalten</h2>
-      <div className="filters">
-        <label>
-          <input type="checkbox" checked={settings.gapless} onChange={(e) => update({ gapless: e.target.checked })} />
-          Nächsten Titel vorladen (ohne Ladepause)
-        </label>
-        <label>
-          <input type="checkbox" checked={settings.scrobble} onChange={(e) => update({ scrobble: e.target.checked })} />
-          Wiedergaben an den Server melden
-        </label>
-        <label>
-          <input type="checkbox" checked={settings.rememberQueue} onChange={(e) => update({ rememberQueue: e.target.checked })} />
-          Warteschlange beim Beenden merken
-        </label>
-      </div>
-      <p className="muted">
-        Gemeldet wird nach der üblichen Regel: mindestens 30 Sekunden und die halbe Länge oder vier Minuten.
-        Beim Beenden merkt sich die App Warteschlange, Titel und Position.
-      </p>
-
-      <h2>Server</h2>
-      <p className="muted">{creds ? `${creds.serverUrl} · ${creds.username}` : "Nicht angemeldet."}</p>
-      <p className="muted">Das Passwort wird nicht gespeichert, die Anmeldung läuft über Token und Salt.</p>
+      <h2>Konto</h2>
+      <Setting title={creds?.username ?? "Nicht angemeldet"} hint={creds ? `${creds.serverUrl}. Dein Passwort wird nicht gespeichert, die Anmeldung läuft über einen Token.` : "Melde dich an, um deine Musik zu hören."}>
+        {creds && <button type="button" className="ghost" onClick={logout}><LogOut size={18} /> Abmelden</button>}
+      </Setting>
     </section>
   );
 }

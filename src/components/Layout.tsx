@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Disc3, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Tags } from "lucide-react";
 import { useNowPlayingAccent } from "../design/useAccent";
@@ -30,9 +31,12 @@ export default function Layout() {
         <Link to="/" className="sidebar-logo"><img src="/logo.png" alt="Niuva Sonic" /></Link>
         <nav className="nav" aria-label="Hauptnavigation">
           {NAV.map(({ to, label, Icon, end }) => (
-            <NavLink key={to} to={to} end={end}>
-              <Icon size={20} /> {label}
-            </NavLink>
+            <Fragment key={to}>
+              {to === "/settings" && <div className="nav-divider" />}
+              <NavLink to={to} end={end}>
+                <Icon size={20} /> {label}
+              </NavLink>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-user">

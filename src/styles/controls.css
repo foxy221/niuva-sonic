@@ -7,6 +7,8 @@ button.ghost:hover:not(:disabled) { color: var(--text); border-color: var(--mute
 button.icon { background: transparent; box-shadow: none; padding: .5rem; color: var(--muted); border-radius: 50%; }
 button.icon:hover:not(:disabled) { color: var(--text); background: var(--raised); filter: none; box-shadow: none; }
 button.icon.on { color: var(--accent); }
+button.icon.on:not(.fav) { position: relative; }
+button.icon.on:not(.fav)::after { content: ""; position: absolute; bottom: .1rem; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; }
 
 input, select { font: inherit; color: var(--text); background: var(--raised); border: 1px solid transparent; border-radius: var(--radius); padding: .65rem .9rem; transition: border-color .15s, background .15s; }
 input:hover, select:hover { background: var(--raised-hover); }

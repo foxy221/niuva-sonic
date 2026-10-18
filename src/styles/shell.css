@@ -26,6 +26,9 @@
 .player-track strong, .player-track span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player > .player-buttons { grid-area: buttons; }
 .player-buttons { display: flex; align-items: center; justify-content: center; gap: .6rem; }
+.player-note { display: inline-flex; align-items: center; gap: .35rem; flex: 0 1 auto; min-width: 0; font-size: .82rem; color: var(--muted); }
+.player-note.error { color: var(--danger); }
+.player-note .icon { padding: .25rem; }
 .play { width: 2.9rem; height: 2.9rem; padding: 0; border-radius: 50%; }
 .player > .seek { grid-area: seek; }
 .seek { display: grid; grid-template-columns: 2.6rem 1fr 2.6rem; align-items: center; gap: .75rem; font-size: .78rem; font-variant-numeric: tabular-nums; }
@@ -50,7 +53,7 @@
   .nav { display: flex; gap: .1rem; }
   .nav a { flex-direction: column; gap: .15rem; padding: .45rem .8rem; font-size: .68rem; min-width: 4.4rem; }
   .player { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "track buttons" "seek seek"; padding: .6rem 1rem; row-gap: .35rem; }
-  .player > .player-buttons .skip-back, .player-side, .topbar .icon:nth-child(2) { display: none; }
+  .player > .player-buttons .skip-back, .player > .player-buttons .icon:not(.skip-back):not(:nth-last-child(2)), .player-side, .topbar .icon:nth-child(2) { display: none; }
   .player-track img, .player-track .cover-empty { width: 2.8rem; height: 2.8rem; }
   .play { width: 2.5rem; height: 2.5rem; }
   .seek { grid-template-columns: 2.2rem 1fr 2.2rem; }
