@@ -1,4 +1,4 @@
-button { font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 999px; padding: .7rem 1.4rem; color: #fff; background: var(--brand); display: inline-flex; align-items: center; justify-content: center; gap: .55rem; transition: transform .15s var(--ease), filter .15s, box-shadow .2s; }
+button { font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 999px; padding: .7rem 1.4rem; color: #fff; background: var(--brand-strong); display: inline-flex; align-items: center; justify-content: center; gap: .55rem; transition: transform .15s var(--ease), filter .15s, box-shadow .2s; }
 button:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 .5rem 1.6rem -.5rem var(--pink); }
 button:active:not(:disabled) { transform: scale(.97); }
 button:disabled { opacity: .45; cursor: not-allowed; }

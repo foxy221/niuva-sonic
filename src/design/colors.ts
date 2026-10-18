@@ -9,6 +9,26 @@ function toHsl(r: number, g: number, b: number): [number, number, number] {
   return [(h * 60 + 360) % 360, s, l];
 }
 
+/** Hintergrund, auf dem die Akzentfarbe als Text stehen muss (hellster der Panel-Töne, `--raised-hover`). */
+const SURFACE_LUMINANCE = 0.0137;
+
+function luminance(h: number, s: number, l: number): number {
+  const a = s * Math.min(l, 1 - l);
+  const channel = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const v = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(8) + 0.0722 * channel(4);
+}
+
+/** Hellt die Farbe auf, bis Text in ihr auf dunklen Flächen mindestens 4,5:1 erreicht (WCAG AA). Blaue Cover brauchen mehr als 62 % Helligkeit. */
+export function readableLightness(h: number, s: number, start = 0.62): number {
+  let l = start;
+  while (l < 0.9 && (luminance(h, s, l) + 0.05) / (SURFACE_LUMINANCE + 0.05) < 4.5) l += 0.01;
+  return l;
+}
+
 /** Zieht eine kräftige Leitfarbe aus dem Cover: gewichtet nach Sättigung, auf lesbare Helligkeit gezogen. */
 export async function accentFromImage(url: string): Promise<string | null> {
   if (cache.has(url)) return cache.get(url)!;
@@ -39,7 +59,7 @@ export async function accentFromImage(url: string): Promise<string | null> {
         if (best.weight < 0.3) return resolve(null);
         const h = best.h / best.weight;
         const s = Math.min(0.9, Math.max(0.6, best.s / best.weight));
-        resolve(`hsl(${h.toFixed(0)} ${(s * 100).toFixed(0)}% 62%)`);
+        resolve(`hsl(${h.toFixed(0)} ${(s * 100).toFixed(0)}% ${(readableLightness(h, s) * 100).toFixed(0)}%)`);
       } catch {
         resolve(null);
       }
