@@ -31,24 +31,34 @@ interface SessionState {
   logout: () => Promise<void>;
 }
 
+let restoreTask: Promise<void> | null = null;
+let sessionRevision = 0;
+
 export const useSession = create<SessionState>((set) => ({
   ready: false,
   client: null,
   creds: null,
 
   async restore() {
-    let creds: Credentials | null = null;
-    try {
-      const stored = await readCredentials();
-      if (isCredentials(stored)) creds = stored;
-      else if (stored !== null) await writeCredentials(null);
-    } catch {
-      // Ein beschädigter oder nicht lesbarer Store darf den Login nicht blockieren.
-    }
-    set({ ready: true, creds, client: creds ? new SubsonicClient(creds) : null });
+    // Strict Mode startet den Effekt zweimal; beide Aufrufer teilen dieselbe Sitzung.
+    if (restoreTask) return restoreTask;
+    const revision = sessionRevision;
+    restoreTask = (async () => {
+      let creds: Credentials | null = null;
+      try {
+        const stored = await readCredentials();
+        if (isCredentials(stored)) creds = stored;
+        else if (stored !== null) await writeCredentials(null);
+      } catch {
+        // Ein beschädigter oder nicht lesbarer Store darf den Login nicht blockieren.
+      }
+      if (revision === sessionRevision) set({ ready: true, creds, client: creds ? new SubsonicClient(creds) : null });
+    })().finally(() => { restoreTask = null; });
+    return restoreTask;
   },
 
   async login(serverUrl, username, password) {
+    sessionRevision++;
     const { salt, token } = createAuth(password);
     const creds: Credentials = { serverUrl: normalizeServerUrl(serverUrl), username: username.trim(), salt, token };
     const client = new SubsonicClient(creds);
@@ -58,6 +68,7 @@ export const useSession = create<SessionState>((set) => ({
   },
 
   async logout() {
+    sessionRevision++;
     await writeCredentials(null);
     set({ creds: null, client: null });
   },

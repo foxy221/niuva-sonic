@@ -38,6 +38,9 @@ export class AudioEngine {
   private primary: HTMLAudioElement;
   private standbyUrl: string | null = null;
   private pendingSeek = 0;
+  private revision = 0;
+  private changing = false;
+  private active = false;
 
   constructor(private handlers: EngineHandlers) {
     this.elements = [new Audio(), new Audio()];
@@ -66,15 +69,30 @@ export class AudioEngine {
 
   load(url: string, options: { position?: number; autoplay?: boolean } = {}) {
     const { position = 0, autoplay = true } = options;
+    this.revision++;
+    this.changing = true;
+    this.primary.pause();
     this.clearStandby();
-    this.pendingSeek = position;
+    this.pendingSeek = Number.isFinite(position) ? Math.max(0, position) : 0;
     this.primary.src = url;
+    this.primary.load();
+    this.active = true;
+    this.changing = false;
     if (autoplay) this.play();
-    else this.primary.load();
   }
 
   play() {
-    void this.primary.play().catch(() => this.handlers.onPause());
+    if (!this.active) return;
+    const revision = this.revision;
+    const el = this.primary;
+    void el.play().catch((error: unknown) => {
+      if (revision !== this.revision || el !== this.primary) return;
+      this.handlers.onPause();
+      // Ein durch load/stop abgebrochener Start ist kein defekter Titel.
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (el.error) return; // Das error-Ereignis liefert bereits die konkrete Meldung.
+      this.handlers.onError({ code: 0, message: "Wiedergabe konnte nicht gestartet werden. Bitte erneut versuchen." });
+    });
   }
 
   pause() {
@@ -82,10 +100,13 @@ export class AudioEngine {
   }
 
   seek(seconds: number) {
+    if (!Number.isFinite(seconds)) return;
+    const position = Math.max(0, Math.min(seconds, this.duration || seconds));
+    this.pendingSeek = 0;
     try {
-      this.primary.currentTime = Math.max(0, seconds);
+      this.primary.currentTime = position;
     } catch {
-      // Noch keine Metadaten geladen: die Position ist dann ohnehin 0.
+      this.pendingSeek = position;
     }
   }
 
@@ -117,16 +138,22 @@ export class AudioEngine {
     // Erst umschalten, dann pausieren: das Pause-Ereignis gehört zum alten
     // Element und darf den Zustand nicht auf „angehalten“ setzen.
     this.primary = standby;
+    this.revision++;
+    this.active = true;
     this.standbyUrl = null;
     this.pendingSeek = 0;
     previous.pause();
     previous.removeAttribute("src");
     previous.load();
+    // Metadaten-Ereignisse des Standby wurden absichtlich ignoriert.
+    if (this.duration > 0) this.handlers.onDuration(this.duration);
     this.play();
     return true;
   }
 
   stop() {
+    this.revision++;
+    this.active = false;
     for (const el of this.elements) {
       el.pause();
       el.removeAttribute("src");
@@ -150,7 +177,7 @@ export class AudioEngine {
 
   /** Ereignisse des zweiten Elements dürfen den Zustand nicht verändern. */
   private ifPrimary(event: Event, run: () => void) {
-    if (event.target === this.primary) run();
+    if (this.active && !this.changing && event.target === this.primary) run();
   }
 
   private wire(el: HTMLAudioElement) {
@@ -168,7 +195,7 @@ export class AudioEngine {
 
   private applyPendingSeek(el: HTMLAudioElement) {
     if (this.pendingSeek <= 0) return;
-    const position = this.pendingSeek;
+    const position = Math.min(this.pendingSeek, this.duration || this.pendingSeek);
     this.pendingSeek = 0;
     try {
       el.currentTime = position;

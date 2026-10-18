@@ -29,11 +29,14 @@ const MAX_FAILURES = 3;
 
 interface SavedPlayer {
   serverUrl: string;
+  username: string;
   queue: Song[];
   index: number;
   position: number;
   shuffle: boolean;
   repeat: RepeatMode;
+  /** Indizes in queue statt Song-Kopien: erhält Identität und doppelte Einträge. */
+  unshuffled?: number[];
 }
 
 interface PlayerState {
@@ -60,6 +63,8 @@ interface PlayerState {
   moveInQueue: (from: number, to: number) => void;
   clearQueue: () => void;
   toggle: () => void;
+  play: () => void;
+  pause: () => void;
   next: () => void;
   prev: () => void;
   seek: (seconds: number) => void;
@@ -68,7 +73,7 @@ interface PlayerState {
   cycleRepeat: () => void;
   dismissError: () => void;
   retry: () => void;
-  reset: () => void;
+  reset: (forgetSaved?: boolean) => void;
   /** Warteschlange der letzten Sitzung laden (nur bei gleichem Server). */
   restore: () => Promise<void>;
 }
@@ -77,6 +82,19 @@ let listened = 0;
 let lastPosition = 0;
 let failures = 0;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let failureTimer: ReturnType<typeof setTimeout> | null = null;
+let queueRevision = 0;
+let wantsPlayback = false;
+
+function cancelFailure() {
+  if (failureTimer) clearTimeout(failureTimer);
+  failureTimer = null;
+}
+
+function cancelSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+}
 
 const client = () => useSession.getState().client;
 const playback = () => useSettings.getState().settings;
@@ -141,10 +159,16 @@ function isSong(value: unknown): value is Song {
 }
 
 async function saveNow() {
-  const { queue, index, shuffle, repeat, position } = usePlayer.getState();
+  const { queue, index, shuffle, repeat, position, unshuffled } = usePlayer.getState();
   const creds = useSession.getState().creds;
   if (!creds || !playback().rememberQueue || !queue.length || index < 0) return;
-  const state: SavedPlayer = { serverUrl: creds.serverUrl, queue, index, position, shuffle, repeat };
+  const used = new Set<number>();
+  const order = unshuffled?.map((song) => {
+    const at = queue.findIndex((candidate, i) => candidate === song && !used.has(i));
+    used.add(at);
+    return at;
+  });
+  const state: SavedPlayer = { serverUrl: creds.serverUrl, username: creds.username, queue, index, position, shuffle, repeat, unshuffled: order };
   try {
     await writeValue(FILE, KEY, state);
   } catch {
@@ -161,24 +185,27 @@ function scheduleSave() {
   }, SAVE_DELAY);
 }
 function handlePlay() {
+  if (scrobbleState && !scrobbleState.startedAt) {
+    scrobbleState.startedAt = Date.now();
+    reportScrobble(scrobbleState.songId, false);
+  }
   usePlayer.setState({ playing: true, buffering: false });
   setPlaybackState("playing");
   scheduleSave();
 }
 
 function handlePause() {
-  usePlayer.setState({ playing: false });
+  usePlayer.setState({ playing: false, buffering: false });
   setPlaybackState("paused");
   void saveNow();
 }
 
 function handleReady() {
-  failures = 0;
   usePlayer.setState({ buffering: false });
 }
 
 function handleWaiting() {
-  usePlayer.setState({ buffering: true });
+  if (wantsPlayback) usePlayer.setState({ buffering: true });
 }
 
 function handleDuration(duration: number) {
@@ -186,11 +213,15 @@ function handleDuration(duration: number) {
 }
 
 function handleTime(position: number) {
-  listened = addListened(listened, lastPosition, position);
+  if (usePlayer.getState().playing) {
+    const nextListened = addListened(listened, lastPosition, position);
+    if (nextListened > listened) failures = 0;
+    listened = nextListened;
+  }
   lastPosition = position;
   usePlayer.setState({ position });
   updatePositionState(position);
-  if (scrobbleState && !scrobbleState.submitted && shouldScrobble(listened, usePlayer.getState().duration)) {
+  if (scrobbleState?.startedAt && !scrobbleState.submitted && shouldScrobble(listened, usePlayer.getState().duration)) {
     scrobbleState.submitted = true;
     reportScrobble(scrobbleState.songId, true, scrobbleState.startedAt);
   }
@@ -206,15 +237,18 @@ function handleEnded() {
  * weiterrutschen, dann stehen bleiben und die Meldung anzeigen.
  */
 function handleError(failure: MediaFailure) {
-  usePlayer.setState({ buffering: false, error: failure.message });
+  cancelFailure();
+  usePlayer.setState({ playing: false, buffering: false, error: failure.message });
+  setPlaybackState("paused");
   const { queue, index } = usePlayer.getState();
-  if (failures >= MAX_FAILURES || queue.length <= 1) return;
+  if (!wantsPlayback || failure.code < 2 || failures >= MAX_FAILURES || queue.length <= 1) return;
   failures++;
-  setTimeout(() => {
+  failureTimer = setTimeout(() => {
+    failureTimer = null;
     const state = usePlayer.getState();
-    if (!state.error) return;
+    if (!state.error || !wantsPlayback) return;
     const next = state.index + 1 < state.queue.length ? state.index + 1 : 0;
-    if (next !== index) load(next);
+    if (next !== index) load(next, { preserveFailures: true });
   }, 600);
 }
 
@@ -233,23 +267,27 @@ const engine = new AudioEngine({
  * Titel laden. Ist der nächste schon vorgeladen, übernimmt ihn das zweite
  * Element ohne Ladepause.
  */
-function load(index: number, options: { autoplay?: boolean; position?: number } = {}) {
+function load(index: number, options: { autoplay?: boolean; position?: number; preserveScrobble?: boolean; preserveFailures?: boolean } = {}) {
   const { autoplay = true, position = 0 } = options;
   const { queue } = usePlayer.getState();
   const song = queue[index];
   const session = client();
   if (!song || !session) return;
+  queueRevision++;
+  cancelFailure();
+  wantsPlayback = autoplay;
   const url = streamUrlFor(song);
-  if (!(autoplay && playback().gapless && engine.takePreloaded(url))) engine.load(url, { autoplay, position });
-
-  listened = 0;
+  if (!options.preserveScrobble) {
+    listened = 0;
+    scrobbleState = { songId: song.id, startedAt: 0, submitted: false };
+  }
   lastPosition = position;
-  failures = 0;
-  scrobbleState = { songId: song.id, startedAt: Date.now(), submitted: false };
-  reportScrobble(song.id, false);
+  if (!options.preserveFailures) failures = 0;
 
   applyVolume(song);
-  usePlayer.setState({ index, position, duration: song.duration ?? 0, playing: autoplay, buffering: autoplay, error: null });
+  usePlayer.setState({ index, position, duration: song.duration ?? 0, playing: false, buffering: autoplay, error: null });
+  if (!(autoplay && position === 0 && playback().gapless && engine.takePreloaded(url))) engine.load(url, { autoplay, position });
+  if (!autoplay) setPlaybackState("paused");
   updateMediaSession(song, session.coverArtUrl(song.coverArt ?? song.id, 512));
   preloadNext();
   scheduleSave();
@@ -273,15 +311,18 @@ function advance(automatic: boolean) {
   if (index < 0 || !queue.length) return;
   const next = nextIndex(index, queue.length, repeat, automatic);
   if (next === null) {
+    wantsPlayback = false;
     engine.pause();
     engine.seek(0);
+    lastPosition = 0;
+    listened = 0;
+    scrobbleState = { songId: queue[index].id, startedAt: 0, submitted: false };
     usePlayer.setState({ playing: false, position: 0, buffering: false });
     void saveNow();
     return;
   }
   if (next === index) {
-    engine.seek(0);
-    engine.play();
+    load(index);
     return;
   }
   load(next);
@@ -290,7 +331,7 @@ function advance(automatic: boolean) {
 /** Denselben Titel neu laden, z. B. nach Netzwechsel oder Qualitätswechsel. */
 function reload(index: number, position: number, autoplay: boolean) {
   if (index < 0) return;
-  load(index, { autoplay, position });
+  load(index, { autoplay, position, preserveScrobble: true });
 }
 export const usePlayer = create<PlayerState>((set, get) => ({
   queue: [],
@@ -326,6 +367,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   appendToQueue(songs) {
     if (!songs.length) return;
     const { queue, unshuffled, index } = get();
+    queueRevision++;
     if (index < 0) {
       get().playQueue(songs, 0);
       return;
@@ -338,6 +380,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   playNext(songs) {
     if (!songs.length) return;
     const { queue, unshuffled, index } = get();
+    queueRevision++;
     if (index < 0) {
       get().playQueue(songs, 0);
       return;
@@ -357,6 +400,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   removeFromQueue(target) {
     const { queue, index, unshuffled } = get();
     if (target < 0 || target >= queue.length) return;
+    queueRevision++;
     const song = queue[target];
     const nextQueue = removeAt(queue, target);
     if (!nextQueue.length) {
@@ -365,8 +409,8 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     }
     const wasCurrent = target === index;
     const nextIndex = wasCurrent ? Math.min(index, nextQueue.length - 1) : target < index ? index - 1 : index;
-    set({ queue: nextQueue, index: nextIndex, unshuffled: unshuffled ? unshuffled.filter((s) => s !== song) : null });
-    if (wasCurrent) load(nextIndex);
+    set({ queue: nextQueue, index: nextIndex, unshuffled: unshuffled ? removeAt(unshuffled, unshuffled.indexOf(song)) : null });
+    if (wasCurrent) load(nextIndex, { autoplay: wantsPlayback });
     else {
       preloadNext();
       scheduleSave();
@@ -376,6 +420,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   moveInQueue(from, to) {
     const { queue, index } = get();
     if (from === to || from < 0 || to < 0 || from >= queue.length || to >= queue.length) return;
+    queueRevision++;
     let nextIndex = index;
     if (from === index) nextIndex = to;
     else if (from < index && to >= index) nextIndex = index - 1;
@@ -386,17 +431,28 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   clearQueue() {
-    engine.stop();
-    scrobbleState = null;
-    clearMediaSession();
-    set({ queue: [], index: -1, playing: false, position: 0, duration: 0, buffering: false, error: null, unshuffled: null });
-    void removeValue(FILE, KEY).catch(() => {});
+    get().reset();
   },
 
   toggle() {
     if (get().index < 0) return;
-    if (engine.paused) engine.play();
-    else engine.pause();
+    if (wantsPlayback && (get().playing || get().buffering)) get().pause();
+    else get().play();
+  },
+
+  play() {
+    if (get().index < 0) return;
+    wantsPlayback = true;
+    if (get().error) get().retry();
+    else if (engine.paused) engine.play();
+  },
+
+  pause() {
+    wantsPlayback = false;
+    cancelFailure();
+    engine.pause();
+    set({ playing: false, buffering: false });
+    setPlaybackState("paused");
   },
 
   next() {
@@ -407,24 +463,25 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const { index, queue, repeat } = get();
     if (index < 0 || !queue.length) return;
     if (engine.position > 3) {
-      engine.seek(0);
-      set({ position: 0 });
+      get().seek(0);
       return;
     }
     const previous = prevIndex(index, queue.length, repeat);
     if (previous === index) {
-      engine.seek(0);
-      set({ position: 0 });
+      get().seek(0);
       return;
     }
     load(previous);
   },
 
   seek(seconds) {
-    engine.seek(seconds);
+    if (!Number.isFinite(seconds) || get().index < 0) return;
+    const position = Math.max(0, Math.min(seconds, get().duration || seconds));
+    engine.seek(position);
     // Ein Sprung ist keine Hörzeit: die Scrobble-Regel darf dadurch nicht greifen.
-    lastPosition = seconds;
-    set({ position: seconds });
+    lastPosition = position;
+    set({ position });
+    scheduleSave();
   },
 
   setVolume(value) {
@@ -434,6 +491,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     applyVolume(get().queue[get().index]);
   },
   toggleShuffle() {
+    queueRevision++;
     const { shuffle, queue, index, unshuffled } = get();
     if (!shuffle) {
       const current = queue[index];
@@ -452,6 +510,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   cycleRepeat() {
+    queueRevision++;
     set({ repeat: repeatOrder[(repeatOrder.indexOf(get().repeat) + 1) % repeatOrder.length] });
     preloadNext();
     scheduleSave();
@@ -462,30 +521,41 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   retry() {
-    const { index, position, playing } = get();
-    if (index >= 0) reload(index, position, playing);
+    const { index, position } = get();
+    if (index >= 0) reload(index, position, wantsPlayback);
   },
 
-  reset() {
+  reset(forgetSaved = true) {
+    queueRevision++;
+    cancelFailure();
+    cancelSave();
+    wantsPlayback = false;
     engine.stop();
     scrobbleState = null;
     clearMediaSession();
     set({ queue: [], index: -1, playing: false, position: 0, duration: 0, buffering: false, error: null, unshuffled: null });
-    void removeValue(FILE, KEY).catch(() => {});
+    if (forgetSaved) void removeValue(FILE, KEY).catch(() => {});
   },
 
   async restore() {
+    const session = client();
+    const revision = queueRevision;
     await useSettings.getState().restore();
     const creds = useSession.getState().creds;
-    if (!creds || !playback().rememberQueue) return;
+    if (!creds || session !== client() || revision !== queueRevision || !playback().rememberQueue) return;
     const saved = await readValue<SavedPlayer>(FILE, KEY).catch(() => null);
     // Nur die Warteschlange desselben Servers übernehmen: Titel-IDs sind dort gültig.
-    if (!saved || saved.serverUrl !== creds.serverUrl || !Array.isArray(saved.queue)) return;
-    const queue = saved.queue.filter(isSong);
+    if (session !== client() || revision !== queueRevision || !playback().rememberQueue) return;
+    if (!saved || saved.serverUrl !== creds.serverUrl || saved.username !== creds.username || !Array.isArray(saved.queue)) return;
+    if (!saved.queue.every(isSong)) return;
+    const queue = saved.queue;
     if (!queue.length) return;
     const index = clampIndex(saved.index, queue.length);
-    set({ queue, index, shuffle: Boolean(saved.shuffle), unshuffled: null, repeat: saved.repeat ?? "off" });
-    load(index, { autoplay: false, position: Math.max(0, saved.position || 0) });
+    const order = saved.unshuffled;
+    const validOrder = Array.isArray(order) && order.length === queue.length && new Set(order).size === queue.length && order.every((i) => Number.isInteger(i) && i >= 0 && i < queue.length);
+    const position = typeof saved.position === "number" && Number.isFinite(saved.position) ? Math.max(0, saved.position) : 0;
+    set({ queue, index, shuffle: Boolean(saved.shuffle), unshuffled: validOrder ? order.map((i) => queue[i]) : null, repeat: repeatOrder.includes(saved.repeat) ? saved.repeat : "off" });
+    load(index, { autoplay: false, position });
   },
 }));
 
@@ -493,17 +563,24 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 
 useSession.subscribe((session, previous) => {
   if (session.client === previous.client) return;
-  usePlayer.getState().reset();
+  // Beim App-Start die Ablage behalten; bei Abmeldung/Kontowechsel verwerfen.
+  usePlayer.getState().reset(Boolean(previous.client));
   void usePlayer.getState().restore();
 });
 
 useSettings.subscribe((state, previous) => {
   const now = state.settings;
   const before = previous.settings;
+  if (now.rememberQueue !== before.rememberQueue) {
+    cancelSave();
+    if (now.rememberQueue) void saveNow();
+    else void removeValue(FILE, KEY).catch(() => {});
+  }
+  if (now.gapless !== before.gapless) preloadNext();
   if (now.maxBitRate !== before.maxBitRate || now.format !== before.format) {
     // Neue Qualität gilt sofort: den laufenden Titel an derselben Stelle neu laden.
-    const { index, position, playing } = usePlayer.getState();
-    if (index >= 0) reload(index, position, playing);
+    const { index, position } = usePlayer.getState();
+    if (index >= 0) reload(index, position, wantsPlayback);
     return;
   }
   if (now.replayGain !== before.replayGain) {
@@ -514,8 +591,8 @@ useSettings.subscribe((state, previous) => {
 
 if ("mediaSession" in navigator) {
   const player = () => usePlayer.getState();
-  navigator.mediaSession.setActionHandler("play", () => player().toggle());
-  navigator.mediaSession.setActionHandler("pause", () => player().toggle());
+  navigator.mediaSession.setActionHandler("play", () => player().play());
+  navigator.mediaSession.setActionHandler("pause", () => player().pause());
   navigator.mediaSession.setActionHandler("nexttrack", () => player().next());
   navigator.mediaSession.setActionHandler("previoustrack", () => player().prev());
   navigator.mediaSession.setActionHandler("seekto", (details) => details.seekTime != null && player().seek(details.seekTime));
@@ -524,12 +601,12 @@ if ("mediaSession" in navigator) {
 
 // Netzwechsel: anhalten, wenn nichts mehr geht, und wieder anlaufen, sobald es geht.
 window.addEventListener("offline", () => {
-  if (usePlayer.getState().index >= 0) usePlayer.setState({ buffering: true });
+  if (wantsPlayback && usePlayer.getState().index >= 0) usePlayer.setState({ buffering: true });
 });
 
 window.addEventListener("online", () => {
-  const { index, position, playing, buffering, error } = usePlayer.getState();
-  if (index >= 0 && (buffering || error)) reload(index, position, playing);
+  const { index, position, buffering, error } = usePlayer.getState();
+  if (index >= 0 && wantsPlayback && (buffering || error)) reload(index, position, true);
 });
 
 // Beim Verstecken sofort schreiben: der Zeitgeber könnte sonst ausfallen.

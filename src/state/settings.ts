@@ -44,7 +44,7 @@ export function mergeSettings(stored: unknown): PlaybackSettings {
   if (!stored || typeof stored !== "object") return { ...defaultSettings };
   const raw = stored as Record<string, unknown>;
   return {
-    maxBitRate: typeof raw.maxBitRate === "number" && raw.maxBitRate >= 0 ? raw.maxBitRate : defaultSettings.maxBitRate,
+    maxBitRate: typeof raw.maxBitRate === "number" && Number.isFinite(raw.maxBitRate) && raw.maxBitRate >= 0 ? raw.maxBitRate : defaultSettings.maxBitRate,
     format: typeof raw.format === "string" ? raw.format : defaultSettings.format,
     replayGain: raw.replayGain === "track" || raw.replayGain === "album" ? raw.replayGain : "off",
     gapless: typeof raw.gapless === "boolean" ? raw.gapless : defaultSettings.gapless,
@@ -53,15 +53,19 @@ export function mergeSettings(stored: unknown): PlaybackSettings {
   };
 }
 
+let revision = 0;
+
 export const useSettings = create<SettingsState>((set, get) => ({
   settings: defaultSettings,
 
   async restore() {
+    const started = revision;
     const stored = await readValue<unknown>(FILE, KEY).catch(() => null);
-    set({ settings: mergeSettings(stored) });
+    if (started === revision) set({ settings: mergeSettings(stored) });
   },
 
   update(patch) {
+    revision++;
     const settings = { ...get().settings, ...patch };
     set({ settings });
     void writeValue(FILE, KEY, settings).catch(() => {});
