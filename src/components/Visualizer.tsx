@@ -1,63 +1,107 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties, type RefObject } from "react";
 import { getAnalyser } from "../design/analyser";
 import { usePlayer } from "../state/player";
 
-const BANDS = 56;
-const LAYERS = 3;
-const VIOLET = [138, 60, 255];
-const AMBER = [255, 179, 71];
+const BANDS = 48;
 
-/** Liest die aktuelle Akzentfarbe als RGB, damit Verläufe mit Transparenz arbeiten können. */
-function readAccent(scratch: CanvasRenderingContext2D): number[] {
-  const css = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#ff3d9a";
-  scratch.clearRect(0, 0, 1, 1);
-  scratch.fillStyle = css;
-  scratch.fillRect(0, 0, 1, 1);
-  const [r, g, b] = scratch.getImageData(0, 0, 1, 1).data;
-  return [r, g, b];
+interface Cloud {
+  /** Welche Klangbänder die Wolke bewegen. */
+  from: number;
+  to: number;
+  /** Mittelpunkt als Anteil der Fläche und Bahn, auf der sie treibt. */
+  x: number;
+  y: number;
+  driftX: number;
+  driftY: number;
+  speed: number;
+  phase: number;
+  /** Durchmesser als Anteil der längeren Seite. */
+  size: number;
+  aspect: number;
+  /** Drehung in Grad pro Sekunde. */
+  spin: number;
+  tone: string;
+  /** Nur die Bass-Wolke hängt am Cover. */
+  anchored?: boolean;
 }
 
-const rgba = (c: number[], a: number) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+const ACCENT = "var(--accent)";
+const VIOLET = "#8a3cff";
+const AMBER = "#ffb347";
+const BLEND = "color-mix(in srgb, var(--accent) 50%, #8a3cff)";
+
+const CLOUDS: Cloud[] = [
+  { from: 0, to: 5, x: 0.3, y: 0.5, driftX: 0.03, driftY: 0.04, speed: 0.00018, phase: 0, size: 1.0, aspect: 0.85, spin: 3, tone: ACCENT, anchored: true },
+  { from: 2, to: 9, x: 0.42, y: 0.28, driftX: 0.12, driftY: 0.1, speed: 0.00022, phase: 1.3, size: 0.8, aspect: 0.55, spin: -4, tone: VIOLET },
+  { from: 6, to: 14, x: 0.7, y: 0.7, driftX: 0.14, driftY: 0.1, speed: 0.00017, phase: 2.6, size: 0.92, aspect: 0.5, spin: 3.5, tone: AMBER },
+  { from: 10, to: 20, x: 0.78, y: 0.3, driftX: 0.12, driftY: 0.12, speed: 0.00026, phase: 4.0, size: 0.72, aspect: 0.6, spin: -5, tone: BLEND },
+  { from: 16, to: 28, x: 0.2, y: 0.8, driftX: 0.1, driftY: 0.08, speed: 0.00021, phase: 5.2, size: 0.68, aspect: 0.5, spin: 4.5, tone: VIOLET },
+  { from: 24, to: 36, x: 0.58, y: 0.55, driftX: 0.16, driftY: 0.14, speed: 0.00015, phase: 0.7, size: 0.6, aspect: 0.45, spin: -3.5, tone: ACCENT },
+  { from: 32, to: 47, x: 0.9, y: 0.55, driftX: 0.08, driftY: 0.16, speed: 0.00028, phase: 3.3, size: 0.56, aspect: 0.55, spin: 5.5, tone: AMBER },
+];
 
 /**
- * Klangbänder im Stil des Logos: drei fließende Bänder über die ganze Breite,
- * deren Höhe dem Spektrum folgt, dazu ein Glühen hinter dem Cover im Takt der Bässe.
- * Ohne Analyse (Android, Server ohne CORS) bewegen sie sich nur ruhig.
+ * Weicher Nebel hinter dem Vollbild: Wolken in den Logo-Farben treiben langsam
+ * über die Fläche und schwellen mit ihrem Frequenzbereich an. Die tiefste Wolke
+ * glüht hinter dem Cover im Takt der Bässe. Jede Wolke ist ein eigenes Element
+ * mit CSS-Verlauf; bewegt werden nur `transform` und `opacity`, das übernimmt
+ * die Grafikkarte ohne Neuzeichnen. Ohne Analyse (Android, Server ohne CORS)
+ * treiben sie nur ruhig.
  */
-export default function Visualizer() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement | null> }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cloudRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-    const scratch = document.createElement("canvas");
-    scratch.width = scratch.height = 1;
-    const scratchCtx = scratch.getContext("2d", { willReadFrequently: true })!;
-
+    const root = rootRef.current;
+    if (!root) return;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const bands = new Float32Array(BANDS);
-    const idle = { level: 0.25 };
+    const raw = new Float32Array(BANDS);
+    const energy = new Float32Array(CLOUDS.length);
+    const idle = { level: 0.2 };
     let width = 0;
     let height = 0;
-    let accent = readAccent(scratchCtx);
-    let accentAt = 0;
+    let coverX = 0;
+    let coverY = 0;
+    let measureAt = 0;
+    let last = 0;
     let frame = 0;
     let analyserData: Uint8Array<ArrayBuffer> | null = null;
     let analyserNode: AnalyserNode | null = null;
-    // Bin-Grenzen der Bänder, logarithmisch: tiefe Töne bekommen genauso viel Platz wie hohe.
     let edges: number[] = [];
 
     function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      width = canvas!.clientWidth;
-      height = canvas!.clientHeight;
-      canvas!.width = Math.max(1, Math.round(width * dpr));
-      canvas!.height = Math.max(1, Math.round(height * dpr));
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      width = root!.clientWidth;
+      height = root!.clientHeight;
+      const unit = Math.max(width, height);
+      CLOUDS.forEach((cloud, k) => {
+        const el = cloudRefs.current[k];
+        if (!el) return;
+        const d = unit * cloud.size;
+        el.style.width = `${d}px`;
+        el.style.height = `${d}px`;
+        el.style.marginLeft = `${-d / 2}px`;
+        el.style.marginTop = `${-d / 2}px`;
+      });
+      measureAt = 0;
     }
 
-    function sample(t: number, playing: boolean) {
+    function measure(t: number) {
+      if (t - measureAt < 500) return;
+      measureAt = t;
+      const box = anchor.current?.getBoundingClientRect();
+      const origin = root!.getBoundingClientRect();
+      if (box && box.width > 0) {
+        coverX = box.left - origin.left + box.width / 2;
+        coverY = box.top - origin.top + box.height / 2;
+      } else {
+        coverX = width * 0.3;
+        coverY = height * 0.5;
+      }
+    }
+
+    function sample(t: number, dt: number, playing: boolean) {
       analyserNode ??= getAnalyser();
       if (analyserNode && playing) {
         analyserData ??= new Uint8Array(analyserNode.frequencyBinCount);
@@ -71,92 +115,43 @@ export default function Visualizer() {
           const from = edges[i];
           const to = Math.max(edges[i + 1], from + 1);
           for (let k = from; k < to; k++) sum += analyserData[k];
-          const tilt = 1 + (i / BANDS) * 0.9;
-          const v = Math.min(1, (sum / (to - from) / 255) * tilt);
-          bands[i] = v > bands[i] ? v : bands[i] * 0.9 + v * 0.1;
+          raw[i] = Math.min(1, (sum / (to - from) / 255) * (1 + (i / BANDS) * 1.1));
         }
       } else {
-        // Ruhebewegung: langsames Atmen, bei Pause noch leiser.
-        idle.level += ((playing ? 0.3 : 0.12) - idle.level) * 0.03;
-        for (let i = 0; i < BANDS; i++) {
-          const v = idle.level * (0.55 + 0.45 * Math.sin(t * 0.0011 + i * 0.32) * Math.sin(t * 0.0007 - i * 0.11));
-          bands[i] += (Math.max(0, v) - bands[i]) * 0.08;
-        }
+        idle.level += ((playing ? 0.24 : 0.1) - idle.level) * 0.03;
+        for (let i = 0; i < BANDS; i++) raw[i] = Math.max(0, idle.level * (0.55 + 0.45 * Math.sin(t * 0.0009 + i * 0.4)));
       }
-    }
-
-    function ribbon(layer: number, t: number, gradient: CanvasGradient) {
-      const baseY = height * (0.5 + (layer - 1) * 0.045);
-      const reach = height * (0.2 + layer * 0.045);
-      const shift = layer * 7;
-      const top: [number, number][] = [];
-      const bottom: [number, number][] = [];
-      for (let i = 0; i < BANDS; i++) {
-        const x = (i / (BANDS - 1)) * width;
-        const taper = Math.pow(Math.sin(Math.PI * (i / (BANDS - 1))), 0.65);
-        const level = (bands[(i + shift) % BANDS] + bands[(i + shift + 1) % BANDS]) / 2;
-        const drift = Math.sin(t * 0.0006 * (1 + layer * 0.35) + i * 0.21 + layer * 2) * height * 0.012;
-        const h = (level * reach + 2) * taper;
-        top.push([x, baseY - h + drift]);
-        bottom.push([x, baseY + h * (0.8 + layer * 0.1) + drift]);
-      }
-      const curve = (points: [number, number][], forward: boolean) => {
-        const list = forward ? points : [...points].reverse();
-        for (let i = 0; i < list.length - 1; i++) {
-          const mx = (list[i][0] + list[i + 1][0]) / 2;
-          const my = (list[i][1] + list[i + 1][1]) / 2;
-          ctx!.quadraticCurveTo(list[i][0], list[i][1], mx, my);
-        }
-        ctx!.lineTo(list[list.length - 1][0], list[list.length - 1][1]);
-      };
-      ctx!.beginPath();
-      ctx!.moveTo(top[0][0], top[0][1]);
-      curve(top, true);
-      ctx!.lineTo(bottom[bottom.length - 1][0], bottom[bottom.length - 1][1]);
-      curve(bottom, false);
-      ctx!.closePath();
-      ctx!.globalAlpha = 0.13 + layer * 0.035;
-      ctx!.fillStyle = gradient;
-      ctx!.fill();
-      ctx!.globalAlpha = 0.55;
-      ctx!.lineWidth = 1.4;
-      ctx!.strokeStyle = gradient;
-      ctx!.shadowColor = rgba(accent, 0.9);
-      ctx!.shadowBlur = 16;
-      ctx!.stroke();
-      ctx!.shadowBlur = 0;
+      // Wolken sollen atmen, nicht zucken: langsam hoch, noch langsamer runter.
+      const up = 1 - Math.exp(-dt / 90);
+      const down = 1 - Math.exp(-dt / 320);
+      for (let i = 0; i < BANDS; i++) bands[i] += (raw[i] - bands[i]) * (raw[i] > bands[i] ? up : down);
+      CLOUDS.forEach((cloud, k) => {
+        let sum = 0;
+        for (let i = cloud.from; i <= cloud.to; i++) sum += bands[i];
+        energy[k] += (sum / (cloud.to - cloud.from + 1) - energy[k]) * (1 - Math.exp(-dt / 70));
+      });
     }
 
     function draw(t: number) {
-      const playing = usePlayer.getState().playing;
-      if (t - accentAt > 500) {
-        accent = readAccent(scratchCtx);
-        accentAt = t;
-      }
-      sample(t, playing);
+      const dt = Math.min(50, last ? t - last : 16);
+      last = t;
+      measure(t);
+      sample(t, dt, usePlayer.getState().playing);
+      const unit = Math.max(width, height);
 
-      ctx!.clearRect(0, 0, width, height);
-      ctx!.globalCompositeOperation = "lighter";
-
-      let bass = 0;
-      for (let i = 0; i < 5; i++) bass += bands[i];
-      bass /= 5;
-      const radius = height * (0.42 + bass * 0.4);
-      const glow = ctx!.createRadialGradient(width * 0.3, height * 0.5, 0, width * 0.3, height * 0.5, radius);
-      glow.addColorStop(0, rgba(accent, 0.1 + bass * 0.24));
-      glow.addColorStop(1, rgba(accent, 0));
-      ctx!.globalAlpha = 1;
-      ctx!.fillStyle = glow;
-      ctx!.fillRect(0, 0, width, height);
-
-      const gradient = ctx!.createLinearGradient(0, 0, width, 0);
-      gradient.addColorStop(0, rgba(VIOLET, 1));
-      gradient.addColorStop(0.5, rgba(accent, 1));
-      gradient.addColorStop(1, rgba(AMBER, 1));
-      for (let layer = 0; layer < LAYERS; layer++) ribbon(layer, t, gradient);
-
-      ctx!.globalAlpha = 1;
-      ctx!.globalCompositeOperation = "source-over";
+      CLOUDS.forEach((cloud, k) => {
+        const el = cloudRefs.current[k];
+        if (!el) return;
+        const e = energy[k];
+        const sx = Math.sin(t * cloud.speed + cloud.phase);
+        const cy = Math.cos(t * cloud.speed * 0.8 + cloud.phase * 1.7);
+        const x = cloud.anchored ? coverX + sx * unit * cloud.driftX : width * (cloud.x + sx * cloud.driftX);
+        const y = cloud.anchored ? coverY + cy * unit * cloud.driftY : height * (cloud.y + cy * cloud.driftY);
+        const scale = 0.55 + e * 0.95;
+        const angle = (t / 1000) * cloud.spin + cloud.phase * 40;
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${angle.toFixed(2)}deg) scale(${scale.toFixed(3)}, ${(scale * cloud.aspect).toFixed(3)})`;
+        el.style.opacity = Math.min(0.62, 0.1 + e * 0.5).toFixed(3);
+      });
       if (!reduceMotion) frame = requestAnimationFrame(draw);
     }
 
@@ -165,13 +160,19 @@ export default function Visualizer() {
       resize();
       if (reduceMotion) draw(performance.now());
     });
-    observer.observe(canvas);
+    observer.observe(root);
     frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, []);
+  }, [anchor]);
 
-  return <canvas ref={canvasRef} className="full-viz" aria-hidden="true" />;
+  return (
+    <div ref={rootRef} className="full-viz" aria-hidden="true">
+      {CLOUDS.map((cloud, k) => (
+        <span key={k} ref={(el) => { cloudRefs.current[k] = el; }} className="cloud" style={{ "--tone": cloud.tone } as CSSProperties} />
+      ))}
+    </div>
+  );
 }
