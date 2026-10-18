@@ -1,5 +1,6 @@
 //! Windows-Integration: Tray-Symbol, Fensterverhalten, Medientasten und Update-Pruefung.
 
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::{
@@ -9,7 +10,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Shortcut, ShortcutState};
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{Update, UpdaterExt};
 
 use crate::commands::UpdateStatus;
 use crate::prefs::PrefsState;
@@ -190,6 +191,112 @@ pub fn apply_global_shortcuts<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> 
     Ok(())
 }
 
+/// Ereignis an die Oberflaeche: Fortschritt beim Herunterladen eines Updates.
+pub const EVENT_UPDATE_PROGRESS: &str = "update-progress";
+
+/// Die gefundene Fassung und, sobald geladen, ihr Installationspaket.
+///
+/// Herunterladen und Einspielen sind getrennt: Die Oberflaeche sichert den
+/// Player-Zustand, bevor der Installer die App unter Windows beendet.
+#[derive(Default)]
+pub struct PendingUpdate(Mutex<UpdateSlot>);
+
+#[derive(Default)]
+struct UpdateSlot {
+    update: Option<Update>,
+    bytes: Option<Vec<u8>>,
+    downloading: bool,
+}
+
+impl PendingUpdate {
+    fn lock(&self) -> std::sync::MutexGuard<'_, UpdateSlot> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Eine Suche ersetzt den Merker, solange nichts laedt und nicht schon genau
+    /// diese Fassung bereitliegt.
+    fn remember(&self, found: Option<Update>) {
+        let mut slot = self.lock();
+        if slot.downloading {
+            return;
+        }
+        let same = matches!((&slot.update, &found), (Some(a), Some(b)) if a.version == b.version);
+        if !same {
+            slot.bytes = None;
+        }
+        slot.update = found;
+    }
+}
+
+/// Die vorgemerkte Fassung herunterladen und pruefen. Meldet den Fortschritt als
+/// `update-progress` und liefert die Versionsnummer zurueck.
+pub async fn download_update<R: Runtime>(app: &AppHandle<R>) -> Result<String, String> {
+    let pending = app.state::<PendingUpdate>();
+    let update = {
+        let mut slot = pending.lock();
+        if slot.downloading {
+            return Err("Das Update wird bereits geladen.".to_string());
+        }
+        let update = slot
+            .update
+            .clone()
+            .ok_or("Es ist keine neue Fassung vorgemerkt. Bitte erneut suchen.")?;
+        if slot.bytes.is_some() {
+            return Ok(update.version);
+        }
+        slot.downloading = true;
+        update
+    };
+
+    let _ = crate::logfile::write(app, "info", &format!("Update {} wird geladen", update.version));
+    let mut received: u64 = 0;
+    let result = update
+        .download(
+            |chunk, total| {
+                received += chunk as u64;
+                let _ = app.emit(
+                    EVENT_UPDATE_PROGRESS,
+                    serde_json::json!({ "received": received, "total": total.unwrap_or(0) }),
+                );
+            },
+            || {},
+        )
+        .await;
+
+    let mut slot = pending.lock();
+    slot.downloading = false;
+    match result {
+        Ok(bytes) => {
+            slot.bytes = Some(bytes);
+            let _ = crate::logfile::write(app, "info", &format!("Update {} geladen und geprueft", update.version));
+            Ok(update.version)
+        }
+        Err(error) => {
+            let _ = crate::logfile::write(app, "error", &format!("Update konnte nicht geladen werden: {error}"));
+            Err(error.to_string())
+        }
+    }
+}
+
+/// Das geladene Paket einspielen. Unter Windows startet der Installer und
+/// beendet die App; schlaegt das Einspielen fehl, bleibt sie offen und meldet den Grund.
+pub fn install_update<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
+    let pending = app.state::<PendingUpdate>();
+    let (update, bytes) = {
+        let slot = pending.lock();
+        match (slot.update.clone(), slot.bytes.clone()) {
+            (Some(update), Some(bytes)) => (update, bytes),
+            _ => return Err("Das Update ist noch nicht geladen.".to_string()),
+        }
+    };
+    let _ = crate::logfile::write(app, "info", &format!("Update {} wird eingespielt", update.version));
+    if let Err(error) = update.install(bytes) {
+        let _ = crate::logfile::write(app, "error", &format!("Update konnte nicht eingespielt werden: {error}"));
+        return Err(error.to_string());
+    }
+    app.restart()
+}
+
 /// Nach einer neuen Fassung suchen. Ohne hinterlegte Adresse kann nicht gesucht
 /// werden; das ist der Normalfall, solange kein Update-Server eingerichtet ist.
 pub async fn check_for_update<R: Runtime>(app: &AppHandle<R>) -> UpdateStatus {
@@ -215,18 +322,25 @@ pub async fn check_for_update<R: Runtime>(app: &AppHandle<R>) -> UpdateStatus {
     };
 
     match updater.check().await {
-        Ok(Some(update)) => UpdateStatus {
-            state: "available",
-            current_version,
-            version: Some(update.version.clone()),
-            message: None,
-        },
-        Ok(None) => UpdateStatus {
-            state: "upToDate",
-            current_version,
-            version: None,
-            message: None,
-        },
+        Ok(Some(update)) => {
+            let version = update.version.clone();
+            app.state::<PendingUpdate>().remember(Some(update));
+            UpdateStatus {
+                state: "available",
+                current_version,
+                version: Some(version),
+                message: None,
+            }
+        }
+        Ok(None) => {
+            app.state::<PendingUpdate>().remember(None);
+            UpdateStatus {
+                state: "upToDate",
+                current_version,
+                version: None,
+                message: None,
+            }
+        }
         Err(error) => UpdateStatus {
             state: "error",
             current_version,

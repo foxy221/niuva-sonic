@@ -7,7 +7,10 @@ import { formatBytes } from "../format";
 import { replayGainSupported, useCapabilities } from "../state/capabilities";
 import {
   checkForUpdate,
+  downloadUpdate,
+  installUpdate,
   isDesktopApp,
+  onUpdateProgress,
   readWindowPrefs,
   setCloseToTray,
   setGlobalShortcuts,
@@ -20,6 +23,10 @@ import { profileId, useProfiles } from "../state/profiles";
 import { credentialsKey, keychainAvailable } from "../state/secrets";
 import { bitRateOptions, formatOptions, limitOptions, useSettings, type PlaybackSettings } from "../state/settings";
 import { useSession } from "../state/session";
+import { usePlayer } from "../state/player";
+
+/** Wo das Update im Ablauf steht: gefunden, wird geladen, geladen, wird eingespielt. */
+type UpdatePhase = "idle" | "downloading" | "ready" | "installing";
 
 function Setting({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
   return (
@@ -51,6 +58,14 @@ export function describeUpdate(status: UpdateStatus | null): string {
   return `Die Prüfung ist fehlgeschlagen: ${status.message}`;
 }
 
+/** Zusatz zum Prüfergebnis, solange ein Update geladen oder eingespielt wird. */
+export function describePhase(phase: UpdatePhase, version: string | null, percent: number | null): string {
+  if (phase === "downloading") return `Version ${version} wird geladen${percent === null ? " …" : `: ${percent} %`}`;
+  if (phase === "ready") return `Version ${version} ist geladen und geprüft. Zum Einspielen wird die App neu gestartet.`;
+  if (phase === "installing") return `Version ${version} wird eingespielt. Die App startet gleich neu …`;
+  return "";
+}
+
 export default function Settings() {
   const { settings, update } = useSettings();
   const { creds, logout } = useSession();
@@ -68,6 +83,8 @@ export default function Settings() {
   const clearAll = useOffline((s) => s.clearAll);
   const [windowPrefs, setWindowPrefs] = useState<WindowPrefs | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [updatePhase, setUpdatePhase] = useState<UpdatePhase>("idle");
+  const [updatePercent, setUpdatePercent] = useState<number | null>(null);
   const [hasTray, setHasTray] = useState(true);
   const [keychain, setKeychain] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -122,9 +139,53 @@ export default function Settings() {
     setProblem(null);
     try {
       const status = await checkForUpdate();
-      if (request === updateRequest.current) setUpdateStatus(status);
+      if (request === updateRequest.current) {
+        setUpdateStatus(status);
+        // Eine neue Suche verwirft ein bereits geladenes Paket nur, wenn die Fassung wechselt; das entscheidet die Hülle.
+        if (status.state !== "available") setUpdatePhase("idle");
+      }
     } catch {
       setProblem("Die Update-Prüfung ist fehlgeschlagen.");
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function fetchUpdate() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setProblem(null);
+    setUpdatePercent(null);
+    setUpdatePhase("downloading");
+    const stop = await onUpdateProgress(({ received, total }) => setUpdatePercent(total > 0 ? Math.min(100, Math.round((received / total) * 100)) : null)).catch(() => null);
+    try {
+      await downloadUpdate();
+      setUpdatePhase("ready");
+    } catch (error) {
+      setUpdatePhase("idle");
+      setProblem(`Das Update konnte nicht geladen werden: ${typeof error === "string" ? error : "unbekannter Fehler"}`);
+    } finally {
+      stop?.();
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function applyUpdate() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setProblem(null);
+    setUpdatePhase("installing");
+    try {
+      // Unter Windows beendet der Installer die App: Warteschlange und Position vorher sichern.
+      await usePlayer.getState().flush().catch((error: unknown) => console.error("Player-Zustand konnte nicht gespeichert werden.", error));
+      await installUpdate();
+    } catch (error) {
+      setUpdatePhase("ready");
+      setProblem(`Das Update konnte nicht eingespielt werden: ${typeof error === "string" ? error : "unbekannter Fehler"}`);
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -186,8 +247,14 @@ export default function Settings() {
               <span className="muted">…</span>
             )}
           </Setting>
-          <Setting title="Updates" hint={describeUpdate(updateStatus)}>
-            <button type="button" className="ghost" onClick={() => void searchUpdate()} disabled={busy}>Nach Updates suchen</button>
+          <Setting title="Updates" hint={updatePhase === "idle" ? describeUpdate(updateStatus) : describePhase(updatePhase, updateStatus?.version ?? null, updatePercent)}>
+            {updateStatus?.state === "available" && updatePhase === "idle" ? (
+              <button type="button" onClick={() => void fetchUpdate()} disabled={busy}>Version {updateStatus.version} laden</button>
+            ) : updatePhase === "ready" || updatePhase === "installing" ? (
+              <button type="button" onClick={() => void applyUpdate()} disabled={busy}>Installieren und neu starten</button>
+            ) : (
+              <button type="button" className="ghost" onClick={() => void searchUpdate()} disabled={busy}>Nach Updates suchen</button>
+            )}
           </Setting>
           {!hasTray && <p className="settings-note muted">Das Tray-Symbol konnte nicht angelegt werden. Schließen beendet die App dann normal, damit sie nicht unsichtbar weiterläuft.</p>}
           {problem && <p className="form-error" role="alert"><CircleAlert size={18} /> {problem}</p>}

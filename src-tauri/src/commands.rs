@@ -118,3 +118,31 @@ pub async fn check_for_update(app: AppHandle) -> UpdateStatus {
         crate::desktop::check_for_update(&app).await
     }
 }
+
+/// Die gefundene Fassung herunterladen; der Fortschritt kommt als `update-progress`.
+#[tauri::command]
+pub async fn download_update(app: AppHandle) -> Result<String, String> {
+    #[cfg(not(desktop))]
+    {
+        let _ = &app;
+        Err("Updates gibt es nur in der Desktop-App.".to_string())
+    }
+    #[cfg(desktop)]
+    {
+        crate::desktop::download_update(&app).await
+    }
+}
+
+/// Das geladene Update einspielen und die App neu starten.
+#[tauri::command]
+pub fn install_update(app: AppHandle) -> Result<(), String> {
+    #[cfg(not(desktop))]
+    {
+        let _ = &app;
+        Err("Updates gibt es nur in der Desktop-App.".to_string())
+    }
+    #[cfg(desktop)]
+    {
+        crate::desktop::install_update(&app)
+    }
+}

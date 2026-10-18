@@ -174,3 +174,55 @@ describe("Windows-Einstellungen", () => {
     expect(screen.getByText(/0.2.0 steht bereit/)).toBeTruthy();
   });
 });
+
+describe("Update-Ablauf", () => {
+  const available = { state: "available", currentVersion: "0.1.0", version: "0.2.0", message: null };
+
+  function setupUpdate(extra) {
+    window.__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockImplementation((command) => {
+      if (command === "window_prefs") return Promise.resolve({ closeToTray: true, globalShortcuts: false });
+      if (command === "tray_ready") return Promise.resolve(true);
+      if (command === "check_for_update") return Promise.resolve(available);
+      return extra(command);
+    });
+  }
+
+  it("lädt, sichert den Player-Zustand und spielt dann erst ein", async () => {
+    const order = [];
+    vi.spyOn(usePlayer.getState(), "flush").mockImplementation(async () => { order.push("flush"); });
+    setupUpdate((command) => { if (command.endsWith("_update")) order.push(command); return Promise.resolve(command === "download_update" ? "0.2.0" : undefined); });
+    render(<MemoryRouter><Settings /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Version 0.2.0 laden" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Installieren und neu starten" }));
+
+    await waitFor(() => expect(order).toEqual(["download_update", "flush", "install_update"]));
+  });
+
+  it("meldet einen fehlgeschlagenen Download und bietet das Laden erneut an", async () => {
+    setupUpdate((command) => (command === "download_update" ? Promise.reject("Signatur ungültig") : Promise.resolve()));
+    render(<MemoryRouter><Settings /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Version 0.2.0 laden" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Signatur ungültig");
+    expect(screen.getByRole("button", { name: "Version 0.2.0 laden" })).toBeTruthy();
+  });
+
+  it("bleibt bei einem Fehler beim Einspielen bedienbar", async () => {
+    vi.spyOn(usePlayer.getState(), "flush").mockResolvedValue(undefined);
+    setupUpdate((command) => {
+      if (command === "download_update") return Promise.resolve("0.2.0");
+      if (command === "install_update") return Promise.reject("Installer nicht gestartet");
+      return Promise.resolve();
+    });
+    render(<MemoryRouter><Settings /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Version 0.2.0 laden" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Installieren und neu starten" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Installer nicht gestartet");
+    expect(screen.getByRole("button", { name: "Installieren und neu starten" }).disabled).toBe(false);
+  });
+});

@@ -33,6 +33,8 @@ pub fn run() {
             commands::set_close_to_tray,
             commands::set_global_shortcuts,
             commands::check_for_update,
+            commands::download_update,
+            commands::install_update,
             commands::finish_exit,
             offline::offline_base_dir,
             offline::download_file,
@@ -66,6 +68,7 @@ pub fn run() {
             {
                 app.manage(desktop::TrayState::new());
                 app.manage(desktop::ExitState::default());
+                app.manage(desktop::PendingUpdate::default());
 
                 // Ein fehlendes Tray-Symbol oder eine belegte Medientaste darf den
                 // Start nicht verhindern. Ohne Symbol beendet Schliessen die App

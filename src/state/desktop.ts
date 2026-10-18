@@ -41,6 +41,21 @@ export function checkForUpdate(): Promise<UpdateStatus> {
   return invoke<UpdateStatus>("check_for_update");
 }
 
+/** Lädt die gefundene Fassung herunter und prüft ihre Signatur; liefert die Versionsnummer. */
+export function downloadUpdate(): Promise<string> {
+  return invoke<string>("download_update");
+}
+
+/** Spielt das geladene Update ein. Unter Windows beendet der Installer die App und startet sie neu. */
+export function installUpdate(): Promise<void> {
+  return invoke<void>("install_update");
+}
+
+/** Fortschritt des Update-Downloads; `total` kann 0 sein, wenn der Server keine Länge meldet. */
+export function onUpdateProgress(handler: (progress: { received: number; total: number }) => void): Promise<UnlistenFn> {
+  return listen<{ received: number; total: number }>("update-progress", (event) => handler(event.payload));
+}
+
 /** Liegt das Tray-Symbol vor? Ohne es beendet Schließen die App normal. */
 export function trayReady(): Promise<boolean> {
   return invoke<boolean>("tray_ready");
