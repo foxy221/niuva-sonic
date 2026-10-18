@@ -1,5 +1,7 @@
 //! Windows-Integration: Tray-Symbol, Fensterverhalten, Medientasten und Update-Pruefung.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use tauri::{
     AppHandle, Emitter, Manager, Runtime, Window, WindowEvent,
     image::Image,
@@ -11,6 +13,32 @@ use tauri_plugin_updater::UpdaterExt;
 
 use crate::commands::UpdateStatus;
 use crate::prefs::PrefsState;
+
+/// Ob das Tray-Symbol wirklich angelegt wurde.
+///
+/// Ohne Symbol darf Schliessen nicht in den Tray legen: sonst waere das Fenster
+/// nicht mehr zu erreichen und die App liefe unsichtbar weiter.
+pub struct TrayState(AtomicBool);
+
+impl TrayState {
+    pub fn new() -> Self {
+        Self(AtomicBool::new(false))
+    }
+
+    pub fn set_ready(&self, ready: bool) {
+        self.0.store(ready, Ordering::Relaxed);
+    }
+
+    pub fn ready(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
+    }
+}
+
+impl Default for TrayState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Ereignis an die Oberflaeche: Tray-Menue und Medientasten loesen dieselben
 /// Befehle aus wie die Knoepfe im Fenster.
@@ -83,9 +111,14 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 }
 
 /// Fenster schliessen: je nach Einstellung in den Tray legen oder die App beenden.
+///
+/// Nur wenn das Tray-Symbol wirklich da ist: sonst bleibt die App unsichtbar
+/// erreichbar und niemand kann sie wieder nach vorn holen.
 pub fn handle_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
     if let WindowEvent::CloseRequested { api, .. } = event {
-        if window.app_handle().state::<PrefsState>().get().close_to_tray {
+        let app = window.app_handle();
+        let hide = app.state::<PrefsState>().get().close_to_tray && app.state::<TrayState>().ready();
+        if hide {
             // Die Wiedergabe laeuft weiter: das Fenster verschwindet nur.
             api.prevent_close();
             let _ = window.hide();

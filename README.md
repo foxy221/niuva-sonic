@@ -30,8 +30,8 @@ Voraussetzungen: Node 24, pnpm, Rust (MSVC), WebView2. Für Android zusätzlich 
 ## Windows
 
 - **Tray:** Linksklick holt das Fenster nach vorn, Rechtsklick öffnet das Menü mit Wiedergabe-Steuerung und Beenden.
-- **Schließen:** Standard ist Beenden. In den Einstellungen lässt sich einschalten, dass das Fenster beim Schließen in den Tray wandert und die Wiedergabe weiterläuft.
-- **Tastenkürzel:** Leertaste hält an und spielt weiter. Die Medientasten regelt Windows über die Media Session; wer sie zusätzlich systemweit abfangen will, schaltet das in den Einstellungen ein.
+- **Schließen:** Das Fenster wandert in den Tray, die Wiedergabe läuft weiter (abschaltbar in den Einstellungen). Linksklick auf das Tray-Symbol holt es zurück, „Beenden“ im Tray-Menü schließt die App. Unter Windows 11 liegen neue Symbole zuerst im ausgeblendeten Bereich neben der Uhr.
+- **Tastenkürzel:** Leertaste hält an und spielt weiter. Die Medientasten regelt Windows über die Media Session; wer sie zusätzlich systemweit abfangen will, schaltet das in den Einstellungen ein. Der Name in der Mediensteuerung bleibt „Unbekannte Anwendung“ – das ist eine Grenze von WebView2, nicht der App.
 - **Fenster:** Größe, Position und maximierter Zustand werden gemerkt. Ein zweiter Start holt das vorhandene Fenster nach vorn, statt ein zweites zu öffnen.
 - **Updates:** vorbereitet, aber noch nicht eingerichtet (keine Update-Adresse hinterlegt). Die Schritte stehen in [docs/ROADMAP-Technik.md](docs/ROADMAP-Technik.md) unter Phase 3.
 

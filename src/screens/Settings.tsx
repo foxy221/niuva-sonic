@@ -8,6 +8,7 @@ import {
   readWindowPrefs,
   setCloseToTray,
   setGlobalShortcuts,
+  trayReady,
   type UpdateStatus,
   type WindowPrefs,
 } from "../state/desktop";
@@ -49,6 +50,7 @@ export default function Settings() {
   const desktop = isDesktopApp();
   const [windowPrefs, setWindowPrefs] = useState<WindowPrefs | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [hasTray, setHasTray] = useState(true);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -57,6 +59,9 @@ export default function Settings() {
     void readWindowPrefs()
       .then(setWindowPrefs)
       .catch(() => setProblem("Die Windows-Einstellungen konnten nicht gelesen werden."));
+    void trayReady()
+      .then(setHasTray)
+      .catch(() => setHasTray(true));
     void checkForUpdate()
       .then(setUpdateStatus)
       .catch(() => setUpdateStatus(null));
@@ -120,7 +125,7 @@ export default function Settings() {
       <h2>Windows</h2>
       {desktop ? (
         <>
-          <Setting title="Beim Schließen in den Tray" hint="Das Fenster verschwindet, die Wiedergabe läuft weiter. Linksklick auf das Tray-Symbol holt es zurück, „Beenden“ im Tray-Menü schließt die App.">
+          <Setting title="Beim Schließen in den Tray" hint="Das Fenster verschwindet, die Wiedergabe läuft weiter. Linksklick auf das Tray-Symbol holt es zurück, „Beenden“ im Menü schließt die App. Windows 11 legt neue Symbole zuerst in den ausgeblendeten Bereich neben der Uhr.">
             {windowPrefs ? (
               <Switch label="Beim Schließen in den Tray" checked={windowPrefs.closeToTray} onChange={(closeToTray) => void change(() => setCloseToTray(closeToTray))} />
             ) : (
@@ -137,6 +142,7 @@ export default function Settings() {
           <Setting title="Updates" hint={describeUpdate(updateStatus)}>
             <button type="button" className="ghost" onClick={() => void searchUpdate()} disabled={busy}>Nach Updates suchen</button>
           </Setting>
+          {!hasTray && <p className="muted">Das Tray-Symbol konnte nicht angelegt werden. Schließen beendet die App dann normal, damit sie nicht unsichtbar weiterläuft.</p>}
           {problem && <p className="muted">{problem}</p>}
         </>
       ) : (

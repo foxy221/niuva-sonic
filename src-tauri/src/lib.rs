@@ -26,6 +26,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             commands::window_prefs,
+            commands::tray_ready,
             commands::set_close_to_tray,
             commands::set_global_shortcuts,
             commands::check_for_update
@@ -35,11 +36,20 @@ pub fn run() {
 
             #[cfg(desktop)]
             {
+                app.manage(desktop::TrayState::new());
+
                 // Ein fehlendes Tray-Symbol oder eine belegte Medientaste darf den
-                // Start nicht verhindern; die Einstellungen zeigen den Zustand.
-                if let Err(error) = desktop::setup_tray(app.handle()) {
-                    eprintln!("Tray-Symbol konnte nicht angelegt werden: {error}");
-                }
+                // Start nicht verhindern. Ohne Symbol beendet Schliessen die App
+                // wieder normal, damit sie nicht unsichtbar weiterlaeuft.
+                let tray_ready = match desktop::setup_tray(app.handle()) {
+                    Ok(()) => true,
+                    Err(error) => {
+                        eprintln!("Tray-Symbol konnte nicht angelegt werden: {error}");
+                        false
+                    }
+                };
+                app.state::<desktop::TrayState>().set_ready(tray_ready);
+
                 let prefs = app.state::<prefs::PrefsState>().get();
                 if let Err(error) = desktop::apply_global_shortcuts(app.handle(), prefs.global_shortcuts) {
                     eprintln!("Medientasten konnten nicht belegt werden: {error}");

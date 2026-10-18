@@ -26,7 +26,9 @@ pub struct Prefs {
 impl Default for Prefs {
     fn default() -> Self {
         Self {
-            close_to_tray: false,
+            // Schliessen legt das Fenster in den Tray: bei einem Musikspieler soll die
+            // Wiedergabe weiterlaufen. Abschaltbar in den Einstellungen.
+            close_to_tray: true,
             global_shortcuts: false,
         }
     }
@@ -71,17 +73,17 @@ mod tests {
     use super::Prefs;
 
     #[test]
-    fn vorgaben_lassen_die_app_normal_schliessen() {
+    fn vorgaben_halten_die_wiedergabe_am_leben() {
         let prefs = Prefs::default();
-        assert!(!prefs.close_to_tray);
+        assert!(prefs.close_to_tray);
         assert!(!prefs.global_shortcuts);
     }
 
     #[test]
     fn fehlende_felder_nehmen_die_vorgabe() {
-        let prefs: Prefs = serde_json::from_str(r#"{"closeToTray":true}"#).expect("lesbar");
+        let prefs: Prefs = serde_json::from_str(r#"{"globalShortcuts":true}"#).expect("lesbar");
+        assert!(prefs.global_shortcuts);
         assert!(prefs.close_to_tray);
-        assert!(!prefs.global_shortcuts);
     }
 
     #[test]

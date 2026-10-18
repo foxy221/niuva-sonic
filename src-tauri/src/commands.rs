@@ -5,7 +5,7 @@
 //! nicht zwei Wege braucht.
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::prefs::{self, Prefs, PrefsState};
 
@@ -36,6 +36,21 @@ impl UpdateStatus {
 #[tauri::command]
 pub fn window_prefs(state: State<PrefsState>) -> Prefs {
     state.get()
+}
+
+/// Liegt das Tray-Symbol wirklich vor? Davon haengt ab, ob Schliessen in den
+/// Tray legen darf.
+#[tauri::command]
+pub fn tray_ready(app: AppHandle) -> bool {
+    #[cfg(not(desktop))]
+    {
+        let _ = &app;
+        false
+    }
+    #[cfg(desktop)]
+    {
+        app.state::<crate::desktop::TrayState>().ready()
+    }
 }
 
 /// Schliessen legt das Fenster in den Tray oder beendet die App.

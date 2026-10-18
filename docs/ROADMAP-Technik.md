@@ -72,7 +72,7 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
 
 ## Phase 3: Windows-Integration
 
-- [ ] Medientasten und System-Overlay testen (Media Session in WebView2) – Code ist vollständig, die Sichtprüfung am System steht aus (siehe Prüfliste unten)
+- [x] Medientasten und System-Overlay testen (Media Session in WebView2) – von Hand geprüft: Vor, Zurück, Wiedergabe und Pause reagieren. Der Name in der Mediensteuerung bleibt „Unbekannte Anwendung“ (Grenze von WebView2, siehe unten)
 - [x] Single-Instance, Fenstergröße und -position merken
 - [x] Tray-Icon, Schließen minimiert optional in den Tray
 - [x] Globale Tastenkürzel (Leertaste im Fenster, optional global)
@@ -84,7 +84,8 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
 - **Rust-Seite:** `src-tauri/src/lib.rs` verdrahtet die Plugins, `src-tauri/src/desktop.rs` (nur Desktop) enthält Tray, Fensterverhalten, Medientasten und Update-Prüfung, `src-tauri/src/prefs.rs` legt die Hüllen-Einstellungen ab, `src-tauri/src/commands.rs` sind die Befehle für die Oberfläche.
 - **Plugins:** `tauri-plugin-single-instance` (steht als erstes, holt bei einem zweiten Start das Fenster nach vorn), `tauri-plugin-window-state` (Größe, Position, maximiert), `tauri-plugin-global-shortcut` (Medientasten) und `tauri-plugin-updater`. Auf Android fehlen diese Bausteine; die Befehle sagen dort ab, damit die gemeinsame Oberfläche keinen Sonderweg braucht.
 - **Tray:** Symbol aus `icons/32x32.png`, Linksklick holt das Fenster nach vorn, Rechtsklick öffnet das Menü (Fenster anzeigen, Wiedergabe/Pause, nächster und voriger Titel, Beenden). Die Wiedergabe-Befehle gehen als Ereignis `player-command` an die Oberfläche, damit es nur eine Quelle für die Player-Logik gibt.
-- **Schließen:** Standard ist Beenden. Mit „Beim Schließen in den Tray“ wird das Fenster nur versteckt, die Wiedergabe läuft weiter; „Beenden“ im Tray-Menü schließt die App.
+- **Schließen:** Standard ist „in den Tray“: das Fenster verschwindet, die Wiedergabe läuft weiter; „Beenden“ im Tray-Menü schließt die App wirklich. Abschaltbar in den Einstellungen. Sicherung: Wurde das Tray-Symbol nicht angelegt, beendet Schließen die App wieder normal – sonst liefe sie unsichtbar weiter und wäre nicht mehr zu erreichen. Windows 11 legt neue Symbole zuerst in den ausgeblendeten Bereich neben der Uhr; das steht auch als Hinweis in den Einstellungen.
+- **Name in der Mediensteuerung:** Windows zeigt „Unbekannte Anwendung“. Die Ursache liegt nicht in dieser App: Die Medien-Sitzung gehört dem WebView2-Prozess (`msedgewebview2.exe`), deshalb zeigt Windows dessen Identität an. Tauri verweist auf [tauri#13352](https://github.com/tauri-apps/tauri/issues/13352) und das Upstream-Issue [WebView2Feedback#2236](https://github.com/MicrosoftEdge/WebView2Feedback/issues/2236), wo Microsoft zuletzt „no update or work currently happening“ schreibt. Geprüft und verworfen: `SetCurrentProcessExplicitAppUserModelID`, ein Eintrag unter `HKCU\Software\Classes\AppUserModelId` und das Markieren des Fensters mit einer AppUserModelID – laut Erfahrungsberichten hilft das nur bei Benachrichtigungen, nicht in der Mediensteuerung. Das eigene EXE trägt einen korrekten Versionsdatensatz (`ProductName: Niuva Sonic`), der hier ebenfalls nicht greift. Bleibt offen, bis WebView2 nachzieht; ein eigener nativer Player (Media3 auf Android, Phase 4) umgeht das Problem.
 - **Tastenkürzel:** Leertaste im Fenster hält an und spielt weiter, außer in Eingabefeldern und auf Knöpfen (`src/hooks/useKeyboardShortcuts.ts`). Optional fängt die Hülle zusätzlich die Medientasten systemweit ab (`set_global_shortcuts`); scheitert das Belegen, wird nichts halb belegt und die Oberfläche zeigt den Grund. Standardmäßig aus, weil Windows die Medientasten normalerweise schon über die Media Session regelt.
 - **Einstellungen:** Abschnitt „Windows“ im Einstellungsbildschirm (Tray, Medientasten, Update-Prüfung) plus Hinweis auf die Leertaste.
 - **Installer:** `bundle.targets` ist auf `nsis` gestellt (kein MSI/WiX), Installationsart `currentUser` (keine Admin-Rechte), Sprachen Deutsch und Englisch, dazu Herausgeber, Kurz- und Langbeschreibung für die Installer-Anzeige.
@@ -97,9 +98,10 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
   Das Herunterladen und Einspielen ist bewusst noch nicht verdrahtet: Das gehört zusammen mit der Veröffentlichung gemacht, sonst gibt es nichts zu installieren.
 - **Signierung:** Noch offen und bewusst nicht vorweggenommen. Ohne Zertifikat (Authenticode) zeigt Windows beim Start des Installers eine Warnung. Nötig ist ein Code-Signing-Zertifikat; Alternativen sind ein OV/EV-Zertifikat vom Anbieter oder Azure Trusted Signing. Der Signaturschritt kommt über `bundle.windows.certificateThumbprint` bzw. `signCommand` dazu, sobald das Zertifikat da ist.
 - **Prüfliste von Hand** (nicht automatisch prüfbar, weil sie eine echte Sitzung am Bildschirm braucht):
-  - Systemsteuerung: Zeigt Windows die Mediensteuerung mit Titel, Cover und Zeitleiste? Reagieren die Medientasten, wenn das Fenster nicht im Vordergrund ist?
-  - Tray: Symbol sichtbar, Linksklick holt das Fenster, Rechtsklick-Menü steuert die Wiedergabe, „Beenden“ schließt die App.
-  - Schließen mit „in den Tray“: Wiedergabe läuft weiter, Fenster kommt zurück.
+  - Medientasten: erledigt – Vor, Zurück, Wiedergabe und Pause reagieren, wenn das Fenster nicht im Vordergrund ist.
+  - Mediensteuerung: Titel, Interpret und Cover stimmen; der Name der Anwendung bleibt systembedingt „Unbekannte Anwendung“ (siehe oben).
+  - Tray: Symbol sichtbar (unter Windows 11 gegebenenfalls erst im ausgeblendeten Bereich neben der Uhr), Linksklick holt das Fenster, Rechtsklick-Menü steuert die Wiedergabe, „Beenden“ schließt die App.
+  - Schließen: Fenster verschwindet, Wiedergabe läuft weiter, Fenster kommt per Tray zurück. Mit abgeschaltetem „Beim Schließen in den Tray“ beendet Schließen die App.
   - Leertaste: schaltet um, stört aber nicht in Suchfeld und Knöpfen.
   - Fenstergröße und -position nach einem Neustart.
   - Installer: Installation ohne Adminrechte, Eintrag im Startmenü, Deinstallation.

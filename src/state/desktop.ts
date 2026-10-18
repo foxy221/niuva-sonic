@@ -41,6 +41,11 @@ export function checkForUpdate(): Promise<UpdateStatus> {
   return invoke<UpdateStatus>("check_for_update");
 }
 
+/** Liegt das Tray-Symbol vor? Ohne es beendet Schließen die App normal. */
+export function trayReady(): Promise<boolean> {
+  return invoke<boolean>("tray_ready");
+}
+
 /** Tray-Menü und Medientasten melden sich hier. */
 export function onPlayerCommand(handler: (command: PlayerCommand) => void): Promise<UnlistenFn> {
   return listen<string>("player-command", (event) => handler(event.payload as PlayerCommand));
