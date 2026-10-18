@@ -1,6 +1,6 @@
 import { Fragment } from "react";
-import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Disc3, Download, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Stethoscope, Tags } from "lucide-react";
+import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
+import { Disc3, Download, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Stethoscope, Tags } from "lucide-react";
 import { useNowPlayingAccent } from "../design/useAccent";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlayerCommands } from "../hooks/usePlayerCommands";
@@ -11,6 +11,7 @@ import { useCoverUrl } from "../hooks/useCoverUrl";
 import FullPlayer from "./FullPlayer";
 import PlayerBar from "./PlayerBar";
 import QueuePanel from "./QueuePanel";
+import TopBar from "./TopBar";
 
 const NAV = [
   { to: "/", label: "Start", Icon: House, end: true },
@@ -27,7 +28,7 @@ const NAV = [
 
 export default function Layout() {
   const { creds, logout } = useSession();
-  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const fullOpen = useUi((s) => s.fullOpen);
   const current = usePlayer((s) => s.queue[s.index]);
   useNowPlayingAccent(useCoverUrl(current?.coverArt, current?.albumId, 64));
@@ -56,11 +57,10 @@ export default function Layout() {
         </div>
       </aside>
       <main className="content">
-        <div className="topbar">
-          <button className="icon" onClick={() => navigate(-1)} aria-label="Zurück"><ChevronLeft size={22} /></button>
-          <button className="icon" onClick={() => navigate(1)} aria-label="Vor"><ChevronRight size={22} /></button>
+        <TopBar />
+        <div className="page" key={pathname}>
+          <Outlet />
         </div>
-        <Outlet />
       </main>
       {/* Im Vollbild zeigt der Vollbild-Player die Warteschlange selbst. */}
       {!fullOpen && <QueuePanel />}

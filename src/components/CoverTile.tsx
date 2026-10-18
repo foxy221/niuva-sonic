@@ -11,18 +11,20 @@ interface CoverTileProps {
   round?: boolean;
   /** Ersatz, wenn es kein Bild gibt. */
   fallback?: ReactNode;
+  /** Eigener Bildbereich (z. B. Mosaik); ersetzt `image` und `fallback`. */
+  media?: ReactNode;
   /** Zeigt den Abspielen-Knopf beim Überfahren. */
   onPlay?: () => void;
   extra?: ReactNode;
 }
 
 /** Cover mit Titel darunter. Gemeinsamer Baustein für Alben, Künstler, Genres und Playlists. */
-export default function CoverTile({ to, image, title, subtitle, round, fallback, onPlay, extra }: CoverTileProps) {
+export default function CoverTile({ to, image, title, subtitle, round, fallback, media, onPlay, extra }: CoverTileProps) {
   return (
     <li>
       <div className={`cover${round ? " round" : ""}`}>
         <Link to={to} className="cover-link" tabIndex={-1} aria-hidden="true">
-          {image ? <img src={image} alt="" loading="lazy" /> : <div className="cover-empty">{fallback ?? <Music size={36} />}</div>}
+          {media ?? (image ? <img src={image} alt="" loading="lazy" /> : <div className="cover-empty">{fallback ?? <Music size={36} />}</div>)}
         </Link>
         {onPlay && (
           <button type="button" className="fab" onClick={onPlay} aria-label={`${title} abspielen`}>
