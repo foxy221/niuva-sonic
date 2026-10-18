@@ -28,7 +28,6 @@
 .full::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60rem 40rem at 30% 20%, color-mix(in srgb, var(--accent) 30%, transparent), transparent), linear-gradient(rgb(10 6 18 / .52), rgb(10 6 18 / .52)), linear-gradient(transparent 30%, var(--ink) 100%); }
 .full-backdrop { position: absolute; inset: -3rem; width: calc(100% + 6rem); height: calc(100% + 6rem); object-fit: cover; filter: blur(30px) saturate(1.25) brightness(.32); opacity: .85; }
 .full-viz { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.rings { position: absolute; inset: 0; width: 100%; height: 100%; }
 .cloud { position: absolute; left: 0; top: 0; border-radius: 50%; opacity: 0; will-change: transform, opacity; background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 80%, white) 0%, color-mix(in srgb, var(--tone) 70%, transparent) 22%, color-mix(in srgb, var(--tone) 24%, transparent) 52%, color-mix(in srgb, var(--tone) 5%, transparent) 80%, transparent 100%); }
 .full-top { position: relative; display: flex; justify-content: space-between; padding: 1rem 1.25rem; }
 .full-body { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 4rem; padding: 0 clamp(2rem, 7vw, 7rem) 3rem; }
