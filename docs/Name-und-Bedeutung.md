@@ -15,6 +15,6 @@ NIUVA SONIC – A New World of Sound.
 
 Sinngemäß: „Eine neue Welt des Klangs.“
 
-Der Name verbindet Erneuerung, Musik und Technologie. Er steht für ein modernes, persönliches Musikerlebnis, das die eigene Musiksammlung auf Windows und Android auf neue Weise zugänglich macht.
+Der Name verbindet Erneuerung, Musik und Technologie. Er steht für ein modernes, persönliches Musikerlebnis, das die eigene Musiksammlung auf neue Weise zugänglich macht.
 
 Kurz gesagt: Historische Wurzeln. Moderner Klang. Deine Musik.

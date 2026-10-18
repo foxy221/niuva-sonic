@@ -1,53 +1,106 @@
-# Niuva Sonic
+<div align="center">
 
-*A New World of Sound.* Musik-Client für [Navidrome](https://www.navidrome.org/) (Subsonic-API) für Windows und Android, eine gemeinsame Codebasis.
+<img src="branding/banner.png" alt="Niuva Sonic" width="640">
 
-## Tech Stack
+**A New World of Sound.**
+Ein moderner Desktop-Client für deine eigene Musiksammlung, gebaut für [Navidrome](https://www.navidrome.org/) und die Subsonic-API.
 
-| Bereich | Wahl |
-| --- | --- |
-| App-Shell | Tauri 2 (Rust), Windows + Android aus einem Projekt |
-| UI | React 19 + TypeScript, Vite |
-| Server-State | TanStack Query |
-| Client-State | Zustand |
-| Routing | React Router |
-| Netzwerk | `tauri-plugin-http` (Rust-Seite, kein CORS-Problem mit dem Navidrome-Server) |
-| Persistenz | `tauri-plugin-store` |
-| Paketmanager | pnpm |
+[![Lizenz: Apache-2.0](https://img.shields.io/badge/Lizenz-Apache--2.0-blue.svg)](LICENSE)
+![Plattform: Windows](https://img.shields.io/badge/Plattform-Windows-0078D4.svg)
+![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg)
+![Status: in Entwicklung](https://img.shields.io/badge/Status-in%20Entwicklung-orange.svg)
 
-## Entwicklung
+</div>
+
+---
+
+## Was ist Niuva Sonic?
+
+Niuva Sonic spielt die Musik von deinem eigenen Server ab: ohne Abo, ohne Werbung, ohne Cloud eines Dritten. Du verbindest die App mit deiner Navidrome-Instanz (oder einem anderen Subsonic-kompatiblen Server) und bekommst eine schnelle, aufgeräumte Oberfläche für deine Bibliothek.
+
+> **Status:** Die App ist noch nicht veröffentlicht. Die Grundlagen stehen und werden gegen einen echten Navidrome-Server geprüft. Der erste Release für Windows ist in Vorbereitung.
+
+## Funktionen
+
+**Bibliothek**
+- Künstler, Alben, Genres und Playlists durchstöbern
+- Suche über die ganze Sammlung
+- Favoriten pflegen, Playlists anlegen und umsortieren
+
+**Wiedergabe**
+- Warteschlange mit Umsortieren, Shuffle und Wiederholen
+- Vollbild-Player mit Visualizer
+- Einstellbare Streaming-Qualität (Format und Bitrate), ReplayGain, Vorladen des nächsten Titels
+- Scrobbling zum Server und Merken der Warteschlange
+
+**Offline**
+- Alben für die Wiedergabe ohne Verbindung herunterladen
+- Eigene Offline-Bibliothek mit Speicherverwaltung
+
+**Windows-Integration**
+- Tray-Symbol mit Wiedergabe-Steuerung, Schließen legt das Fenster in den Tray
+- Medientasten und System-Overlay über die Windows-Mediensteuerung
+- Fenstergröße und -position werden gemerkt, eine zweite Instanz holt das vorhandene Fenster nach vorn
+- Installer ohne Administratorrechte
+
+**Datenschutz**
+- Dein Passwort wird nicht gespeichert. Die Anmeldung läuft über Token und Salt der Subsonic-API.
+- Die App spricht ausschließlich mit dem Server, den du angibst.
+
+## Installation
+
+Sobald es einen Release gibt, findest du den Installer unter [Releases](https://github.com/foxy221/niuva-sonic/releases). Bis dahin kannst du die App selbst bauen (siehe unten).
+
+Voraussetzung: Windows 10 oder 11 mit WebView2 (ist in Windows 11 enthalten) und ein erreichbarer Navidrome- oder Subsonic-Server.
+
+## Selbst bauen
+
+Voraussetzungen: [Node.js](https://nodejs.org/) 24, [pnpm](https://pnpm.io/), [Rust](https://www.rust-lang.org/tools/install) (MSVC-Toolchain) und WebView2.
 
 ```bash
 pnpm install
-pnpm test                 # Regressionstests für Sitzung, Bibliothek, Playlists, Player und Windows-Hülle
-pnpm tauri dev            # Windows-Desktop
-pnpm tauri android dev    # Android (Gerät/Emulator)
-pnpm tauri build          # Release-Build (NSIS-Installer unter src-tauri/target/release/bundle/nsis)
+pnpm test          # Regressionstests für Sitzung, Bibliothek, Playlists, Player und Windows-Hülle
+pnpm tauri dev     # Entwicklungsmodus
+pnpm tauri build   # Release-Build, Installer unter src-tauri/target/release/bundle/nsis
 ```
 
-Voraussetzungen: Node 24, pnpm, Rust (MSVC), WebView2. Für Android zusätzlich `JAVA_HOME` (JDK 21), `ANDROID_HOME` und `NDK_HOME` sowie die Rust-Android-Targets.
+## Technik
 
-## Windows
+| Bereich | Wahl |
+| --- | --- |
+| App-Shell | [Tauri 2](https://tauri.app/) (Rust) |
+| Oberfläche | React 19, TypeScript, Vite |
+| Server-Daten | TanStack Query |
+| App-Zustand | Zustand |
+| Routing | React Router |
+| Netzwerk | `tauri-plugin-http` (läuft auf der Rust-Seite, daher kein CORS-Problem mit dem Server) |
+| Ablage | `tauri-plugin-store` |
+| Tests | Vitest, `cargo test` |
 
-- **Tray:** Linksklick holt das Fenster nach vorn, Rechtsklick öffnet das Menü mit Wiedergabe-Steuerung und Beenden.
-- **Schließen:** Das Fenster wandert in den Tray, die Wiedergabe läuft weiter (abschaltbar in den Einstellungen). Linksklick auf das Tray-Symbol holt es zurück, „Beenden“ im Tray-Menü schließt die App. Unter Windows 11 liegen neue Symbole zuerst im ausgeblendeten Bereich neben der Uhr.
-- **Tastenkürzel:** Leertaste hält an und spielt weiter. Die Medientasten regelt Windows über die Media Session; wer sie zusätzlich systemweit abfangen will, schaltet das in den Einstellungen ein. Der Name in der Mediensteuerung bleibt „Unbekannte Anwendung“ – das ist eine Grenze von WebView2, nicht der App.
-- **Fenster:** Größe, Position und maximierter Zustand werden gemerkt. Ein zweiter Start holt das vorhandene Fenster nach vorn, statt ein zweites zu öffnen.
-- **Updates:** vorbereitet, aber noch nicht eingerichtet (keine Update-Adresse hinterlegt). Die Schritte stehen in [docs/ROADMAP-Technik.md](docs/ROADMAP-Technik.md) unter Phase 3.
+```
+src/api/          Subsonic-Client und Typen
+src/hooks/        Datenzugriff über TanStack Query
+src/state/        Stores für Sitzung, Player, Einstellungen und Offline
+src/components/   Bausteine und App-Rahmen
+src/screens/      Ansichten
+src-tauri/        Rust-Hülle (Tray, Fenster, Medientasten, Updater)
+branding/         Logos
+```
 
+## Wie die App entstanden ist
 
-## Struktur
+Uns ist Transparenz wichtig, deshalb hier offen, was von wem kommt:
 
-- `src/api/` Subsonic-Client und Typen
-- `src/hooks/` Datenzugriff über TanStack Query (Bibliothek, Favoriten, Playlists)
-- `src/state/` Zustand-Stores (Sitzung, Player)
-- `src/components/` Bausteine und App-Rahmen
-- `src/screens/` Ansichten
-- `src-tauri/` Rust-Backend und Tauri-Konfiguration (`src/desktop.rs` Tray, Fenster, Medientasten)
-- `src-tauri/gen/android/` generiertes Android-Projekt
-- `branding/` Logos, `docs/` Notizen und Roadmaps
+- **Idee und Name** von Niuva Sonic sind rein menschlich. Die Herkunft des Namens steht in [docs/Name-und-Bedeutung.md](docs/Name-und-Bedeutung.md).
+- **Der Code** entsteht menschlich mit KI-Unterstützung. Konzept, Entscheidungen und Prüfung liegen beim Menschen, die KI hilft beim Schreiben und Review.
+- **Die Logos** wurden mit generativer KI erstellt und anschließend von Hand nachbearbeitet.
 
-## Roadmap
+## Mitmachen
 
-- [Technik](docs/ROADMAP-Technik.md): Die Grundlagen aus Phase 1–3 stehen. Jetzt folgen Offline für Windows (4), Qualität und Betrieb (5) sowie Veröffentlichung und Windows-Abnahme (6). Android (7) beginnt erst nach vollständigem Windows-Abschluss.
-- [Design](docs/ROADMAP-Design.md): Offene Windows-Gestaltung und Barrierefreiheit laufen parallel zu Technik 4–6 und werden vor Android gemeinsam abgenommen. Mobile Detailarbeit und Geräteabnahme folgen danach.
+Fehler, Wünsche und Ideen sind willkommen: Eröffne gern ein [Issue](https://github.com/foxy221/niuva-sonic/issues). Bitte gib dabei deine Windows-Version und die Version deines Servers an, wenn es um Verbindungsprobleme geht.
+
+## Lizenz
+
+Der Quellcode steht unter der [Apache License 2.0](LICENSE). Name, Logos und Bildmarke „Niuva Sonic“ sind davon ausgenommen und dürfen nicht ohne Zustimmung für andere Projekte verwendet werden.
+
+Niuva Sonic ist ein unabhängiges Projekt und steht in keiner Verbindung zu Navidrome oder dem Subsonic-Projekt.

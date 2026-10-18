@@ -1,0 +1,47 @@
+name: Release
+
+# Baut bei einem Tag wie v0.2.0 den Windows-Installer und legt ihn als Entwurf
+# unter "Releases" ab. Der Entwurf wird von Hand geprueft und veroeffentlicht.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Fuer den Auto-Update spaeter einkommentieren (siehe Phase 5):
+          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Niuva Sonic ${{ github.ref_name }}"
+          releaseBody: "Windows-Installer (ohne Administratorrechte installierbar). Hinweise zur Installation stehen in der README."
+          releaseDraft: true
+          prerelease: false

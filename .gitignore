@@ -25,3 +25,6 @@ dist-ssr
 
 # lokale Testzugaenge
 zugangsdaten.txt
+
+# interne Planung und Pruefnotizen (nicht veroeffentlichen)
+docs/intern/

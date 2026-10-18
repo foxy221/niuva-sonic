@@ -1,7 +1,9 @@
 [package]
 name = "niuva-sonic"
 version = "0.1.0"
-description = "Navidrome-Client fuer Windows und Android"
+description = "Navidrome-Client fuer Windows"
+license = "Apache-2.0"
+repository = "https://github.com/foxy221/niuva-sonic"
 authors = ["foxy221"]
 edition = "2024"
 
