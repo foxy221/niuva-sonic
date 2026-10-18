@@ -146,6 +146,26 @@ describe("Offline-Ablage", () => {
     expect(stored.get(await libraryKey()).songs["mf-1"].rel).toBe(state.songs["mf-1"].rel);
   });
 
+  it("zählt den Fortschritt über alle Dateien eines Jobs zusammen", async () => {
+    await signIn();
+    const album = { id: "al-1", name: "Album", artist: "K", song: [song("mf-1"), song("mf-2")] };
+
+    useOffline.getState().download(album.song, album);
+    await settle();
+
+    expect(useOffline.getState().jobs[0]).toMatchObject({ totalBytes: 2000, finishedBytes: 2000, receivedBytes: 2000 });
+  });
+
+  it("bricht beim Leeren der Ablage laufende Downloads ab", async () => {
+    await signIn();
+    useOffline.setState({ jobs: [{ id: "job-1", label: "x", songIds: [], totalCount: 1, doneCount: 0, failedCount: 0, totalBytes: 0, finishedBytes: 0, receivedBytes: 0, state: "running" }] });
+
+    await useOffline.getState().clearAll();
+
+    expect(useOffline.getState().jobs[0].state).toBe("canceled");
+    expect(invoke).toHaveBeenCalledWith("cancel_download", { jobId: "job-1" });
+  });
+
   it("überspringt bereits vorhandene Titel", async () => {
     await signIn();
     useOffline.setState({ songs: { "mf-1": { song: song("mf-1"), rel: "k/mf-1.flac", size: 1, at: 1 } } });
@@ -217,7 +237,7 @@ describe("Offline-Ablage", () => {
   });
 
   it("meldet einen Abbruch an die Hülle", () => {
-    useOffline.setState({ jobs: [{ id: "job-1", label: "x", songIds: [], totalCount: 1, doneCount: 0, failedCount: 0, totalBytes: 0, receivedBytes: 0, state: "running" }] });
+    useOffline.setState({ jobs: [{ id: "job-1", label: "x", songIds: [], totalCount: 1, doneCount: 0, failedCount: 0, totalBytes: 0, finishedBytes: 0, receivedBytes: 0, state: "running" }] });
 
     useOffline.getState().cancel("job-1");
 

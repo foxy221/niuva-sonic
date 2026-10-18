@@ -152,6 +152,11 @@ async fn write_stream<R: Runtime>(
     if !response.status().is_success() {
         return Err(format!("Der Server antwortet mit HTTP {}", response.status()));
     }
+    // Subsonic meldet Fehler (falsche ID, fehlende Download-Rolle) mit HTTP 200 und
+    // einem XML-/JSON-Text; der darf nicht als Titel in der Ablage landen.
+    if is_error_body(response.headers().get(reqwest::header::CONTENT_TYPE)) {
+        return Err("Der Server hat statt der Datei eine Fehlermeldung geschickt.".to_string());
+    }
     let total = response.content_length().unwrap_or(0);
     let mut file = tokio::fs::File::create(tmp)
         .await
@@ -188,6 +193,13 @@ async fn write_stream<R: Runtime>(
         path: dest.to_string_lossy().into_owned(),
         size: received,
     })
+}
+
+/// Textantworten (XML, JSON, HTML) sind keine Audio- oder Bilddateien.
+fn is_error_body(content_type: Option<&reqwest::header::HeaderValue>) -> bool {
+    let Some(value) = content_type.and_then(|v| v.to_str().ok()) else { return false };
+    let value = value.to_ascii_lowercase();
+    value.starts_with("text/") || value.contains("xml") || value.contains("json")
 }
 
 /// Groesse eines Ordnerbaums in Bytes; angebrochene `.part`-Dateien zaehlen nicht.
@@ -287,7 +299,7 @@ pub fn clear_offline<R: Runtime>(app: AppHandle<R>) -> Result<u64, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Downloads, validate_rel};
+    use super::{Downloads, is_error_body, validate_rel};
 
     #[test]
     fn zulaessige_pfade_werden_angenommen() {
@@ -317,5 +329,16 @@ mod tests {
         downloads.unregister("job-1");
         assert!(downloads.register("job-1").is_ok());
         assert!(!flag.load(std::sync::atomic::Ordering::Relaxed));
+    }
+
+    #[test]
+    fn textantworten_gelten_als_fehlerseite() {
+        use tauri_plugin_http::reqwest::header::HeaderValue;
+        let header = |v: &'static str| HeaderValue::from_static(v);
+        assert!(is_error_body(Some(&header("text/xml; charset=utf-8"))));
+        assert!(is_error_body(Some(&header("application/json"))));
+        assert!(!is_error_body(Some(&header("audio/flac"))));
+        assert!(!is_error_body(Some(&header("application/octet-stream"))));
+        assert!(!is_error_body(None));
     }
 }

@@ -54,6 +54,8 @@ export interface DownloadJob {
   doneCount: number;
   failedCount: number;
   totalBytes: number;
+  /** Bytes der bereits fertigen Dateien dieses Jobs. */
+  finishedBytes: number;
   receivedBytes: number;
   state: "running" | "done" | "canceled" | "error";
   error?: string;
@@ -186,6 +188,8 @@ async function runJob(job: DownloadJob, pending: Song[], album: AlbumWithSongs |
         songs: { ...state.songs, [song.id]: { song, rel, size: result.size, at: Date.now() } },
       }));
       bump("doneCount");
+      const finished = (useOffline.getState().jobs.find((j) => j.id === job.id)?.finishedBytes ?? 0) + result.size;
+      patchJob(job.id, { finishedBytes: finished, receivedBytes: finished });
       void persist(creds);
       void useOffline.getState().refreshUsage();
     } catch (error) {
@@ -235,7 +239,8 @@ export const useOffline = create<OfflineState>((set, get) => ({
       // Fortschrittsereignisse der Hülle in die Jobs schreiben.
       void onDownloadProgress(({ jobId, received }) => {
         const job = useOffline.getState().jobs.find((j) => j.id === jobId);
-        if (job) patchJob(jobId, { receivedBytes: received });
+        // `received` gilt nur für die laufende Datei; fertige Dateien kommen dazu.
+        if (job) patchJob(jobId, { receivedBytes: (job.finishedBytes ?? 0) + received });
       }).then((unlisten: UnlistenFn) => {
         // Der Listener lebt so lange wie die App; ein Neuladen entfernt ihn mit der Seite.
         window.addEventListener("beforeunload", unlisten, { once: true });
@@ -245,6 +250,10 @@ export const useOffline = create<OfflineState>((set, get) => ({
     const forKey = creds ? `${creds.serverUrl}|${creds.username}` : null;
     if (restoreTask && loadedFor === forKey) return restoreTask;
     const task = (async () => {
+      // Ein Kontowechsel darf laufende Downloads nicht in den fremden Index schreiben lassen.
+      if (loadedFor !== forKey) {
+        for (const job of get().jobs) if (job.state === "running") get().cancel(job.id);
+      }
       if (!creds) {
         loadedFor = null;
         set({ songs: {}, albums: {}, baseDir: null, ready: true });
@@ -316,6 +325,7 @@ export const useOffline = create<OfflineState>((set, get) => ({
       doneCount: songs.length - pending.length,
       failedCount: 0,
       totalBytes: pending.reduce((sum, song) => sum + (song.size ?? 0), 0),
+      finishedBytes: 0,
       receivedBytes: 0,
       state: "running",
     };
@@ -364,6 +374,8 @@ export const useOffline = create<OfflineState>((set, get) => ({
 
   async clearAll() {
     const { creds } = useSession.getState();
+    // Laufende Downloads würden die leere Ablage sofort wieder füllen.
+    for (const job of get().jobs) if (job.state === "running") get().cancel(job.id);
     set({ songs: {}, albums: {} });
     if (creds) await persist(creds);
     await clearOffline().catch(() => {});
