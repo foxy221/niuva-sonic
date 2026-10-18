@@ -4,11 +4,13 @@ import AlbumGrid from "../components/AlbumGrid";
 import ArtistGrid from "../components/ArtistGrid";
 import FavoriteButton from "../components/FavoriteButton";
 import QueryStates from "../components/QueryStates";
+import SongList from "../components/SongList";
 import { usePageAccent } from "../design/useAccent";
 import { plainText } from "../format";
-import { useArtist, useArtistInfo } from "../hooks/library";
+import { useArtist, useArtistInfo, useTopSongs } from "../hooks/library";
 import { useClient } from "../hooks/useClient";
 import { useT } from "../i18n";
+import { usePlayer } from "../state/player";
 
 /** Künstlerseite: Diskografie, Biografie und ähnliche Künstler. */
 export default function Artist() {
@@ -17,6 +19,9 @@ export default function Artist() {
   const client = useClient();
   const artist = useArtist(id);
   const info = useArtistInfo(id);
+  const top = useTopSongs(artist.data?.name ?? "");
+  const playQueue = usePlayer((s) => s.playQueue);
+  const topSongs = top.data ?? [];
   const data = artist.data;
   const albums = data?.album ?? [];
   const similar = info.data?.similarArtist ?? [];
@@ -38,6 +43,13 @@ export default function Artist() {
                 <FavoriteButton starred={Boolean(data.starred)} artistId={data.id} label={t("favorite.artist")} />
               </div>
             </div>
+
+            {topSongs.length > 0 && (
+              <section>
+                <h2>{t("artist.topSongs")}</h2>
+                <SongList songs={topSongs} onPlay={(i) => playQueue(topSongs, i)} showAlbum />
+              </section>
+            )}
 
             <h2>{t("nav.albums")}</h2>
             {albums.length ? <AlbumGrid albums={albums} showArtist={false} /> : <p className="muted">{t("artist.noAlbums")}</p>}

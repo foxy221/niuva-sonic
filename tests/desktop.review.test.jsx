@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import { MemoryRouter } from "react-router-dom";
+const Router = ({ children }) => <MemoryRouter>{children}</MemoryRouter>;
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -61,7 +62,7 @@ describe("Desktop-Grenzen und Listener", () => {
 describe("Lokale Leertaste", () => {
   it.each(["button span", "button svg", "[role=button]", "[role=switch]", "[role=checkbox]"])("beeinflusst %s nicht", (selector) => {
     const toggle = vi.spyOn(usePlayer.getState(), "toggle");
-    renderHook(() => useKeyboardShortcuts());
+    renderHook(() => useKeyboardShortcuts(), { wrapper: Router });
     const container = document.createElement("div");
     container.innerHTML = '<button><span>Text</span><svg></svg></button><div role="button"></div><div role="switch"></div><div role="checkbox"></div>';
     document.body.append(container);
@@ -74,7 +75,7 @@ describe("Lokale Leertaste", () => {
 
   it("greift nicht während einer IME-Eingabe", () => {
     const toggle = vi.spyOn(usePlayer.getState(), "toggle");
-    renderHook(() => useKeyboardShortcuts());
+    renderHook(() => useKeyboardShortcuts(), { wrapper: Router });
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", isComposing: true, cancelable: true }));
     expect(toggle).not.toHaveBeenCalled();
   });

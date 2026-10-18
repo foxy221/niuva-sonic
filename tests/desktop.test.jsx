@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
 import { SubsonicClient } from "../src/api/subsonic";
 import { isTypingTarget, useKeyboardShortcuts } from "../src/hooks/useKeyboardShortcuts";
@@ -11,6 +12,7 @@ import { useSession } from "../src/state/session";
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
 
 const credentials = { serverUrl: "https://music-a.example", username: "A", token: "a".repeat(32), salt: "salt" };
+const wrapper = ({ children }) => <MemoryRouter>{children}</MemoryRouter>;
 const song = (id, duration = 100) => ({ id, title: id.toUpperCase(), duration });
 
 function pressSpace(target) {
@@ -33,7 +35,7 @@ afterEach(() => {
 describe("Leertaste (#12)", () => {
   it("hält an und spielt weiter", () => {
     usePlayer.getState().playQueue([song("a")], 0);
-    renderHook(() => useKeyboardShortcuts());
+    renderHook(() => useKeyboardShortcuts(), { wrapper });
     expect(usePlayer.getState().playing).toBe(true);
 
     pressSpace();
@@ -45,7 +47,7 @@ describe("Leertaste (#12)", () => {
 
   it("lässt Eingabefelder und Knöpfe in Ruhe", () => {
     usePlayer.getState().playQueue([song("a")], 0);
-    renderHook(() => useKeyboardShortcuts());
+    renderHook(() => useKeyboardShortcuts(), { wrapper });
 
     for (const tag of ["input", "textarea", "select", "button"]) {
       const element = document.createElement(tag);
@@ -60,7 +62,7 @@ describe("Leertaste (#12)", () => {
 
   it("greift nicht mit Zusatztasten", () => {
     usePlayer.getState().playQueue([song("a")], 0);
-    renderHook(() => useKeyboardShortcuts());
+    renderHook(() => useKeyboardShortcuts(), { wrapper });
     window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", ctrlKey: true, cancelable: true }));
     expect(usePlayer.getState().playing).toBe(true);
   });

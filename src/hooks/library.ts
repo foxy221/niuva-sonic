@@ -21,6 +21,24 @@ export function useArtistInfo(id: string) {
   return useQuery({ queryKey: keys.artistInfo(id), queryFn: () => client.getArtistInfo2(id), enabled: Boolean(id) });
 }
 
+/** Beliebteste Titel; ohne Last.fm-Anbindung des Servers kommt eine leere Liste. */
+export function useTopSongs(artist: string) {
+  const client = useClient();
+  return useQuery({ queryKey: keys.topSongs(artist), queryFn: () => client.getTopSongs(artist, 10), enabled: Boolean(artist), retry: false });
+}
+
+/** Songtexte eines Titels; nur anfragen, wenn der Server `songLyrics` meldet. */
+export function useLyrics(songId: string | undefined, enabled: boolean) {
+  const client = useClient();
+  return useQuery({
+    queryKey: keys.lyrics(songId ?? ""),
+    queryFn: () => client.getLyricsBySongId(songId ?? ""),
+    enabled: enabled && Boolean(songId),
+    retry: false,
+    staleTime: Infinity,
+  });
+}
+
 /** Albumliste eines Typs; `offset` und `size` steuern die Seiten. */
 export function useAlbumList(type: AlbumListType, size = 40, offset = 0, filter: AlbumListFilter = {}) {
   const client = useClient();

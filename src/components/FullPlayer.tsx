@@ -1,12 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ListMusic } from "lucide-react";
+import { ChevronDown, ListMusic, MicVocal } from "lucide-react";
 import { useUi } from "../design/ui";
 import { usePlayer } from "../state/player";
+import { useCapabilities } from "../state/capabilities";
 import { useSession } from "../state/session";
 import { useCoverUrl } from "../hooks/useCoverUrl";
 import { useT } from "../i18n";
 import FavoriteButton from "./FavoriteButton";
+import Lyrics from "./Lyrics";
 import QueuePanel from "./QueuePanel";
 import SeekBar from "./SeekBar";
 import Transport from "./Transport";
@@ -19,6 +21,8 @@ export default function FullPlayer() {
   const { fullOpen, setFull, queueOpen, toggleQueue } = useUi();
   const song = usePlayer((s) => s.queue[s.index]);
   const client = useSession((s) => s.client);
+  const [lyricsOpen, setLyricsOpen] = useState(false);
+  const lyricsSupported = useCapabilities((s) => s.supports("songLyrics"));
   const coverRef = useRef<HTMLElement | null>(null);
   const backdrop = useCoverUrl(song?.coverArt, song?.albumId, 64);
   const cover = useCoverUrl(song?.coverArt, song?.albumId, 800);
@@ -39,10 +43,16 @@ export default function FullPlayer() {
       <Visualizer anchor={coverRef} coverUrl={backdrop} />
       <header className="full-top">
         <button className="icon" onClick={close} aria-label={t("player.closeFull")}><ChevronDown size={26} /></button>
-        <button className={`icon${queueOpen ? " on" : ""}`} onClick={toggleQueue} aria-label={t("player.queue")} aria-pressed={queueOpen}><ListMusic size={22} /></button>
+        <div className="full-top-actions">
+          {lyricsSupported && <button className={`icon${lyricsOpen ? " on" : ""}`} onClick={() => setLyricsOpen((v) => !v)} aria-label={t("lyrics.title")} aria-pressed={lyricsOpen}><MicVocal size={22} /></button>}
+          <button className={`icon${queueOpen ? " on" : ""}`} onClick={toggleQueue} aria-label={t("player.queue")} aria-pressed={queueOpen}><ListMusic size={22} /></button>
+        </div>
       </header>
       <div className="full-body">
-        {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
+        <div className="full-left">
+          {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
+          {lyricsOpen && <div className="full-lyrics"><Lyrics song={song} /></div>}
+        </div>
         <div className="full-info">
           <div className="full-title">
             <div>

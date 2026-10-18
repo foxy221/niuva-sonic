@@ -57,3 +57,12 @@
   .diag-facts > div { grid-template-columns: minmax(0, 1fr); gap: .1rem; }
   .profile { flex-wrap: wrap; }
 }
+
+.shortcut-list { display: grid; gap: .1rem; margin: .2rem 0 1rem; }
+.shortcut-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .45rem 0; border-bottom: 1px solid var(--line); }
+.shortcut-keys { white-space: nowrap; color: var(--muted); }
+kbd { display: inline-block; min-width: 1.6rem; padding: .1rem .5rem; text-align: center; font: inherit; font-size: .85rem; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: .4rem; }
+.add-profile { margin-top: .8rem; }
+.add-profile-form { display: grid; gap: .9rem; max-width: 26rem; margin-top: .8rem; padding: 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.add-profile-form label { display: grid; gap: .35rem; color: var(--muted); font-size: .88rem; }
+.add-profile-actions { display: flex; gap: .6rem; }

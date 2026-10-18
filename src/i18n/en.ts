@@ -237,7 +237,7 @@ export const en = {
   "settings.remember": "Remember queue",
   "settings.rememberHint": "On the next start you continue with the track and position where you stopped.",
   "settings.shortcuts": "Keyboard shortcuts",
-  "settings.shortcutsHint": "Space pauses and resumes playback – except in input fields.",
+  "settings.shortcutsHint": "They work anywhere in the window. Space is ignored in input fields and on buttons; Ctrl + arrow keys are ignored while typing.",
   "settings.space": "Space",
   "settings.windows": "Windows",
   "settings.tray": "Close to tray",
@@ -329,6 +329,23 @@ export const en = {
   "diag.clearLog": "Clear log",
   "diag.clearFailed": "The log cannot be cleared: {error}",
   "diag.logUnreadable": "The log cannot be read: {error}",
+
+  "lyrics.title": "Lyrics",
+  "lyrics.none": "No lyrics for this track.",
+  "lyrics.failed": "The lyrics could not be loaded.",
+  "lyrics.unsupported": "This server does not provide lyrics.",
+  "artist.topSongs": "Top songs",
+  "settings.addProfile": "Add server",
+  "settings.addProfileHint": "Sign in to another server. If the sign-in fails you stay signed in here; on success the new server becomes active and both stay in the list.",
+  "settings.addProfileSubmit": "Add and switch",
+  "shortcut.toggle": "Pause / resume",
+  "shortcut.volumeUp": "Volume up",
+  "shortcut.volumeDown": "Volume down",
+  "shortcut.next": "Next track",
+  "shortcut.prev": "Previous track",
+  "shortcut.search": "Focus search",
+  "shortcut.back": "Back",
+  "shortcut.forward": "Forward",
 };
 
 export type Messages = typeof en;

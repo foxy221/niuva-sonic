@@ -29,7 +29,7 @@ export default function Search() {
       <h1>{t("nav.search")}</h1>
       <form className="search-field" role="search" onSubmit={(e) => e.preventDefault()}>
         <SearchIcon size={20} />
-        <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t("search.placeholder")} aria-label={t("search.label")} autoFocus />
+        <input type="search" data-search value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t("search.placeholder")} aria-label={t("search.label")} autoFocus />
       </form>
 
       {suchbegriff.length < 2 ? (

@@ -28,7 +28,7 @@ export default function TopBar() {
       {!onSearchPage && (
         <form className="topbar-search" role="search" onSubmit={submit}>
           <Search size={18} />
-          <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t("topbar.search")} aria-label={t("nav.search")} />
+          <input type="search" data-search value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t("topbar.search")} aria-label={t("nav.search")} />
         </form>
       )}
       <Link to="/settings" className="topbar-profile" title={t("nav.settings")}>

@@ -177,3 +177,18 @@ export type AlbumListType =
   | "starred"
   | "byYear"
   | "byGenre";
+
+/** Eine Zeile eines Songtexts; `start` in Millisekunden, nur bei synchronen Texten. */
+export interface LyricLine {
+  start?: number;
+  value: string;
+}
+
+/** Songtext im OpenSubsonic-Zuschnitt (`getLyricsBySongId`). */
+export interface StructuredLyrics {
+  lang?: string;
+  synced: boolean;
+  /** Verschiebung der Zeitstempel in Millisekunden; positiv = Zeilen kommen später. */
+  offset?: number;
+  line: LyricLine[];
+}

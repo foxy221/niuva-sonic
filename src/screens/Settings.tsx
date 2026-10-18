@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { CircleAlert, LogOut, Stethoscope, UserRound } from "lucide-react";
+import { CircleAlert, LoaderCircle, LogOut, Plus, Stethoscope, UserRound } from "lucide-react";
 import Segmented from "../components/Segmented";
 import Switch from "../components/Switch";
 import { formatBytes } from "../format";
+import { SHORTCUTS } from "../hooks/shortcuts";
 import { LANGUAGES, t, useLanguage, useT, type MessageKey } from "../i18n";
 import { replayGainSupported, useCapabilities } from "../state/capabilities";
 import {
@@ -23,7 +24,7 @@ import { offlineSupported, useOffline } from "../state/offline";
 import { profileId, useProfiles } from "../state/profiles";
 import { credentialsKey, keychainAvailable } from "../state/secrets";
 import { bitRateOptions, formatOptions, limitOptions, useSettings, type PlaybackSettings } from "../state/settings";
-import { useSession } from "../state/session";
+import { describeLoginError, useSession } from "../state/session";
 import { usePlayer } from "../state/player";
 
 /** Wo das Update im Ablauf steht: gefunden, wird geladen, geladen, wird eingespielt. */
@@ -46,6 +47,55 @@ const gains: { value: PlaybackSettings["replayGain"]; label: MessageKey }[] = [
   { value: "track", label: "settings.gainTrack" },
   { value: "album", label: "settings.gainAlbum" },
 ];
+
+/**
+ * Weiteren Server hinzufügen, ohne sich abzumelden. Gelingt die Anmeldung nicht,
+ * bleibt die laufende Sitzung unberührt (`login` prüft vor dem Umschalten).
+ */
+function AddProfile() {
+  const tr = useT();
+  const login = useSession((s) => s.login);
+  const [open, setOpen] = useState(false);
+  const [serverUrl, setServerUrl] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await login(serverUrl, username, password);
+      setOpen(false);
+      setServerUrl("");
+      setUsername("");
+      setPassword("");
+    } catch (err) {
+      setError(describeLoginError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return <button type="button" className="ghost add-profile" onClick={() => setOpen(true)}><Plus size={18} /> {tr("settings.addProfile")}</button>;
+  }
+  return (
+    <form className="add-profile-form" onSubmit={submit}>
+      <p className="muted">{tr("settings.addProfileHint")}</p>
+      <label>{tr("login.server")}<input type="url" inputMode="url" placeholder="https://musik.example.de" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} required autoFocus /></label>
+      <label>{tr("login.username")}<input type="text" autoComplete="off" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
+      <label>{tr("login.password")}<input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+      {error && <p className="form-error" role="alert"><CircleAlert size={18} /> {error}</p>}
+      <div className="add-profile-actions">
+        <button type="submit" disabled={busy}>{busy ? <><LoaderCircle size={18} className="spin" /> {tr("login.connecting")}</> : tr("settings.addProfileSubmit")}</button>
+        <button type="button" className="ghost" disabled={busy} onClick={() => { setOpen(false); setError(null); setPassword(""); }}>{tr("common.cancel")}</button>
+      </div>
+    </form>
+  );
+}
 
 /** Zustandstext der Update-Prüfung. */
 export function describeUpdate(status: UpdateStatus | null): string {
@@ -237,8 +287,20 @@ export default function Settings() {
         <Switch label={tr("settings.remember")} checked={settings.rememberQueue} onChange={(rememberQueue) => update({ rememberQueue })} />
       </Setting>
       <Setting title={tr("settings.shortcuts")} hint={tr("settings.shortcutsHint")}>
-        <span className="muted">{tr("settings.space")}</span>
+        <span />
       </Setting>
+      <ul className="shortcut-list">
+        {SHORTCUTS.map((shortcut) => (
+          <li key={shortcut.action}>
+            <span>{tr(shortcut.label)}</span>
+            <span className="shortcut-keys">
+              {shortcut.keys.map((key, i) => (
+                <span key={key}>{i > 0 && " + "}<kbd>{key === "Space" ? tr("settings.space") : key}</kbd></span>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
 
       <h2>{tr("settings.windows")}</h2>
       {desktop ? (
@@ -349,6 +411,7 @@ export default function Settings() {
       ) : (
         <p className="muted">{tr("settings.noProfiles")}</p>
       )}
+      <AddProfile />
     </section>
   );
 }

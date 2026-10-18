@@ -18,6 +18,7 @@ import type {
   ServerInfo,
   Song,
   StarIds,
+  StructuredLyrics,
   Starred,
   StreamOptions,
 } from "./types";
@@ -147,6 +148,18 @@ export class SubsonicClient {
   async getRandomSongs(size = 50, genre?: string): Promise<Song[]> {
     const r = await this.call<{ randomSongs?: { song?: Song[] } }>("getRandomSongs", { size, genre });
     return r.randomSongs?.song ?? [];
+  }
+
+  /** Beliebteste Titel eines Künstlers (Navidrome braucht dafür die Last.fm-Anbindung). */
+  async getTopSongs(artist: string, count = 10): Promise<Song[]> {
+    const r = await this.call<{ topSongs?: { song?: Song[] } }>("getTopSongs", { artist, count });
+    return r.topSongs?.song ?? [];
+  }
+
+  /** Songtexte (OpenSubsonic `songLyrics`); leer, wenn der Titel keinen hat. */
+  async getLyricsBySongId(id: string): Promise<StructuredLyrics[]> {
+    const r = await this.call<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>("getLyricsBySongId", { id });
+    return (r.lyricsList?.structuredLyrics ?? []).map((entry) => ({ ...entry, synced: Boolean(entry.synced), line: entry.line ?? [] }));
   }
 
   // --- Favoriten --------------------------------------------------------

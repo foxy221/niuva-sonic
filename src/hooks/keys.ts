@@ -13,6 +13,8 @@ export const keys = {
   artists: ["artists"] as const,
   artist: (id: string) => ["artist", id] as const,
   artistInfo: (id: string) => ["artistInfo", id] as const,
+  topSongs: (artist: string) => ["topSongs", artist] as const,
+  lyrics: (songId: string) => ["lyrics", songId] as const,
   album: (id: string) => ["album", id] as const,
   albumList: (type: AlbumListType, size: number, offset: number, filter: AlbumListFilter = {}) =>
     ["albumList", type, size, offset, clean(filter)] as const,
