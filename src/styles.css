@@ -1,0 +1,6 @@
+:root { color-scheme: dark; --bg: #0b0714; --fg: #f4eefc; }
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
+.shell { height: 100%; display: grid; place-content: center; justify-items: center; gap: 1rem; }
+.shell img { width: min(70vw, 560px); }
