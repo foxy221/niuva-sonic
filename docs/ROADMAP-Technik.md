@@ -105,7 +105,7 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
   - Leertaste: schaltet um, stört aber nicht in Suchfeld und Knöpfen.
   - Fenstergröße und -position nach einem Neustart.
   - Installer: Installation ohne Adminrechte, Eintrag im Startmenü, Deinstallation.
-- **Automatisch geprüft:** `cargo test` (4 Tests für die Einstellungen der Hülle), `pnpm test` (96 Tests, darunter Leertaste, Hüllen-Befehle und Update-Text), Typecheck, Vite-Build und Release-Build mit NSIS-Installer. Dazu Starttests der gebauten Anwendung: Fenster wird erzeugt (Titel „Niuva Sonic“), ein zweiter Start beendet sich mit Code 0 und lässt nur eine Instanz laufen, Schließen beendet die App und schreibt `.window-state.json` mit Größe und Position, und mit gesetztem „Beim Schließen in den Tray“ bleibt der Prozess nach dem Schließen am Leben.
+- **Automatisch geprüft:** `cargo test` (4 Tests für die Einstellungen der Hülle), `pnpm test` (96 Tests, darunter Leertaste, Hüllen-Befehle und Update-Text), Typecheck, Vite-Build und Release-Build mit NSIS-Installer. Dazu Starttests der gebauten Anwendung: Fenster wird erzeugt (Titel „Niuva Sonic“), das Tray-Symbol liegt wirklich vor (Fensterklasse `tray_icon_app` im laufenden Prozess), ein zweiter Start beendet sich mit Code 0 und lässt nur eine Instanz laufen, Schließen legt das Fenster in den Tray und der Prozess läuft weiter, und mit abgeschaltetem „Beim Schließen in den Tray“ beendet Schließen die App und schreibt `.window-state.json` mit Größe und Position.
 
 ## Phase 4: Android
 
