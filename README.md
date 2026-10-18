@@ -2,136 +2,159 @@
 
 <img src="branding/banner.png" alt="Niuva Sonic" width="640">
 
-**A New World of Sound.**
-Ein moderner Desktop-Client für deine eigene Musiksammlung, gebaut für [Navidrome](https://www.navidrome.org/) und die Subsonic-API.
+### A New World of Sound.
 
-[![Lizenz: Apache-2.0](https://img.shields.io/badge/Lizenz-Apache--2.0-blue.svg)](LICENSE)
-![Plattform: Windows](https://img.shields.io/badge/Plattform-Windows-0078D4.svg)
-![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB.svg)
-![Status: in Entwicklung](https://img.shields.io/badge/Status-in%20Entwicklung-orange.svg)
+A modern desktop client for your own music collection, built for [Navidrome](https://www.navidrome.org/) and the Subsonic API.<br>
+No subscription. No ads. No third-party cloud. Just your library.
+
+[![Latest release](https://img.shields.io/github/v/release/foxy221/niuva-sonic?label=release&color=ff3d9a)](https://github.com/foxy221/niuva-sonic/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/foxy221/niuva-sonic/ci.yml?branch=main&label=CI)](https://github.com/foxy221/niuva-sonic/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4.svg)
+![Built with Tauri 2](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB.svg)
+
+[**Download**](https://github.com/foxy221/niuva-sonic/releases/latest) · [Features](#features) · [Install](#install) · [Build from source](#build-from-source) · [Roadmap](#roadmap) · [Contributing](#contributing)
 
 </div>
 
 ---
 
-## Was ist Niuva Sonic?
+## About
 
-Niuva Sonic spielt die Musik von deinem eigenen Server ab: ohne Abo, ohne Werbung, ohne Cloud eines Dritten. Du verbindest die App mit deiner Navidrome-Instanz (oder einem anderen Subsonic-kompatiblen Server) und bekommst eine schnelle, aufgeräumte Oberfläche für deine Bibliothek.
+Niuva Sonic plays the music on **your own server**. Connect it to a Navidrome instance (or any Subsonic-compatible server) and get a fast, clean and good-looking interface for your library: browse, search, queue, download for offline listening, and keep your favourites and playlists in sync with the server.
 
-> **Status:** Die App gibt es als Windows-Version (Release 0.1.x). Sie wird gegen einen echten Navidrome-Server geprüft. Der Installer ist noch nicht mit einem Authenticode-Zertifikat signiert, siehe [Bekannte Einschränkungen](#bekannte-einschränkungen).
+The app is a small native Windows program (a few megabytes, built with [Tauri](https://tauri.app/) and Rust), not a bundled browser. Your password is never stored.
 
-## Funktionen
+> **Status:** Niuva Sonic is in active development (0.x). It is stable enough for daily use on Windows and is tested against Navidrome. The current interface language is German; an English interface (the default) and a language switch are planned for 1.0.0, see the [roadmap](#roadmap).
 
-**Bibliothek**
-- Künstler, Alben, Genres und Playlists durchstöbern
-- Suche über die ganze Sammlung
-- Favoriten pflegen, Playlists anlegen und umsortieren
+## Features
 
-**Wiedergabe**
-- Warteschlange mit Umsortieren, Shuffle und Wiederholen
-- Vollbild-Player mit Visualizer
-- Einstellbare Streaming-Qualität (Format und Bitrate), ReplayGain, Vorladen des nächsten Titels
-- Scrobbling zum Server und Merken der Warteschlange
+**Library**
+- Browse artists, albums, genres and playlists, with sorting and paging
+- Search across your whole collection, grouped by artists, albums and tracks
+- Favourites for tracks, albums and artists
+- Create, rename, reorder and delete playlists; add single tracks or whole albums
+
+**Playback**
+- Queue with drag-and-drop reordering, "play next", append, shuffle and repeat
+- Gapless playback and preloading of the next track
+- Adjustable streaming quality (format and bitrate) and ReplayGain
+- Scrobbling to your server and a queue that survives restarts
+- Full-screen player with an audio-reactive background that follows the cover art
 
 **Offline**
-- Alben für die Wiedergabe ohne Verbindung herunterladen
-- Eigene Offline-Bibliothek mit Speicherverwaltung
+- Download albums and tracks for listening without a connection
+- Offline library with cover art and storage management (size limit, clean-up)
 
-**Windows-Integration**
-- Tray-Symbol mit Wiedergabe-Steuerung, Schließen legt das Fenster in den Tray
-- Medientasten und System-Overlay über die Windows-Mediensteuerung
-- Fenstergröße und -position werden gemerkt, eine zweite Instanz holt das vorhandene Fenster nach vorn
-- Installer ohne Administratorrechte
-- Automatische Updates: Die App sucht in den Einstellungen nach neuen Fassungen, lädt sie mit Fortschrittsanzeige, prüft die Signatur und startet nach dem Einspielen neu
+**Windows integration**
+- Tray icon with playback controls; closing the window can minimise to the tray
+- Media keys and the Windows media overlay (title, artist and cover)
+- Remembers window size and position; a second launch focuses the running window
+- Per-user installer that needs no administrator rights
+- **Automatic updates:** signed packages, verified before they are installed
 
-**Datenschutz**
-- Dein Passwort wird nicht gespeichert. Die Anmeldung läuft über Token und Salt der Subsonic-API.
-- Token und Salt liegen im Schlüsselbund von Windows (Anmeldeinformationsverwaltung), nicht in einer Datei der App.
-- Die App spricht ausschließlich mit dem Server, den du angibst.
+**Privacy and security**
+- Your password is never saved; sign-in uses the Subsonic token and salt
+- Token and salt are stored in the **Windows Credential Manager**, not in a file
+- The app only talks to the server you enter
+- Multiple server profiles, each with its own credentials
+- Diagnostics view with connection check, reported server capabilities and a log file
 
-**Mehrere Server und Betrieb**
-- Mehrere Server-Profile zum Umschalten; je Profil liegen die Zugangsdaten im Schlüsselbund
-- Diagnoseansicht mit Verbindungsprüfung, gemeldeten Serverfähigkeiten und Protokoll
-- Fehlerprotokoll in einer Datei (`niuva-sonic.log` im Protokollordner der App)
+## Install
 
-## Installation
+1. Download `Niuva.Sonic_<version>_x64-setup.exe` from the [latest release](https://github.com/foxy221/niuva-sonic/releases/latest).
+2. Run the installer. It installs for your user account and does not need administrator rights; the app appears in the Start menu.
+3. Windows SmartScreen may show *"Windows protected your PC"* because the installer is **not yet code-signed**. Choose **More info → Run anyway**.
+4. On first start, enter your server address, user name and password.
 
-Den Installer (`Niuva.Sonic_<Version>_x64-setup.exe`) findest du unter [Releases](https://github.com/foxy221/niuva-sonic/releases). Alternativ kannst du die App selbst bauen (siehe unten).
+**Requirements:** Windows 10 or 11 (64-bit) with WebView2 (included in Windows 11), and a reachable Navidrome or Subsonic server.
 
-Voraussetzung: Windows 10 oder 11 (64 Bit) mit WebView2 (ist in Windows 11 enthalten) und ein erreichbarer Navidrome- oder Subsonic-Server.
+**Updating:** *Settings → Windows → Updates → Check for updates*. The app downloads the new version, verifies its signature and installs it after you click *Install and restart*. Updates only come from the GitHub releases of this project and are signed with the project's own key.
 
-1. Installer herunterladen und starten. Die Installation läuft für dein Benutzerkonto und braucht keine Administratorrechte; die App erscheint im Startmenü.
-2. Windows zeigt bei einem unsignierten Installer eventuell „Der Computer wurde durch Windows geschützt“ (SmartScreen). Wähle **Weitere Informationen → Trotzdem ausführen**. Wer die Herkunft prüfen will, vergleicht die Datei mit dem Release auf GitHub.
-3. Beim ersten Start gibst du Serveradresse, Benutzername und Passwort ein. Das Passwort wird nicht gespeichert.
+> Menu names in this README use the English wording. Until the language switch lands (see the [roadmap](#roadmap)), the app shows the German equivalents, for example *Einstellungen* (Settings) and *Nach Updates suchen* (Check for updates).
 
-**Aktualisieren:** *Einstellungen → Windows → Updates → Nach Updates suchen*. Die App lädt die neue Fassung, prüft ihre Signatur und installiert sie nach einem Klick auf „Installieren und neu starten“. Updates kommen ausschließlich aus den GitHub-Releases dieses Projekts und sind mit einem eigenen Schlüssel signiert.
+**Uninstalling:** *Settings → Apps → Installed apps → Niuva Sonic*. Server profiles and your sign-in are kept in case you reinstall. To remove everything, delete the profiles inside the app first, then delete `%APPDATA%\de.niuva.sonic`.
 
-**Deinstallieren:** *Einstellungen → Apps → Installierte Apps → Niuva Sonic*. Server-Profile, Einstellungen und der Eintrag im Windows-Schlüsselbund bleiben erhalten, falls du später neu installierst. Zum vollständigen Entfernen vorher in der App unter „Server-Profile“ die Profile entfernen und danach den Ordner `%APPDATA%\de.niuva.sonic` löschen.
+### Known limitations
 
-## Bekannte Einschränkungen
+- **No Authenticode signature yet.** SmartScreen warns when you run a downloaded installer. In-app updates are not affected; they are verified with the project's own signing key.
+- **Media overlay name.** Windows shows the app as "Unknown application" in the media overlay, because of how WebView2 reports itself. Title, artist and cover are correct.
+- **Windows only** (64-bit) for now.
+- **Signing out** ends the session but keeps the server profile and its stored credentials. Remove the profile in the settings to forget it.
+- Tested with Navidrome. Other Subsonic servers work, but report fewer OpenSubsonic extensions (for example, no ReplayGain values).
 
-- **Keine Authenticode-Signatur:** Der Installer ist nicht mit einem Code-Signing-Zertifikat signiert. Windows SmartScreen warnt deshalb beim ersten Start des heruntergeladenen Installers. Die Updates der App sind davon nicht betroffen; sie werden mit dem Projekt-Schlüssel geprüft.
-- **Name in der Mediensteuerung:** Die Windows-Mediensteuerung zeigt die WebView2-Anwendung als „Unbekannte Anwendung“. Titel, Interpret und Cover stimmen. Der Name lässt sich mit der Web-Media-Session-Schnittstelle nicht setzen.
-- **Nur Windows (64 Bit):** Eine Android-Version gibt es noch nicht.
-- **Abmelden:** Es beendet nur die Sitzung. Das Profil und seine Zugangsdaten im Schlüsselbund bleiben gemerkt; zum Vergessen entfernst du das Profil in den Einstellungen.
-- **Server:** Getestet ist die App mit Navidrome. Andere Subsonic-Server funktionieren, melden aber weniger OpenSubsonic-Erweiterungen (zum Beispiel ReplayGain-Werte).
+## Build from source
 
-## Selbst bauen
-
-Voraussetzungen: [Node.js](https://nodejs.org/) 24, [pnpm](https://pnpm.io/), [Rust](https://www.rust-lang.org/tools/install) (MSVC-Toolchain) und WebView2.
+Prerequisites: [Node.js](https://nodejs.org/) 24, [pnpm](https://pnpm.io/), [Rust](https://www.rust-lang.org/tools/install) (MSVC toolchain) and WebView2.
 
 ```bash
 pnpm install
-pnpm test          # Regressionstests für Sitzung, Bibliothek, Playlists, Player, Offline und Windows-Hülle
-pnpm typecheck     # TypeScript ohne Ausgabe prüfen
-pnpm e2e           # End-to-End gegen den eigenen Server (liest zugangsdaten.txt, ändert nichts)
-pnpm tauri dev     # Entwicklungsmodus
-pnpm tauri build   # Release-Build, Installer unter src-tauri/target/release/bundle/nsis
+pnpm tauri dev      # development mode with hot reload
+pnpm typecheck      # TypeScript, no output
+pnpm test           # frontend tests (Vitest)
+cargo test          # Rust tests, run inside src-tauri/
+pnpm e2e            # end-to-end run against your own server (read-only)
+pnpm tauri build    # release build, installer in src-tauri/target/release/bundle/nsis
 ```
 
-Für `pnpm e2e` liegt neben dem Projekt eine `zugangsdaten.txt` mit Serveradresse,
-Benutzername und Passwort (eine Angabe je Zeile). Der Lauf prüft Anmeldung,
-Bibliothek, ein Album und das Abspielen eines Titels; er verändert keine Daten
-auf dem Server.
+`pnpm e2e` reads a `zugangsdaten.txt` next to the project with the server address, user name and password, one per line. It checks sign-in, the library, an album and playing a track, and never changes data on the server.
 
-## Technik
+A release build with update artifacts also needs the signing key in the `TAURI_SIGNING_PRIVATE_KEY` environment variable (see `src-tauri/tauri.conf.json`). Without it, `pnpm tauri build` still produces the installer but fails at the signature step.
 
-| Bereich | Wahl |
+## Tech stack
+
+| Area | Choice |
 | --- | --- |
-| App-Shell | [Tauri 2](https://tauri.app/) (Rust) |
-| Oberfläche | React 19, TypeScript, Vite |
-| Server-Daten | TanStack Query |
-| App-Zustand | Zustand |
+| App shell | [Tauri 2](https://tauri.app/) (Rust) |
+| UI | React 19, TypeScript, Vite |
+| Server data | TanStack Query |
+| App state | Zustand |
 | Routing | React Router |
-| Netzwerk | `tauri-plugin-http` (läuft auf der Rust-Seite, daher kein CORS-Problem mit dem Server) |
-| Ablage | `tauri-plugin-store`, Zugangsdaten im Windows-Schlüsselbund (`keyring`) |
-| Tests | Vitest, `cargo test`, End-to-End gegen den Testserver (`pnpm e2e`) |
+| Networking | `tauri-plugin-http` (runs on the Rust side, so no CORS issues with your server) |
+| Storage | `tauri-plugin-store`; credentials in the Windows Credential Manager via `keyring` |
+| Tests | Vitest, `cargo test`, end-to-end run against a test server |
+| CI | GitHub Actions: type check, tests, Windows build; tag-triggered release workflow |
 
 ```
-src/api/          Subsonic-Client und Typen
-src/hooks/        Datenzugriff über TanStack Query
-src/state/        Stores für Sitzung, Player, Einstellungen, Offline, Profile und Fähigkeiten
-src/components/   Bausteine und App-Rahmen
-src/screens/      Ansichten (u. a. Einstellungen und Diagnose)
-src-tauri/        Rust-Hülle (Tray, Fenster, Medientasten, Updater, Schlüsselbund, Protokoll)
-scripts/          End-to-End-Lauf gegen den Testserver
+src/api/          Subsonic client and types
+src/hooks/        Data access through TanStack Query
+src/state/        Stores: session, player, settings, offline, profiles, capabilities
+src/components/   Building blocks and app frame
+src/screens/      Views (library, player, settings, diagnostics, ...)
+src/design/       Tokens, colour extraction, visualizer helpers
+src-tauri/        Rust shell: tray, window, media keys, updater, keychain, log file
+scripts/          End-to-end run
 branding/         Logos
 ```
 
-## Wie die App entstanden ist
+## Roadmap
 
-Uns ist Transparenz wichtig, deshalb hier offen, was von wem kommt:
+The goal is **version 1.0.0**: a fully finished Windows app. The main steps:
 
-- **Idee und Name** von Niuva Sonic sind rein menschlich. Die Herkunft des Namens steht in [docs/Name-und-Bedeutung.md](docs/Name-und-Bedeutung.md).
-- **Der Code** entsteht menschlich mit KI-Unterstützung. Konzept, Entscheidungen und Prüfung liegen beim Menschen, die KI hilft beim Schreiben und Review.
-- **Die Logos** wurden mit generativer KI erstellt und anschließend von Hand nachbearbeitet.
+- **English and German interface** with a language switch in the settings. English is the default on a fresh install.
+- **Visualizer polish:** calmer clouds whose colours follow the cover art.
+- **Interface:** top bar with search and profile, playlist mosaic covers, page transitions, a progress bar with hover preview.
+- **Features:** synchronised lyrics, adding a server profile without signing out, more keyboard shortcuts.
+- **Release quality:** Authenticode code signing, a changelog, screenshots.
 
-## Mitmachen
+Ideas being evaluated: equaliser and crossfade, sleep timer, filtering the library by format and bitrate, mixes built from your own library, resuming playback across devices, radio and podcasts. Android and other desktop platforms come after 1.0.0.
 
-Fehler, Wünsche und Ideen sind willkommen: Eröffne gern ein [Issue](https://github.com/foxy221/niuva-sonic/issues). Bitte gib dabei deine Windows-Version und die Version deines Servers an, wenn es um Verbindungsprobleme geht.
+## How it is made
 
-## Lizenz
+Transparency matters, so here is who did what:
 
-Der Quellcode steht unter der [Apache License 2.0](LICENSE). Name, Logos und Bildmarke „Niuva Sonic“ sind davon ausgenommen und dürfen nicht ohne Zustimmung für andere Projekte verwendet werden.
+- **The idea and the name** of Niuva Sonic are purely human. The origin of the name is explained in [docs/Name-und-Bedeutung.md](docs/Name-und-Bedeutung.md) (German).
+- **The code** is written by a human with AI assistance. Concept, decisions and review are human; the AI helps with writing and reviewing code.
+- **The logos** were created with generative AI and then reworked by hand.
 
-Niuva Sonic ist ein unabhängiges Projekt und steht in keiner Verbindung zu Navidrome oder dem Subsonic-Projekt.
+## Contributing
+
+Bug reports, wishes and ideas are welcome: please open an [issue](https://github.com/foxy221/niuva-sonic/issues). For connection problems, include your Windows version, the app version (*Settings → Windows → Updates*) and the version of your server. The diagnostics view (*Settings → Open diagnostics*) shows the log file location and the capabilities your server reports.
+
+Before sending a pull request, run `pnpm typecheck`, `pnpm test` and `cargo test`; the CI runs the same checks.
+
+## License
+
+The source code is licensed under the [Apache License 2.0](LICENSE). The name, logos and mark "Niuva Sonic" are excluded and may not be used for other projects without permission.
+
+Niuva Sonic is an independent project and is not affiliated with Navidrome or the Subsonic project.
