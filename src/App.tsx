@@ -1,8 +1,15 @@
+import { useEffect } from "react";
+import { useSession } from "./state/session";
+import Login from "./screens/Login";
+import Home from "./screens/Home";
+
 export default function App() {
-  return (
-    <main className="shell">
-      <img src="/logo.png" alt="Niuva Sonic" />
-      <p>A New World of Sound.</p>
-    </main>
-  );
+  const { ready, client, restore } = useSession();
+
+  useEffect(() => {
+    restore();
+  }, [restore]);
+
+  if (!ready) return null;
+  return client ? <Home /> : <Login />;
 }
