@@ -2,7 +2,7 @@
 
 Für die Agenten, die die technische Umsetzung übernehmen (Codex, Cline). Das Layout und die visuelle Gestaltung stehen in [ROADMAP-Design.md](ROADMAP-Design.md) und werden separat gemacht.
 
-**Stand:** Phase 1 (Bibliothek) ist abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Nächste Phase: Wiedergabe (Queue, Scrobbling, Gapless).
+**Stand:** Phase 1 (Bibliothek) und Phase 2 (Wiedergabe) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Nächste Phase: Windows-Integration (Medientasten, Fenster, Installer).
 
 ## Arbeitsteilung
 
@@ -46,14 +46,28 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
 
 ## Phase 2: Wiedergabe
 
-- [ ] Queue-Verwaltung: Titel anhängen, als Nächstes spielen, entfernen, umsortieren, Queue leeren
-- [ ] Shuffle und Wiederholen (aus, Queue, Titel)
-- [ ] Queue und Position über Neustart erhalten
-- [ ] Scrobbling: `scrobble` bei Start und Ende, damit Navidrome Wiedergaben zählt
-- [ ] Gapless-Wiedergabe: nächsten Titel vorladen (zweites Audio-Element oder Web Audio)
-- [ ] Transcoding-Option (`maxBitRate`, `format`) für mobile Daten
-- [ ] ReplayGain aus den Tags anwenden
-- [ ] Fehlerbehandlung: Stream bricht ab, Titel nicht abspielbar, Netzwechsel
+- [x] Queue-Verwaltung: Titel anhängen, als Nächstes spielen, entfernen, umsortieren, Queue leeren
+- [x] Shuffle und Wiederholen (aus, Queue, Titel)
+- [x] Queue und Position über Neustart erhalten
+- [x] Scrobbling: `scrobble` bei Start und Ende, damit Navidrome Wiedergaben zählt
+- [x] Gapless-Wiedergabe: nächsten Titel vorladen (zweites Audio-Element oder Web Audio)
+- [x] Transcoding-Option (`maxBitRate`, `format`) für mobile Daten
+- [x] ReplayGain aus den Tags anwenden
+- [x] Fehlerbehandlung: Stream bricht ab, Titel nicht abspielbar, Netzwechsel
+
+### Stand der Umsetzung (Technik, Phase 2, abgeschlossen)
+
+- **API:** `streamUrl(id, { maxBitRate, format })` und `scrobble({ id, submission, time })` in `src/api/subsonic.ts`; Typen `ReplayGain`, `StreamOptions` und die Felder `playCount`, `played`, `replayGain` in `src/api/types.ts`.
+- **Player-Kern:** `src/state/player.ts` verwaltet die Warteschlange (`playQueue`, `jumpTo`, `appendToQueue`, `playNext`, `removeFromQueue`, `moveInQueue`, `clearQueue`), Shuffle und Wiederholen, Scrobbling, Persistenz und Fehlerzustände. Reine Rechenlogik liegt in `src/state/player.logic.ts`, die zwei Audio-Elemente in `src/state/audioEngine.ts`.
+- **Zwei Audio-Elemente:** Das zweite lädt den nächsten Titel vor und übernimmt ihn beim Titelwechsel (`takePreloaded`). Damit fällt die Ladezeit über das Netz weg; samplegenau ist es nicht, dafür bräuchte es Web Audio mit dekodierten Puffern.
+- **Scrobbling:** `submission=false` beim Start, `submission=true` nach der üblichen Regel (mindestens 30 s und halbe Länge oder vier Minuten). Gezählt wird nur echte Hörzeit: Sprünge durch Spulen zählen nicht mit. Abschaltbar in den Einstellungen.
+- **Ablage:** `src/state/storage.ts` kapselt `plugin-store` (Tauri) und `localStorage` (Browser); `session.ts` nutzt sie jetzt ebenfalls. `src/state/settings.ts` hält Bitrate, Format, ReplayGain, Vorladen, Scrobbling und „Warteschlange merken“.
+- **Warteschlange über den Neustart:** gespeichert werden Warteschlange, Index, Position, Shuffle und Wiederholen – gebunden an die Serveradresse, damit fremde Titel-IDs nicht übernommen werden. Beim Start läuft nichts von allein los.
+- **Einstellungen:** neue Seite `#/settings` (Bitrate, Format, ReplayGain, Verhalten, Serveranzeige). Roh gebaut, Design gestaltet sie.
+- **Gegen den Testserver geprüft:** Transcoding greift (3,1 MB → 1,5 MB bei `maxBitRate=64`), `format` ändert den Inhaltstyp (`opus` → `audio/ogg`, `aac` → `audio/aac`). Bereichsanfragen beantwortet Navidrome auch bei Transcoding mit HTTP 206, Springen funktioniert deshalb ohne Sonderweg; `transcodeOffset` braucht es nicht. `scrobble` zählt (`playCount` 0 → 1). `savePlayQueue`/`getPlayQueue` arbeiten (Position in Millisekunden) – die Warteschlange auf dem Server bleibt der Ideen-Phase vorbehalten, der Testserver wurde danach wieder geleert.
+- **ReplayGain:** Die Felder kommen an (`trackGain`, `albumGain`, `trackPeak`, `albumPeak`, `baseGain`, `fallbackGain`), sind in der Testbibliothek aber leer – von 42 geprüften Titeln hatte keiner Werte. Die Rechnung (dB → Faktor, Peak als Obergrenze) ist deshalb durch Tests abgedeckt statt durch einen Hörversuch.
+- **Tests:** `pnpm test` läuft mit 62 Tests durch (`tests/player.logic.test.js` für die Rechenlogik, `tests/player.test.js` für Warteschlange, Wiederholen, Scrobbling, Vorladen und Neustart). Zwei Fehler hat die Testrunde dabei gefunden: ein wirkungsloser `readyState`-Vergleich beim Übernehmen des vorgeladenen Titels und fehlende Test-Ausgangswerte für Zufall und Wiederholen.
+- **Provisorium fürs Design:** `src/styles/glue.css` (Aktionen in der Warteschlange, Zeilenaktionen, Player-Hinweise, Einstellungsseite) ist reines Layout. Zufall und Wiederholen sitzen in `Transport`, die Warteschlangen-Aktionen im `QueuePanel`, „Als Nächstes“/„Anhängen“ je Zeile in `SongList`.
 
 ## Phase 3: Windows-Integration
 
@@ -101,7 +115,7 @@ Jeweils erst bewerten, dann einplanen:
 - [ ] Sleep-Timer
 - [ ] Bibliothek nach Format, Bitrate, Jahr filtern (verlustfreie Dateien sichtbar machen)
 - [ ] Mix aus der eigenen Bibliothek (`getSimilarSongs2`, `getRandomSongs`)
-- [ ] Wiedergabe-Fortsetzung zwischen Geräten (`savePlayQueue`/`getPlayQueue`)
+- [ ] Wiedergabe-Fortsetzung zwischen Geräten (`savePlayQueue`/`getPlayQueue`; gegen Navidrome geprüft: speichert Warteschlange und Position in Millisekunden, `indexBasedQueue` gibt es als Erweiterung)
 - [ ] Radiosender und Podcasts, falls der Server sie anbietet
 
 ## Testserver

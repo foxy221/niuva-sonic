@@ -21,6 +21,21 @@ export interface ArtistIndex {
   artist: Artist[];
 }
 
+/**
+ * `replayGain` aus den Tags (OpenSubsonic-Erweiterung). Werte in dB, Peaks positiv.
+ * Fehlende Werte lässt der Server weg, das Objekt selbst ist immer vorhanden.
+ */
+export interface ReplayGain {
+  trackGain?: number;
+  albumGain?: number;
+  trackPeak?: number;
+  albumPeak?: number;
+  /** Ausgangsverstärkung des Formats, z. B. bei Opus. */
+  baseGain?: number;
+  /** Ersatzwert, wenn der passende Gain fehlt. */
+  fallbackGain?: number;
+}
+
 export interface Album {
   id: string;
   name: string;
@@ -34,6 +49,7 @@ export interface Album {
   created?: string;
   playCount?: number;
   starred?: string;
+  replayGain?: ReplayGain;
 }
 
 export interface Song {
@@ -55,6 +71,19 @@ export interface Song {
   size?: number;
   created?: string;
   starred?: string;
+  /** Anzahl der Wiedergaben laut Server (steigt durch `scrobble`). */
+  playCount?: number;
+  /** ISO-Zeitstempel der letzten Wiedergabe. */
+  played?: string;
+  replayGain?: ReplayGain;
+}
+
+/** Obergrenze und Zielformat für `stream`; leer heißt Originaldatei. */
+export interface StreamOptions {
+  /** Bitrate in kbit/s, 0 oder weggelassen = Original. */
+  maxBitRate?: number;
+  /** `mp3`, `opus`, `aac`, … – leer oder weggelassen = Originalformat. */
+  format?: string;
 }
 
 export interface AlbumWithSongs extends Album {

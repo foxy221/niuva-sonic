@@ -16,6 +16,7 @@ import type {
   Song,
   StarIds,
   Starred,
+  StreamOptions,
 } from "./types";
 
 const API_VERSION = "1.16.1";
@@ -224,7 +225,26 @@ export class SubsonicClient {
     return this.url("getCoverArt", { id, size });
   }
 
-  streamUrl(id: string) {
-    return this.url("stream", { id });
+  /**
+   * Adresse der Audiodatei. Mit `maxBitRate` und `format` transkodiert der Server
+   * (gegen Navidrome geprüft: Bitrate greift, `format` ändert den Inhaltstyp).
+   * Springen funktioniert auch bei Transcoding, der Server beantwortet
+   * Bereichsanfragen mit HTTP 206.
+   */
+  streamUrl(id: string, options: StreamOptions = {}) {
+    const { maxBitRate = 0, format = "" } = options;
+    return this.url("stream", {
+      id,
+      maxBitRate: maxBitRate > 0 ? maxBitRate : undefined,
+      format: format || undefined,
+    });
+  }
+
+  /**
+   * Wiedergabe melden: `submission=false` heißt „läuft jetzt“, `true` zählt die
+   * Wiedergabe beim Server. `time` ist der Startzeitpunkt in Millisekunden.
+   */
+  scrobble(input: { id: string; submission?: boolean; time?: number }) {
+    return this.call<unknown>("scrobble", { id: input.id, submission: input.submission, time: input.time });
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ListMusic, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ListMusic, ListX, X } from "lucide-react";
 import { useUi } from "../design/ui";
 import { formatTime } from "../format";
 import { usePlayer } from "../state/player";
@@ -7,14 +7,14 @@ import { useSession } from "../state/session";
 
 /**
  * Warteschlange als Seitenpanel: laufender Titel, was als Nächstes kommt, was schon lief.
- * Springen geht über `playQueue` mit derselben Liste; Entfernen und Umsortieren folgen mit Technik 2.
+ * Springen, Umsortieren, Entfernen und Leeren liegen im Player-Store.
  */
 export default function QueuePanel() {
   const { queueOpen, setQueue } = useUi();
   const queue = usePlayer((s) => s.queue);
   const index = usePlayer((s) => s.index);
   const playing = usePlayer((s) => s.playing);
-  const playQueue = usePlayer((s) => s.playQueue);
+  const { jumpTo, moveInQueue, removeFromQueue, clearQueue } = usePlayer.getState();
   const client = useSession((s) => s.client);
   const currentRef = useRef<HTMLLIElement>(null);
 
@@ -29,7 +29,7 @@ export default function QueuePanel() {
     const current = i === index;
     return (
       <li key={`${song.id}-${i}`} ref={current ? currentRef : undefined} className={`queue-item${current ? " active" : ""}${i < index ? " played" : ""}`}>
-        <button type="button" onClick={() => playQueue(queue, i)}>
+        <button type="button" className="queue-jump" onClick={() => jumpTo(i)}>
           {song.coverArt ? <img src={client.coverArtUrl(song.coverArt, 80)} alt="" loading="lazy" /> : <div className="cover-empty" />}
           <span className="queue-text">
             <strong>{song.title}</strong>
@@ -37,6 +37,11 @@ export default function QueuePanel() {
           </span>
           {current && playing ? <span className="eq" aria-label="Läuft"><i /><i /><i /></span> : <span className="track-time">{formatTime(song.duration ?? 0)}</span>}
         </button>
+        <span className="queue-actions">
+          <button type="button" className="icon" onClick={() => moveInQueue(i, i - 1)} disabled={i === 0} aria-label="Nach oben" title="Nach oben"><ArrowUp size={16} /></button>
+          <button type="button" className="icon" onClick={() => moveInQueue(i, i + 1)} disabled={i === queue.length - 1} aria-label="Nach unten" title="Nach unten"><ArrowDown size={16} /></button>
+          <button type="button" className="icon" onClick={() => removeFromQueue(i)} aria-label="Aus der Warteschlange entfernen" title="Entfernen"><X size={16} /></button>
+        </span>
       </li>
     );
   };
@@ -48,6 +53,7 @@ export default function QueuePanel() {
     <aside className="queue" aria-label="Warteschlange">
       <header>
         <h2><ListMusic size={20} /> Warteschlange</h2>
+        <button className="icon" onClick={clearQueue} aria-label="Warteschlange leeren" title="Warteschlange leeren"><ListX size={20} /></button>
         <button className="icon" onClick={() => setQueue(false)} aria-label="Schließen"><X size={20} /></button>
       </header>
       <div className="queue-scroll">

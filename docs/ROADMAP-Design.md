@@ -58,7 +58,7 @@ Design braucht von der Technik, bevor die Bildschirme fertig sein können:
 | --- | --- | --- |
 | Start, Album, Künstler, Suche, Playlist | Technik 1 | **geliefert** |
 | Genres, Genre, Favoriten, Albenliste | Technik 1 | **geliefert** |
-| Queue-Panel, Vollbild-Player | Technik 2 | gebaut mit vorhandenem Store; Entfernen, Umsortieren, Shuffle, Wiederholen warten auf Technik 2 |
+| Queue-Panel, Vollbild-Player | Technik 2 | **geliefert** (Entfernen, Umsortieren, Shuffle, Wiederholen sind da) |
 | Mobile Mini-Player | Technik 4 | offen |
 | Songtexte | Technik „Ideen“ | offen |
 
@@ -67,10 +67,20 @@ Design braucht von der Technik, bevor die Bildschirme fertig sein können:
 Roh gebaut, ohne Gestaltung, aber vollständig bedienbar:
 
 - **Routen:** `#/` (Start), `#/search`, `#/artists`, `#/artist/:id`, `#/albums`, `#/album/:id`, `#/genres`, `#/genre/:name`, `#/favorites`, `#/playlists`, `#/playlist/:id`.
-- **Navigation:** `src/components/Layout.tsx` hat jetzt eine `<nav className="topbar-nav">` mit Links auf alle Ansichten. Frei umbaubar (Seitenleiste, Suchfeld in der oberen Leiste).
-- **Bausteine zum Einkleiden:** `QueryStates` (Lade-, Leer- und Fehlerzustand), `AlbumGrid`, `ArtistGrid`, `SongList`, `FavoriteButton` (heute Textzeichen `♥ ♡` statt Icons), `Pager`, `AddToPlaylist`, `AlbumSection` (Startseiten-Reihe).
-- **Provisorische Layout-Regeln** am Ende von `src/styles.css` (`.topbar-nav`, `.filters`, `.pager`, `.letter-nav`, `.track-row`, `.song-actions`, `.add-to-playlist`, `.playlist-edit`, `.playlist-danger`): nur so viel Layout, dass alles bedienbar ist. Beim Aufteilen von `styles.css` einfach ersetzen.
+- **Navigation:** `src/components/Layout.tsx` enthält die Navigation (`.nav`) mit Links auf alle Ansichten, inklusive `#/settings`.
+- **Bausteine zum Einkleiden:** `QueryStates` (Lade-, Leer- und Fehlerzustand), `AlbumGrid`, `ArtistGrid`, `SongList`, `FavoriteButton`, `Pager`, `AddToPlaylist`, `AlbumSection` (Startseiten-Reihe).
+- **Provisorische Layout-Regeln:** die aus Technik 1 sind in den aufgeteilten Stylesheets aufgegangen; die aus Technik 2 liegen in `src/styles/glue.css`.
 - **Zustände:** jede Liste liefert Lade-, Leer- und Fehlerzustand. `QueryStates` bekommt die Texte als Props – hier können Skeletons und Illustrationen eingehängt werden.
 - **Noch nicht vorhanden:** „Beliebteste Titel“ auf der Künstlerseite (Navidrome liefert ohne Last.fm-Anbindung keine `getTopSongs`-Daten) und Queue-Panel/Vollbild-Player (Technik 2).
 
-Bis Phase 2 entsteht zuerst das Fundament (Tokens, Icons, App-Rahmen), das nichts Neues voraussetzt.
+### Was aus Technik 2 dazukam
+
+- **Player-Leiste:** Zufall und Wiederholen (aus, Warteschlange, Titel) sitzen jetzt links und rechts in `Transport`, also in Leiste und Vollbild-Player gleich. Der Zustand kommt aus `usePlayer((s) => s.shuffle)` und `s.repeat`.
+- **Warteschlange:** `QueuePanel` kann je Zeile nach oben/unten schieben und entfernen, oben rechts die ganze Liste leeren. Die Zeilen sind dafür jetzt zweigeteilt: Sprungfläche (`.queue-jump`) plus `.queue-actions`, die erst beim Zeigen eingeblendet werden.
+- **Titellisten:** `SongList` hat je Zeile zwei zusätzliche Aktionen („Als Nächstes“, „Anhängen“). Über die Eigenschaft `queueActions={false}` abschaltbar, falls sie stören – oder besser: in ein Menü je Zeile zusammenfassen.
+- **Player-Hinweise:** `.player-note` zeigt im Player „Puffert …“ beim Laden und die Fehlermeldung mit Wiederholen-Knopf, wenn ein Titel nicht läuft.
+- **Einstellungen:** neue Seite `#/settings` mit Bitrate, Format, ReplayGain, Vorladen, Scrobbling und „Warteschlange merken“. Roh gebaut (Auswahlfelder, Hinweistexte) und ein Kandidat für die Gestaltung.
+- **Layout-Regeln:** wie in Technik 1 liegen die provisorischen Regeln in `src/styles/glue.css`, eingebunden am Ende von `styles.css`. Beim Aufteilen einfach ersetzen.
+
+Damit steht der App-Rahmen vollständig; die Phasen 3 (Windows) und 4 (Android) ändern daran wenig.
+

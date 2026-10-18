@@ -40,5 +40,5 @@ Voraussetzungen: Node 24, pnpm, Rust (MSVC), WebView2. Für Android zusätzlich 
 
 ## Roadmap
 
-- [Technik](docs/ROADMAP-Technik.md): API, Wiedergabe, Windows-Integration, Android, Offline, Qualität. Phase 1 (Bibliothek) ist abgeschlossen.
+- [Technik](docs/ROADMAP-Technik.md): API, Wiedergabe, Windows-Integration, Android, Offline, Qualität. Phase 1 (Bibliothek) und Phase 2 (Wiedergabe) sind abgeschlossen.
 - [Design](docs/ROADMAP-Design.md): Tokens, App-Rahmen, Bildschirme, Bewegung. Läuft parallel zur Technik.

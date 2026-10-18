@@ -13,6 +13,7 @@ import Favorites from "./screens/Favorites";
 import Playlists from "./screens/Playlists";
 import Playlist from "./screens/Playlist";
 import Search from "./screens/Search";
+import Settings from "./screens/Settings";
 import Layout from "./components/Layout";
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="favorites" element={<Favorites />} />
           <Route path="playlists" element={<Playlists />} />
           <Route path="playlist/:id" element={<Playlist />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </HashRouter>

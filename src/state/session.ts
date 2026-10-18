@@ -1,19 +1,14 @@
 import { create } from "zustand";
-import { load } from "@tauri-apps/plugin-store";
 import { SubsonicClient, SubsonicError, createAuth, normalizeServerUrl } from "../api/subsonic";
 import type { Credentials } from "../api/types";
+import { readValue, removeValue, writeValue } from "./storage";
 
 const STORE_FILE = "session.json";
 const KEY = "credentials";
 
-// Im Browser (pnpm dev ohne Tauri) faellt die Persistenz auf localStorage zurueck.
-const isTauri = () => "__TAURI_INTERNALS__" in window;
-
-async function readCredentials(): Promise<unknown> {
-  if (!isTauri()) return JSON.parse(localStorage.getItem(KEY) ?? "null");
-  const store = await load(STORE_FILE);
-  return (await store.get<Credentials>(KEY)) ?? null;
-}
+const readCredentials = () => readValue<Credentials>(STORE_FILE, KEY);
+const writeCredentials = (creds: Credentials | null) =>
+  creds ? writeValue(STORE_FILE, KEY, creds) : removeValue(STORE_FILE, KEY);
 
 function isCredentials(value: unknown): value is Credentials {
   if (!value || typeof value !== "object") return false;
@@ -25,18 +20,6 @@ function isCredentials(value: unknown): value is Credentials {
   } catch {
     return false;
   }
-}
-
-async function writeCredentials(creds: Credentials | null) {
-  if (!isTauri()) {
-    if (creds) localStorage.setItem(KEY, JSON.stringify(creds));
-    else localStorage.removeItem(KEY);
-    return;
-  }
-  const store = await load(STORE_FILE);
-  if (creds) await store.set(KEY, creds);
-  else await store.delete(KEY);
-  await store.save();
 }
 
 interface SessionState {
