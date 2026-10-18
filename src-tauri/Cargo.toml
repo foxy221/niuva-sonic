@@ -18,12 +18,23 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# Das Tray-Symbol ist eine Windows-Sache; `image-png` dekodiert das Symbolbild.
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-http = "2"
 tauri-plugin-store = "2"
+# Zweite Instanz meldet sich bei der laufenden und beendet sich.
+tauri-plugin-single-instance = "2"
+# Fenstergroesse, -position und Maximierung ueber den Neustart.
+tauri-plugin-window-state = "2"
+# Medientasten systemweit, in den Einstellungen abschaltbar.
+tauri-plugin-global-shortcut = "2"
+
+# Auto-Update nur auf dem Desktop; die Einrichtung steht in docs/ROADMAP-Technik.md.
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

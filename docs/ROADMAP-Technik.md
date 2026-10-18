@@ -2,7 +2,7 @@
 
 Für die Agenten, die die technische Umsetzung übernehmen (Codex, Cline). Das Layout und die visuelle Gestaltung stehen in [ROADMAP-Design.md](ROADMAP-Design.md) und werden separat gemacht.
 
-**Stand:** Phase 1 (Bibliothek) und Phase 2 (Wiedergabe) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Nächste Phase: Windows-Integration (Medientasten, Fenster, Installer).
+**Stand:** Die Phasen 1 (Bibliothek), 2 (Wiedergabe) und 3 (Windows-Integration) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Offen aus Phase 3: die Sichtprüfung von Medientasten und System-Overlay an einer echten Windows-Sitzung sowie die Signierung des Installers. Nächste Phase: Android.
 
 ## Arbeitsteilung
 
@@ -72,12 +72,38 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
 
 ## Phase 3: Windows-Integration
 
-- [ ] Medientasten und System-Overlay testen (Media Session in WebView2)
-- [ ] Single-Instance, Fenstergröße und -position merken
-- [ ] Tray-Icon, Schließen minimiert optional in den Tray
-- [ ] Globale Tastenkürzel (Leertaste im Fenster, optional global)
-- [ ] Installer (`tauri build`, NSIS), Signierung klären
-- [ ] Auto-Update (`tauri-plugin-updater`) vorbereiten
+- [ ] Medientasten und System-Overlay testen (Media Session in WebView2) – Code ist vollständig, die Sichtprüfung am System steht aus (siehe Prüfliste unten)
+- [x] Single-Instance, Fenstergröße und -position merken
+- [x] Tray-Icon, Schließen minimiert optional in den Tray
+- [x] Globale Tastenkürzel (Leertaste im Fenster, optional global)
+- [x] Installer (`tauri build`, NSIS), Signierung klären
+- [x] Auto-Update (`tauri-plugin-updater`) vorbereiten
+
+### Stand der Umsetzung (Technik, Phase 3)
+
+- **Rust-Seite:** `src-tauri/src/lib.rs` verdrahtet die Plugins, `src-tauri/src/desktop.rs` (nur Desktop) enthält Tray, Fensterverhalten, Medientasten und Update-Prüfung, `src-tauri/src/prefs.rs` legt die Hüllen-Einstellungen ab, `src-tauri/src/commands.rs` sind die Befehle für die Oberfläche.
+- **Plugins:** `tauri-plugin-single-instance` (steht als erstes, holt bei einem zweiten Start das Fenster nach vorn), `tauri-plugin-window-state` (Größe, Position, maximiert), `tauri-plugin-global-shortcut` (Medientasten) und `tauri-plugin-updater`. Auf Android fehlen diese Bausteine; die Befehle sagen dort ab, damit die gemeinsame Oberfläche keinen Sonderweg braucht.
+- **Tray:** Symbol aus `icons/32x32.png`, Linksklick holt das Fenster nach vorn, Rechtsklick öffnet das Menü (Fenster anzeigen, Wiedergabe/Pause, nächster und voriger Titel, Beenden). Die Wiedergabe-Befehle gehen als Ereignis `player-command` an die Oberfläche, damit es nur eine Quelle für die Player-Logik gibt.
+- **Schließen:** Standard ist Beenden. Mit „Beim Schließen in den Tray“ wird das Fenster nur versteckt, die Wiedergabe läuft weiter; „Beenden“ im Tray-Menü schließt die App.
+- **Tastenkürzel:** Leertaste im Fenster hält an und spielt weiter, außer in Eingabefeldern und auf Knöpfen (`src/hooks/useKeyboardShortcuts.ts`). Optional fängt die Hülle zusätzlich die Medientasten systemweit ab (`set_global_shortcuts`); scheitert das Belegen, wird nichts halb belegt und die Oberfläche zeigt den Grund. Standardmäßig aus, weil Windows die Medientasten normalerweise schon über die Media Session regelt.
+- **Einstellungen:** Abschnitt „Windows“ im Einstellungsbildschirm (Tray, Medientasten, Update-Prüfung) plus Hinweis auf die Leertaste.
+- **Installer:** `bundle.targets` ist auf `nsis` gestellt (kein MSI/WiX), Installationsart `currentUser` (keine Admin-Rechte), Sprachen Deutsch und Englisch, dazu Herausgeber, Kurz- und Langbeschreibung für die Installer-Anzeige.
+- **Auto-Update vorbereitet:** Der Plugin ist eingebunden, `plugins.updater` steht mit leerer Adressliste und leerem Schlüssel in der Konfiguration. Damit ist der Schalter da, aber es wird nichts geladen: Die Update-Prüfung meldet „noch nicht eingerichtet“, bis Adresse und öffentlicher Schlüssel eingetragen sind. Die Einrichtung braucht:
+  1. `pnpm tauri signer generate -w ~/.tauri/niuva.key` (privater Schlüssel bleibt außerhalb des Repos),
+  2. den öffentlichen Schlüssel in `plugins.updater.pubkey` eintragen,
+  3. die Update-Adresse in `plugins.updater.endpoints` eintragen (HTTPS),
+  4. `bundle.createUpdaterArtifacts` auf `true` setzen und beim Bauen `TAURI_SIGNING_PRIVATE_KEY` und `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` setzen,
+  5. eine Ablage für die Veröffentlichung (GitHub Releases oder eigener Server) festlegen.
+  Das Herunterladen und Einspielen ist bewusst noch nicht verdrahtet: Das gehört zusammen mit der Veröffentlichung gemacht, sonst gibt es nichts zu installieren.
+- **Signierung:** Noch offen und bewusst nicht vorweggenommen. Ohne Zertifikat (Authenticode) zeigt Windows beim Start des Installers eine Warnung. Nötig ist ein Code-Signing-Zertifikat; Alternativen sind ein OV/EV-Zertifikat vom Anbieter oder Azure Trusted Signing. Der Signaturschritt kommt über `bundle.windows.certificateThumbprint` bzw. `signCommand` dazu, sobald das Zertifikat da ist.
+- **Prüfliste von Hand** (nicht automatisch prüfbar, weil sie eine echte Sitzung am Bildschirm braucht):
+  - Systemsteuerung: Zeigt Windows die Mediensteuerung mit Titel, Cover und Zeitleiste? Reagieren die Medientasten, wenn das Fenster nicht im Vordergrund ist?
+  - Tray: Symbol sichtbar, Linksklick holt das Fenster, Rechtsklick-Menü steuert die Wiedergabe, „Beenden“ schließt die App.
+  - Schließen mit „in den Tray“: Wiedergabe läuft weiter, Fenster kommt zurück.
+  - Leertaste: schaltet um, stört aber nicht in Suchfeld und Knöpfen.
+  - Fenstergröße und -position nach einem Neustart.
+  - Installer: Installation ohne Adminrechte, Eintrag im Startmenü, Deinstallation.
+- **Automatisch geprüft:** `cargo test` (4 Tests für die Einstellungen der Hülle), `pnpm test` (96 Tests, darunter Leertaste, Hüllen-Befehle und Update-Text), Typecheck, Vite-Build und Release-Build mit NSIS-Installer. Dazu Starttests der gebauten Anwendung: Fenster wird erzeugt (Titel „Niuva Sonic“), ein zweiter Start beendet sich mit Code 0 und lässt nur eine Instanz laufen, Schließen beendet die App und schreibt `.window-state.json` mit Größe und Position, und mit gesetztem „Beim Schließen in den Tray“ bleibt der Prozess nach dem Schließen am Leben.
 
 ## Phase 4: Android
 

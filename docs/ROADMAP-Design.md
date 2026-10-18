@@ -59,6 +59,7 @@ Design braucht von der Technik, bevor die Bildschirme fertig sein können:
 | Start, Album, Künstler, Suche, Playlist | Technik 1 | **geliefert** |
 | Genres, Genre, Favoriten, Albenliste | Technik 1 | **geliefert** |
 | Queue-Panel, Vollbild-Player | Technik 2 | **geliefert** (Entfernen, Umsortieren, Shuffle, Wiederholen sind da) |
+| Windows-Hülle: Tray, Medientasten, Update-Prüfung | Technik 3 | **geliefert** (Abschnitt „Windows“ in den Einstellungen) |
 | Mobile Mini-Player | Technik 4 | offen |
 | Songtexte | Technik „Ideen“ | offen |
 
@@ -80,7 +81,15 @@ Roh gebaut, ohne Gestaltung, aber vollständig bedienbar:
 - **Titellisten:** `SongList` hat je Zeile zwei zusätzliche Aktionen („Als Nächstes“, „Anhängen“). Über die Eigenschaft `queueActions={false}` abschaltbar, falls sie stören – oder besser: in ein Menü je Zeile zusammenfassen.
 - **Player-Hinweise:** `.player-note` zeigt im Player „Puffert …“ beim Laden und die Fehlermeldung mit Wiederholen-Knopf, wenn ein Titel nicht läuft.
 - **Einstellungen:** neue Seite `#/settings` mit Bitrate, Format, ReplayGain, Vorladen, Scrobbling und „Warteschlange merken“. Roh gebaut (Auswahlfelder, Hinweistexte) und ein Kandidat für die Gestaltung.
-- **Layout-Regeln:** wie in Technik 1 liegen die provisorischen Regeln in `src/styles/glue.css`, eingebunden am Ende von `styles.css`. Beim Aufteilen einfach ersetzen.
+- **Layout-Regeln:** die provisorischen Regeln aus Technik 1 und 2 sind in den aufgeteilten Stylesheets aufgegangen (`media.css`, `player.css`, `settings.css`, `shell.css`).
 
-Damit steht der App-Rahmen vollständig; die Phasen 3 (Windows) und 4 (Android) ändern daran wenig.
+### Was aus Technik 3 dazukam
+
+- **Einstellungen „Windows“:** neuer Abschnitt mit zwei Schaltern („Beim Schließen in den Tray“, „Medientasten abfangen“) und der Update-Prüfung, gebaut mit `Setting` und `Switch` in deinem Stil. Zu gestalten bleibt hier nur Feinschliff: `Switch` kennt kein `disabled`, deshalb zeigt Technik beim Lesen der Werte kurz „…“ statt einen gesperrten Schalter. Sobald `Switch` ein `disabled` bekommt, lässt sich das umstellen.
+- **Hinweis auf die Leertaste:** Zeile „Tastenkürzel“ im Abschnitt Wiedergabe. Bewusst schlicht (`<span className="muted">Leertaste</span>`) – ein `<kbd>`-Stil wäre der nächste Schritt.
+- **Sonst nichts im Fenster:** Tray-Symbol, Medientasten, Fenstergedächtnis und Installer liegen außerhalb der Oberfläche. Dafür gibt es keine neuen Flächen zu gestalten.
+- **Fehlerhinweis im Player:** `.player-note` bleibt wie übernommen (Puffern und Fehler mit Wiederholen-Knopf).
+
+Damit ist der App-Rahmen fertig; Phase 4 (Android) bringt vor allem den Mini-Player und die Systemleisten mit.
+
 

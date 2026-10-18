@@ -2,6 +2,8 @@ import { Fragment } from "react";
 import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Disc3, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Tags } from "lucide-react";
 import { useNowPlayingAccent } from "../design/useAccent";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
+import { usePlayerCommands } from "../hooks/usePlayerCommands";
 import { useSession } from "../state/session";
 import { usePlayer } from "../state/player";
 import FullPlayer from "./FullPlayer";
@@ -24,6 +26,9 @@ export default function Layout() {
   const navigate = useNavigate();
   const cover = usePlayer((s) => s.queue[s.index]?.coverArt);
   useNowPlayingAccent(cover && client ? client.coverArtUrl(cover, 64) : undefined);
+  // Leertaste im Fenster sowie Befehle aus Tray-Menü und Medientasten.
+  useKeyboardShortcuts();
+  usePlayerCommands();
 
   return (
     <div className="app">
