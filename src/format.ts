@@ -3,6 +3,20 @@ export function formatTime(seconds: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** Bytezahl als lesbare Größe, z. B. „1,2 GB“. */
+export function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000;
+    unit++;
+  }
+  const text = unit === 0 || value >= 100 ? String(Math.round(value)) : value.toFixed(1).replace(".", ",");
+  return `${text} ${units[unit]}`;
+}
+
 /** Biografien kommen teils mit HTML aus dem Server; hier als reiner Text aufbereiten. */
 export function plainText(markup: string) {
   return markup

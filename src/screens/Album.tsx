@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { ChevronLeft, Disc3, Play } from "lucide-react";
+import { ArrowDownToLine, ChevronLeft, Disc3, Play, X } from "lucide-react";
 import AddToPlaylist from "../components/AddToPlaylist";
 import FavoriteButton from "../components/FavoriteButton";
 import QueryStates from "../components/QueryStates";
@@ -8,12 +8,17 @@ import { usePageAccent } from "../design/useAccent";
 import { useAlbum } from "../hooks/library";
 import { useClient } from "../hooks/useClient";
 import { usePlayer } from "../state/player";
+import { offlineSupported, useOffline } from "../state/offline";
 
 export default function Album() {
   const { id = "" } = useParams();
   const client = useClient();
   const album = useAlbum(id);
   const playQueue = usePlayer((s) => s.playQueue);
+  const storedAlbum = useOffline((s) => (id ? s.albums[id] : undefined));
+  const job = useOffline((s) => s.jobs.find((j) => j.albumId === id && j.state === "running"));
+  const download = useOffline((s) => s.download);
+  const removeAlbum = useOffline((s) => s.removeAlbum);
   const data = album.data;
   const songs = data?.song ?? [];
   usePageAccent(data?.coverArt ? client.coverArtUrl(data.coverArt, 64) : undefined);
@@ -36,6 +41,14 @@ export default function Album() {
                 <div className="song-actions">
                   <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}><Play size={20} fill="currentColor" /> Abspielen</button>
                   <FavoriteButton starred={Boolean(data.starred)} albumId={data.id} label="Album" />
+                  {offlineSupported() && !job && (
+                    storedAlbum ? (
+                      <button className="ghost" onClick={() => void removeAlbum(data.id)}><X size={18} /> Offline entfernen</button>
+                    ) : (
+                      <button onClick={() => download(songs, data)} disabled={!songs.length}><ArrowDownToLine size={18} /> Herunterladen</button>
+                    )
+                  )}
+                  {job && <span className="muted">Wird geladen … {job.doneCount}/{job.totalCount}</span>}
                 </div>
                 <AddToPlaylist songIds={songs.map((s) => s.id)} label="Album anhängen" />
               </div>

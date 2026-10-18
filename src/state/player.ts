@@ -18,6 +18,7 @@ import {
 } from "./player.logic";
 import { useSession } from "./session";
 import { useSettings } from "./settings";
+import { useOffline } from "./offline";
 import { flushWrites, readValue, removeValue, writeValue } from "./storage";
 
 const FILE = "player.json";
@@ -101,6 +102,9 @@ const client = () => useSession.getState().client;
 const playback = () => useSettings.getState().settings;
 
 function streamUrlFor(song: Song) {
+  // Lieber die lokale Datei: schneller Start, kein Datenverkehr, läuft offline.
+  const local = useOffline.getState().sourceFor(song.id);
+  if (local) return local;
   const session = client();
   return session ? session.streamUrl(song.id, streamOptions(playback())) : "";
 }
@@ -294,7 +298,9 @@ function load(index: number, options: { autoplay?: boolean; position?: number; p
   usePlayer.setState({ index, position, duration: song.duration ?? 0, playing: false, buffering: autoplay, error: null });
   if (!(autoplay && position === 0 && playback().gapless && engine.takePreloaded(url))) engine.load(url, { autoplay, position });
   if (!autoplay) setPlaybackState("paused");
-  updateMediaSession(song, session.coverArtUrl(song.coverArt ?? song.id, 512));
+  // Cover zuerst lokal: offline startet die App sonst ohne Bild im Overlay.
+  const artwork = useOffline.getState().coverSource(song.coverArt ?? song.id) ?? session.coverArtUrl(song.coverArt ?? song.id, 512);
+  updateMediaSession(song, artwork);
   preloadNext();
   scheduleSave();
 }
@@ -547,6 +553,9 @@ export const usePlayer = create<PlayerState>((set, get) => ({
     const session = client();
     const revision = queueRevision;
     await useSettings.getState().restore();
+    // Vor der Warteschlange: ohne Wurzelverzeichnis gäbe es lokale Titel nur als
+    // Server-Adresse, und ein Offline-Start begänne mit einem Ladefehler.
+    await useOffline.getState().restore();
     const creds = useSession.getState().creds;
     if (!creds || session !== client() || revision !== queueRevision || !playback().rememberQueue) return;
     const saved = await readValue<SavedPlayer>(FILE, KEY).catch(() => null);

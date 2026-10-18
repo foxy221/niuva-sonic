@@ -148,7 +148,7 @@ describe("Einstellungen", () => {
   });
 
   it("Ã¼bernimmt gÃ¼ltige Werte", () => {
-    const stored = { maxBitRate: 128, format: "mp3", replayGain: "album", gapless: false, scrobble: false, rememberQueue: false };
+    const stored = { maxBitRate: 128, format: "mp3", replayGain: "album", gapless: false, scrobble: false, rememberQueue: false, offlineLimitGb: 20 };
     expect(mergeSettings(stored)).toEqual(stored);
   });
 

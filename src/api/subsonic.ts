@@ -241,6 +241,15 @@ export class SubsonicClient {
   }
 
   /**
+   * Adresse der unveränderten Originaldatei. Für Wiedergabe gilt `streamUrl`,
+   * für die Offline-Ablage `downloadUrl`: dort soll genau das landen, was der
+   * Server gespeichert hat, ohne Transcoding.
+   */
+  downloadUrl(id: string) {
+    return this.url("download", { id });
+  }
+
+  /**
    * Wiedergabe melden: `submission=false` heißt „läuft jetzt“, `true` zählt die
    * Wiedergabe beim Server. `time` ist der Startzeitpunkt in Millisekunden.
    */

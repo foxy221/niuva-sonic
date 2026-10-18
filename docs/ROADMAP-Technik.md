@@ -2,7 +2,7 @@
 
 Für die Agenten, die die technische Umsetzung übernehmen (Codex, Cline). Das Layout und die visuelle Gestaltung stehen in [ROADMAP-Design.md](ROADMAP-Design.md) und werden separat gemacht.
 
-**Stand:** Die Phasen 1 (Bibliothek), 2 (Wiedergabe) und 3 (Windows-Integration) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Medientasten und System-Overlay wurden manuell geprüft (siehe Phase 3); die Signierung des Installers bleibt offen. Nächste Phase: Offline für Windows. Android beginnt erst nach der vollständigen Windows-Abnahme (Phase 6).
+**Stand:** Die Phasen 1 (Bibliothek), 2 (Wiedergabe), 3 (Windows-Integration) und 4 (Offline für Windows) sind abgeschlossen, der Code ist gepusht und gegen den Testserver geprüft. Medientasten und System-Overlay wurden manuell geprüft (siehe Phase 3); die Signierung des Installers bleibt offen. Nächste Phase: Qualität, Sicherheit und Betrieb für Windows. Android beginnt erst nach der vollständigen Windows-Abnahme (Phase 6).
 
 ## Verbindliche Reihenfolge (18.10.2026)
 
@@ -120,12 +120,26 @@ Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert un
 
 ## Phase 4: Offline für Windows
 
-- [ ] Titel und Alben herunterladen (`download`), lokal ablegen
-- [ ] Offline-Bibliothek und Wiedergabe aus dem lokalen Speicher
-- [ ] Speicherverwaltung: Größe anzeigen, Cache leeren, Limit
-- [ ] Metadaten-Cache (Bibliothek offline durchsuchbar)
+- [x] Titel und Alben herunterladen (`download`), lokal ablegen
+- [x] Offline-Bibliothek und Wiedergabe aus dem lokalen Speicher
+- [x] Speicherverwaltung: Größe anzeigen, Cache leeren, Limit
+- [x] Metadaten-Cache (Bibliothek offline durchsuchbar)
 
 Fertig, wenn: Downloads, Offline-Suche, lokale Wiedergabe und Speicherverwaltung in der Windows-App bedienbar sind und auch nach einem Neustart ohne Serververbindung funktionieren.
+
+### Stand der Umsetzung (Technik, Phase 4, abgeschlossen)
+
+- **Rust-Seite:** `src-tauri/src/offline.rs` lädt Dateien stückweise über den re-exportierten `reqwest` von `tauri-plugin-http` (Feature `stream`, dazu `futures-util` und `tokio` mit `fs`/`io-util`), schreibt sie unter `<AppData>/offline/` zuerst als `.part` und benennt sie erst nach vollständigem Download um – Abstürze und Abbrüche hinterlassen keine halben Titel, die wie vollständige aussehen. Dazu Befehle für Wurzelverzeichnis, Belegung messen (`.part` zählt nicht), einzelne Datei löschen und alles leeren. Relative Pfade der Oberfläche werden validiert (nur `[A-Za-z0-9._-]` und `/`; weist `..`, Laufwerkspfade und Trennzeichen anderer Plattformen ab).
+- **Fortschritt und Abbruch:** Der laufende Download meldet alle 250 ms das Ereignis `download-progress` (Empfangen/Gesamt); `cancel_download` setzt ein Abbruch-Flag, verwirft die Teildatei und quittiert mit einer Fehlermeldung.
+- **API:** `downloadUrl(id)` in `src/api/subsonic.ts` – `download` liefert die unveränderte Originaldatei, `stream` bleibt für die Wiedergabe. Gegen den Testserver geprüft: HTTP 206 auf Bereichsanfragen, Gesamtgröße stimmt exakt mit `song.size` überein (4.438.139 Bytes), `content-type: audio/mpeg`, `accept-ranges: bytes`.
+- **Offline-Store:** `src/state/offline.ts` hält den Index (`offline.json` via plugin-store, ein Schlüssel pro Server-Benutzer-Kombination, beschädigte Einträge werden verworfen) und die Download-Jobs. Alben speichern Metadaten und Cover; Titel landen unter `<Serverkürzel>/<Titel-ID>.<Endung>`, Cover unter `<Serverkürzel>/covers/`. Jobs arbeiten die Titel der Reihe nach ab: bereits vorhandene werden übersprungen, ein fehlgeschlagener Titel stoppt die restlichen nicht, Abbruch behält die schon geladenen. Das Album-Cover darf fehlschlagen, ohne den Job zu scheitern.
+- **Wiedergabe lokal:** `streamUrlFor` in `src/state/player.ts` nimmt die lokale Datei zuerst (schneller Start, kein Datenverkehr, läuft offline). Die WebView-Adresse liefert `convertFileSrc`; dafür ist das Asset-Protokoll mit Scope `$APPDATA/offline/**` in `tauri.conf.json` aktiviert (Cargo-Feature `protocol-asset`). Beim Wiederherstellen der Warteschlange läuft die Offline-Wiederherstellung vor dem ersten Laden, damit ein Start ohne Server nicht mit einem Ladefehler beginnt. Das Cover in der Mediensteuerung nimmt ebenfalls zuerst die lokale Datei. Scrobble-Aufrufe schlagen offline still fehl; die Wiedergabe läuft weiter.
+- **Oberfläche:** Neuer Bildschirm `#/offline` (Belegung, laufende Downloads mit Fortschritt und Abbrechen, Suche durch die Offline-Bibliothek, Alben-Raster, einzelne Titel) und `#/offline/album/:id` (Album ganz ohne Server). Album-Seite: „Herunterladen“/„Offline entfernen“ mit laufendem Zähler; Titellisten: Zeilenaktion Download/Entfernen (nur in der App); Einstellungen: neuer Abschnitt „Offline“ mit Belegung, Speicherlimit (unbegrenzt/5/10/20/50 GB) und „Alles entfernen“.
+- **Speicherlimit:** Wird vor jedem Titel geprüft (gemessene Belegung + Titelgröße gegen das Limit); erreicht, hält der Job mit Hinweis an. Bereits heruntergeladene Titel bleiben – automatisch etwas verdrängen, das der Nutzer ausdrücklich geladen hat, wäre überraschend.
+- **Provisorium fürs Design:** `src/styles/offline.css` ist reines Layout für Jobliste und Suche. Design gestaltet es; die Funktionsmarkups nutzen bestehende Klassen (`album-grid`, `track-row`, `song-actions`, `setting`).
+- **Tests:** `pnpm test` läuft mit 126 Tests durch (14 neue in `tests/offline.test.js`: Index/Wiederherstellung, Download-Lauf, Überspringen, Teilfehler, Gesamtfehler, Abbruch, Limit, Entfernen, lokale Wiedergabe, Einstellungsprüfung). `cargo test` besteht mit 11 Rust-Tests (drei neue zur Pfad-Validierung und Job-Anmeldung). Typecheck und Vite-Build laufen.
+- **Prüfgrenzen:** Das Zusammenspiel mit der Mediensteuerung (lokales Cover im Overlay), das Spulen in lokalen Dateien über das Asset-Protokoll und der Offline-Start nach Windows-Neustart sind nur im Code bzw. durch Tests abgedeckt und gehören in die manuelle Abnahme (Phase 6). Die Konfiguration wurde vom Tauri-Build-Schritt validiert; ein Release-Build mit Installer ist für diese Phase nicht neu gefahren.
+- **Android-Vorbereitung:** Die Befehle sind plattformneutral gehalten (keine `desktop`-Beschränkung); Anpassen und Prüfen der Offline-Funktionen bleibt wie geplant Aufgabe von Phase 7.
 
 ## Phase 5: Qualität und Betrieb für Windows
 

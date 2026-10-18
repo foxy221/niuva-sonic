@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Disc3, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Tags } from "lucide-react";
+import { ChevronLeft, ChevronRight, Disc3, Download, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Tags } from "lucide-react";
 import { useNowPlayingAccent } from "../design/useAccent";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlayerCommands } from "../hooks/usePlayerCommands";
@@ -18,6 +18,7 @@ const NAV = [
   { to: "/genres", label: "Genres", Icon: Tags },
   { to: "/favorites", label: "Favoriten", Icon: Heart },
   { to: "/playlists", label: "Playlists", Icon: ListMusic },
+  { to: "/offline", label: "Offline", Icon: Download },
   { to: "/settings", label: "Einstellungen", Icon: Settings },
 ];
 

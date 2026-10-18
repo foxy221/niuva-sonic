@@ -14,6 +14,8 @@ import Playlists from "./screens/Playlists";
 import Playlist from "./screens/Playlist";
 import Search from "./screens/Search";
 import Settings from "./screens/Settings";
+import Offline from "./screens/Offline";
+import OfflineAlbum from "./screens/OfflineAlbum";
 import Layout from "./components/Layout";
 import { useDesktopExit } from "./hooks/useDesktopExit";
 
@@ -43,6 +45,8 @@ export default function App() {
           <Route path="favorites" element={<Favorites />} />
           <Route path="playlists" element={<Playlists />} />
           <Route path="playlist/:id" element={<Playlist />} />
+          <Route path="offline" element={<Offline />} />
+          <Route path="offline/album/:id" element={<OfflineAlbum />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

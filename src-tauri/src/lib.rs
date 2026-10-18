@@ -1,6 +1,7 @@
 mod commands;
 #[cfg(desktop)]
 mod desktop;
+mod offline;
 mod prefs;
 
 use tauri::Manager;
@@ -30,10 +31,17 @@ pub fn run() {
             commands::set_close_to_tray,
             commands::set_global_shortcuts,
             commands::check_for_update,
-            commands::finish_exit
+            commands::finish_exit,
+            offline::offline_base_dir,
+            offline::download_file,
+            offline::cancel_download,
+            offline::offline_disk_usage,
+            offline::delete_offline_file,
+            offline::clear_offline
         ])
         .setup(|app| {
             app.manage(prefs::PrefsState::load(app.handle()));
+            app.manage(offline::Downloads::new());
 
             #[cfg(desktop)]
             {

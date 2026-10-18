@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import Segmented from "../components/Segmented";
 import Switch from "../components/Switch";
+import { formatBytes } from "../format";
 import {
   checkForUpdate,
   isDesktopApp,
@@ -12,7 +13,8 @@ import {
   type UpdateStatus,
   type WindowPrefs,
 } from "../state/desktop";
-import { bitRateOptions, formatOptions, useSettings, type PlaybackSettings } from "../state/settings";
+import { offlineSupported, useOffline } from "../state/offline";
+import { bitRateOptions, formatOptions, limitOptions, useSettings, type PlaybackSettings } from "../state/settings";
 import { useSession } from "../state/session";
 
 function Setting({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
@@ -29,6 +31,7 @@ function Setting({ title, hint, children }: { title: string; hint: string; child
 
 const bitRates = bitRateOptions.map((value) => ({ value, label: value === 0 ? "Original" : String(value) }));
 const formats = formatOptions.map((value) => ({ value, label: value === "" ? "Original" : value.toUpperCase() }));
+const limits = limitOptions.map((value) => ({ value, label: value === 0 ? "Unbegrenzt" : `${value} GB` }));
 const gains: { value: PlaybackSettings["replayGain"]; label: string }[] = [
   { value: "off", label: "Aus" },
   { value: "track", label: "Pro Titel" },
@@ -48,6 +51,10 @@ export default function Settings() {
   const { settings, update } = useSettings();
   const { creds, logout } = useSession();
   const desktop = isDesktopApp();
+  const offlineReady = useOffline((s) => s.ready);
+  const usage = useOffline((s) => s.usage);
+  const offlineCount = useOffline((s) => Object.keys(s.songs).length);
+  const clearAll = useOffline((s) => s.clearAll);
   const [windowPrefs, setWindowPrefs] = useState<WindowPrefs | null>(null);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [hasTray, setHasTray] = useState(true);
@@ -159,6 +166,30 @@ export default function Settings() {
         </>
       ) : (
         <p className="muted">Tray-Symbol, Medientasten und Update-Prüfung gibt es nur in der installierten App.</p>
+      )}
+
+      <h2>Offline</h2>
+      {offlineSupported() ? (
+        <>
+          <Setting
+            title="Offline-Ablage"
+            hint={`${offlineCount} Titel, ${formatBytes(usage ?? 0)}${offlineReady ? "" : " werden gemessen"}${settings.offlineLimitGb > 0 ? ` von ${settings.offlineLimitGb} GB` : ""}. Heruntergeladene Titel spielen ohne Serververbindung.`}
+          >
+            <button
+              type="button"
+              className="ghost"
+              disabled={!offlineCount}
+              onClick={() => { if (confirm("Die komplette Offline-Ablage löschen? Heruntergeladene Titel werden entfernt.")) void clearAll(); }}
+            >
+              Alles entfernen
+            </button>
+          </Setting>
+          <Setting title="Speicherlimit" hint="Neue Downloads halten an, wenn die Ablage das Limit erreicht. Bereits heruntergeladene Titel bleiben.">
+            <Segmented label="Speicherlimit" value={settings.offlineLimitGb} options={limits} onChange={(offlineLimitGb) => update({ offlineLimitGb })} />
+          </Setting>
+        </>
+      ) : (
+        <p className="muted">Downloads und Offline-Wiedergabe gibt es nur in der installierten App.</p>
       )}
 
       <h2>Konto</h2>

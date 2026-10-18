@@ -18,6 +18,8 @@ export interface PlaybackSettings {
   scrobble: boolean;
   /** Warteschlange und Position beim Beenden merken. */
   rememberQueue: boolean;
+  /** Obergrenze der Offline-Ablage in GB; 0 = unbegrenzt. */
+  offlineLimitGb: number;
 }
 
 export const defaultSettings: PlaybackSettings = {
@@ -27,11 +29,13 @@ export const defaultSettings: PlaybackSettings = {
   gapless: true,
   scrobble: true,
   rememberQueue: true,
+  offlineLimitGb: 0,
 };
 
 /** Auswahl für die Oberfläche; die Werte sind die Parameter aus `stream`. */
 export const bitRateOptions = [0, 64, 96, 128, 192, 320] as const;
 export const formatOptions = ["", "mp3", "opus", "aac"] as const;
+export const limitOptions = [0, 5, 10, 20, 50] as const;
 
 interface SettingsState {
   settings: PlaybackSettings;
@@ -50,6 +54,10 @@ export function mergeSettings(stored: unknown): PlaybackSettings {
     gapless: typeof raw.gapless === "boolean" ? raw.gapless : defaultSettings.gapless,
     scrobble: typeof raw.scrobble === "boolean" ? raw.scrobble : defaultSettings.scrobble,
     rememberQueue: typeof raw.rememberQueue === "boolean" ? raw.rememberQueue : defaultSettings.rememberQueue,
+    offlineLimitGb:
+      typeof raw.offlineLimitGb === "number" && Number.isFinite(raw.offlineLimitGb) && raw.offlineLimitGb >= 0
+        ? raw.offlineLimitGb
+        : defaultSettings.offlineLimitGb,
   };
 }
 
