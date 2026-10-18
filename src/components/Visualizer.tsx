@@ -3,9 +3,8 @@ import { getAnalyser } from "../design/analyser";
 import { usePlayer } from "../state/player";
 
 const BANDS = 48;
-const MAX_STREAKS = 240;
-const SPRITE_W = 160;
-const SPRITE_H = 12;
+const MAX_RINGS = 14;
+const RING_POINTS = 72;
 const TAU = Math.PI * 2;
 
 interface Cloud {
@@ -43,15 +42,17 @@ const CLOUDS: Cloud[] = [
   { from: 32, to: 47, x: 0.9, y: 0.6, driftX: 0.08, driftY: 0.16, speed: 0.0003, phase: 3.3, size: 0.36, aspect: 0.55, spin: 8, tone: AMBER },
 ];
 
-interface Streak {
-  angle: number;
+interface Ring {
+  /** Abstand zum Cover-Rand. */
   r: number;
-  start: number;
   speed: number;
-  length: number;
-  thickness: number;
-  tone: number;
+  /** 0..1, wie kräftig der Schlag war; bestimmt Helligkeit und Verformung. */
   strength: number;
+  tone: number;
+  /** Abdruck des Spektrums im Moment des Schlags: formt den Ring. */
+  shape: Float32Array;
+  /** Drehung der Abbildung, damit nicht jeder Ring gleich liegt. */
+  turn: number;
 }
 
 /** Liest die aktuelle Akzentfarbe als RGB. */
@@ -68,37 +69,16 @@ const mix = (a: number[], b: number[], t: number) => a.map((v, i) => Math.round(
 const rgba = (c: number[], a: number) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
 const VIOLET_RGB = [138, 60, 255];
 const AMBER_RGB = [255, 179, 71];
-
-/** Ein weicher Streifen als fertiges Bild: Schweif schwach, Kopf hell, quer weich auslaufend. */
-function makeStreak(color: number[]): HTMLCanvasElement {
-  const sprite = document.createElement("canvas");
-  sprite.width = SPRITE_W;
-  sprite.height = SPRITE_H;
-  const g = sprite.getContext("2d")!;
-  const along = g.createLinearGradient(0, 0, SPRITE_W, 0);
-  along.addColorStop(0, rgba(color, 0));
-  along.addColorStop(0.55, rgba(mix(color, [255, 255, 255], 0.3), 0.55));
-  along.addColorStop(0.9, rgba(mix(color, [255, 255, 255], 0.7), 1));
-  along.addColorStop(1, rgba(color, 0));
-  g.fillStyle = along;
-  g.fillRect(0, 0, SPRITE_W, SPRITE_H);
-  g.globalCompositeOperation = "destination-in";
-  const across = g.createLinearGradient(0, 0, 0, SPRITE_H);
-  across.addColorStop(0, "rgba(0,0,0,0)");
-  across.addColorStop(0.5, "rgba(0,0,0,1)");
-  across.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = across;
-  g.fillRect(0, 0, SPRITE_W, SPRITE_H);
-  return sprite;
-}
+const WHITE = [255, 255, 255];
 
 /**
  * Hintergrund des Vollbilds, zweilagig: dezenter Nebel in den Logo-Farben, der mit
- * den Frequenzbereichen anschwillt, und darüber weiche Lichtstreifen, die im Takt
- * der Bässe aus dem Cover radial nach außen fliegen. Der Nebel besteht aus
- * Elementen, die nur `transform` und `opacity` ändern (läuft auf der Grafikkarte),
- * die Streifen sind dünn und damit billig zu zeichnen. Ohne Analyse (Android,
- * Server ohne CORS) bleibt es bei ruhigem Treiben.
+ * den Frequenzbereichen anschwillt, und darüber weiche Ringe, die bei Bassschlägen
+ * aus dem Cover nach außen laufen. Jeder Ring trägt das Spektrum seines Moments als
+ * leichte Verformung mit sich. Der Nebel besteht aus Elementen, die nur `transform`
+ * und `opacity` ändern (läuft auf der Grafikkarte), die Ringe sind dünne Linien und
+ * damit billig zu zeichnen. Ohne Analyse (Android, Server ohne CORS) bleibt es bei
+ * ruhigem Treiben.
  */
 export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement | null> }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -120,8 +100,7 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     const energy = new Float32Array(CLOUDS.length);
     const average = new Float32Array(CLOUDS.length).fill(0.3);
     const kick = new Float32Array(CLOUDS.length);
-    const streaks: Streak[] = [];
-    const rings: { r: number; a: number }[] = [];
+    const rings: Ring[] = [];
     const idle = { level: 0.2 };
     let width = 0;
     let height = 0;
@@ -129,23 +108,23 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     let coverY = 0;
     let coverR = 120;
     let accent = readAccent(scratchCtx);
-    let sprites: HTMLCanvasElement[] = [];
+    let tones: number[][] = [];
     let accentAt = 0;
     let measureAt = 0;
     let last = 0;
     let lastBeat = 0;
+    let lastDrift = 0;
     let bassAvg = 0.3;
-    let spawnDebt = 0;
     let loudness = 0;
     let frame = 0;
     let analyserData: Uint8Array<ArrayBuffer> | null = null;
     let analyserNode: AnalyserNode | null = null;
     let edges: number[] = [];
 
-    function updateSprites() {
-      sprites = [accent, VIOLET_RGB, AMBER_RGB, mix(accent, VIOLET_RGB, 0.5)].map(makeStreak);
+    function updateTones() {
+      tones = [accent, VIOLET_RGB, AMBER_RGB, mix(accent, VIOLET_RGB, 0.5)].map((c) => mix(c, WHITE, 0.35));
     }
-    updateSprites();
+    updateTones();
 
     function resize() {
       width = root!.clientWidth;
@@ -153,7 +132,6 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       canvas!.width = Math.max(1, Math.round(width * dpr));
       canvas!.height = Math.max(1, Math.round(height * dpr));
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       const unit = Math.max(width, height);
       CLOUDS.forEach((cloud, k) => {
         const el = cloudRefs.current[k];
@@ -222,70 +200,76 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       loudness += (Math.min(1, sum / BANDS / 0.5) - loudness) * (1 - Math.exp(-dt / 250));
     }
 
-    function spawn(count: number, burst: boolean, strength: number) {
-      for (let n = 0; n < count && streaks.length < MAX_STREAKS; n++) {
-        const speed = (burst ? 0.6 : 0.35) + Math.random() * (burst ? 0.7 : 0.4);
-        streaks.push({
-          angle: Math.random() * TAU,
-          r: coverR * (0.55 + Math.random() * 0.2),
-          start: coverR * 0.55,
-          speed,
-          length: 110 + speed * 300 + Math.random() * 110,
-          thickness: 3.5 + Math.random() * 3.5,
-          tone: Math.random() < 0.5 ? 3 : Math.floor(Math.random() * 3),
-          strength: Math.min(1, (burst ? 1.1 : 0.7) * strength),
-        });
-      }
+    function spawnRing(strength: number, speed: number) {
+      if (rings.length >= MAX_RINGS) rings.shift();
+      rings.push({
+        r: 0,
+        speed,
+        strength,
+        tone: Math.random() < 0.45 ? 3 : Math.floor(Math.random() * 3),
+        shape: Float32Array.from(bands),
+        turn: Math.random(),
+      });
     }
 
-    function drawStreaks(dt: number) {
-      ctx!.setTransform(1, 0, 0, 1, 0, 0);
-      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
+    /** Pegel am Umfangsanteil `u`: links und rechts gespiegelt, oben die Bässe, unten die Höhen. */
+    const shapeAt = (shape: Float32Array, u: number) => {
+      const mirrored = 1 - Math.abs((((u % 1) + 1) % 1) * 2 - 1);
+      const f = mirrored * (BANDS - 1);
+      const i = Math.floor(f);
+      return shape[i] + (shape[Math.min(BANDS - 1, i + 1)] - shape[i]) * (f - i);
+    };
+
+    function drawRings(dt: number) {
       const dpr = canvas!.width / Math.max(1, width);
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx!.globalCompositeOperation = "source-over";
-      const reach = Math.max(width, height) * 0.7;
-      const drive = 0.6 + loudness * 0.9;
+      ctx!.clearRect(0, 0, width, height);
+      ctx!.lineJoin = "round";
+      const reach = Math.max(width, height) * 0.62;
+      const drive = 0.7 + loudness * 0.7;
 
-      for (let i = streaks.length - 1; i >= 0; i--) {
-        const s = streaks[i];
-        s.r += s.speed * drive * dt;
-        const travelled = (s.r - s.start) / reach;
-        if (travelled >= 1) {
-          streaks.splice(i, 1);
-          continue;
-        }
-        const fadeIn = Math.min(1, (s.r - s.start) / 40);
-        const alpha = s.strength * fadeIn * Math.pow(1 - travelled, 1.1);
-        const cos = Math.cos(s.angle);
-        const sin = Math.sin(s.angle);
-        ctx!.globalAlpha = alpha;
-        ctx!.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, dpr * (coverX + cos * s.r), dpr * (coverY + sin * s.r));
-        ctx!.drawImage(sprites[s.tone], -s.length, -s.thickness / 2, s.length, s.thickness);
-      }
-
-      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx!.lineWidth = 1.6;
       for (let i = rings.length - 1; i >= 0; i--) {
         const ring = rings[i];
-        ring.r += dt * 0.32 * drive;
-        ring.a *= Math.pow(0.9972, dt);
-        if (ring.a < 0.02) {
+        ring.r += ring.speed * drive * dt;
+        const travelled = ring.r / reach;
+        if (travelled >= 1) {
           rings.splice(i, 1);
           continue;
         }
-        ctx!.strokeStyle = rgba(accent, 1);
+        const fadeIn = Math.min(1, ring.r / 36);
+        const alpha = ring.strength * fadeIn * Math.pow(1 - travelled, 1.2);
+        const base = coverR * 1.04 + ring.r;
+        // Die Verformung wächst mit der Entfernung ein Stück mit und bleibt dabei weich.
+        const wobble = coverR * 0.32 * ring.strength * (0.5 + travelled * 0.9);
+        const pts: [number, number][] = [];
+        for (let k = 0; k < RING_POINTS; k++) {
+          const u = k / RING_POINTS;
+          const a = u * TAU - Math.PI / 2;
+          const r = base + (shapeAt(ring.shape, u + ring.turn * 0.04) - 0.3) * wobble;
+          pts.push([coverX + Math.cos(a) * r, coverY + Math.sin(a) * r]);
+        }
         ctx!.beginPath();
-        ctx!.arc(coverX, coverY, coverR * 1.05 + ring.r, 0, TAU);
-        ctx!.globalAlpha = ring.a * 0.25;
-        ctx!.lineWidth = 9;
+        ctx!.moveTo((pts[0][0] + pts[RING_POINTS - 1][0]) / 2, (pts[0][1] + pts[RING_POINTS - 1][1]) / 2);
+        for (let k = 0; k < RING_POINTS; k++) {
+          const p = pts[k];
+          const n = pts[(k + 1) % RING_POINTS];
+          ctx!.quadraticCurveTo(p[0], p[1], (p[0] + n[0]) / 2, (p[1] + n[1]) / 2);
+        }
+        ctx!.closePath();
+        const color = tones[ring.tone];
+        // Zwei Durchgänge: breit und blass als Schimmer, dünn und hell als eigentliche Linie.
+        ctx!.strokeStyle = rgba(color, 1);
+        ctx!.lineWidth = 12 + ring.strength * 8;
+        ctx!.globalAlpha = alpha * 0.14;
         ctx!.stroke();
-        ctx!.globalAlpha = ring.a * 0.7;
-        ctx!.lineWidth = 1.4;
+        ctx!.lineWidth = 4;
+        ctx!.globalAlpha = alpha * 0.3;
+        ctx!.stroke();
+        ctx!.lineWidth = 1.6;
+        ctx!.globalAlpha = Math.min(1, alpha * 0.95);
         ctx!.stroke();
       }
       ctx!.globalAlpha = 1;
-      ctx!.globalCompositeOperation = "source-over";
     }
 
     function draw(t: number) {
@@ -296,7 +280,7 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
         const next = readAccent(scratchCtx);
         if (next.some((v, i) => Math.abs(v - accent[i]) > 3)) {
           accent = next;
-          updateSprites();
+          updateTones();
         }
         accentAt = t;
       }
@@ -319,25 +303,24 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       });
 
       if (!reduceMotion) {
-        // Bassschlag: kräftiger Stoß aus dem Cover, dazu ein weicher Ring.
         let bass = 0;
         for (let i = 0; i < 6; i++) bass += bands[i];
         bass /= 6;
         bassAvg += (bass - bassAvg) * (1 - Math.exp(-dt / 700));
-        if (playing && bass > bassAvg * 1.14 + 0.02 && t - lastBeat > 150) {
-          const strength = Math.min(1, (bass - bassAvg) / Math.max(bassAvg, 0.1) * 2.2 + 0.4);
+        // Bassschlag: ein kräftiger Ring, bei starkem Schlag direkt ein zweiter hinterher.
+        if (playing && bass > bassAvg * 1.14 + 0.02 && t - lastBeat > 170) {
+          const strength = Math.min(1, ((bass - bassAvg) / Math.max(bassAvg, 0.1)) * 2.2 + 0.45);
           lastBeat = t;
-          spawn(14 + Math.round(strength * 18), true, strength);
-          if (strength > 0.55) rings.push({ r: 0, a: 0.6 * strength });
+          lastDrift = t;
+          spawnRing(strength, 0.3 + strength * 0.16);
+          if (strength > 0.8) spawnRing(strength * 0.6, 0.22);
         }
-        // Dazu ein gleichmäßiger Strom, der mit der Lautstärke dichter wird.
-        spawnDebt += (playing ? 12 + loudness * 44 : 3) * (dt / 1000);
-        const whole = Math.floor(spawnDebt);
-        if (whole > 0) {
-          spawn(whole, false, 0.6 + loudness * 0.4);
-          spawnDebt -= whole;
+        // Zwischen den Schlägen läuft in ruhigen Passagen gelegentlich ein leiser Ring mit.
+        if (playing && t - lastDrift > 900 - loudness * 450) {
+          lastDrift = t;
+          spawnRing(0.35 + loudness * 0.25, 0.2);
         }
-        drawStreaks(dt);
+        drawRings(dt);
         frame = requestAnimationFrame(draw);
       }
     }
@@ -360,7 +343,7 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       {CLOUDS.map((cloud, k) => (
         <span key={k} ref={(el) => { cloudRefs.current[k] = el; }} className="cloud" style={{ "--tone": cloud.tone } as CSSProperties} />
       ))}
-      <canvas ref={canvasRef} className="streaks" />
+      <canvas ref={canvasRef} className="rings" />
     </div>
   );
 }
