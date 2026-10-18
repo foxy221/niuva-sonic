@@ -3,7 +3,16 @@ import { HashRouter, Route, Routes } from "react-router-dom";
 import { useSession } from "./state/session";
 import Login from "./screens/Login";
 import Home from "./screens/Home";
+import Albums from "./screens/Albums";
 import Album from "./screens/Album";
+import Artists from "./screens/Artists";
+import Artist from "./screens/Artist";
+import Genres from "./screens/Genres";
+import Genre from "./screens/Genre";
+import Favorites from "./screens/Favorites";
+import Playlists from "./screens/Playlists";
+import Playlist from "./screens/Playlist";
+import Search from "./screens/Search";
 import Layout from "./components/Layout";
 
 export default function App() {
@@ -21,7 +30,16 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Home />} />
+          <Route path="search" element={<Search />} />
+          <Route path="artists" element={<Artists />} />
+          <Route path="artist/:id" element={<Artist />} />
+          <Route path="albums" element={<Albums />} />
           <Route path="album/:id" element={<Album />} />
+          <Route path="genres" element={<Genres />} />
+          <Route path="genre/:name" element={<Genre />} />
+          <Route path="favorites" element={<Favorites />} />
+          <Route path="playlists" element={<Playlists />} />
+          <Route path="playlist/:id" element={<Playlist />} />
         </Route>
       </Routes>
     </HashRouter>

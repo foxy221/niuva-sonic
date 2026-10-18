@@ -21,15 +21,26 @@ Für die Agenten, die die technische Umsetzung übernehmen (Codex, Cline). Das L
 
 ## Phase 1: Bibliothek vollständig
 
-- [ ] `getArtist` + Künstlerseite (Alben, `getArtistInfo2` für Bio und ähnliche Künstler)
-- [ ] Künstlerliste (`getArtists`) und Albumliste mit Sortierung und Paginierung (`getAlbumList2`, `offset`)
-- [ ] Genres (`getGenres`, `getSongsByGenre`)
-- [ ] Favoriten: `star`, `unstar`, `getStarred2`, Herz an Titeln, Alben, Künstlern
-- [ ] Playlists: `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `deletePlaylist`
-- [ ] Suche: `search3` mit Entprellung, getrennt nach Künstlern, Alben, Titeln
-- [ ] Zuletzt gespielt, Meistgespielt, Zufällig als Startseiten-Abschnitte (`getAlbumList2` Typen)
+- [x] `getArtist` + Künstlerseite (Alben, `getArtistInfo2` für Bio und ähnliche Künstler)
+- [x] Künstlerliste (`getArtists`) und Albumliste mit Sortierung und Paginierung (`getAlbumList2`, `offset`)
+- [x] Genres (`getGenres`, `getSongsByGenre`)
+- [x] Favoriten: `star`, `unstar`, `getStarred2`, Herz an Titeln, Alben, Künstlern
+- [x] Playlists: `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `deletePlaylist`
+- [x] Suche: `search3` mit Entprellung, getrennt nach Künstlern, Alben, Titeln
+- [x] Zuletzt gespielt, Meistgespielt, Zufällig als Startseiten-Abschnitte (`getAlbumList2` Typen)
 
 Fertig, wenn: jede Ansicht Ladezustand, Leerzustand und Fehlerzustand liefert und Daten über TanStack Query gecacht werden.
+
+### Stand der Umsetzung (Technik, abgeschlossen)
+
+- **API:** `src/api/subsonic.ts` deckt jetzt `getArtists`, `getArtist`, `getArtistInfo2`, `getAlbumList2` (mit `fromYear`, `toYear`, `genre`), `getAlbum`, `getGenres`, `getSongsByGenre`, `getRandomSongs`, `getStarred2`, `star`, `unstar`, `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `deletePlaylist` und `search3` ab. Mehrfachwerte (z. B. `id` bei `star`) laufen als wiederholte Parameter.
+- **Hooks:** neu unter `src/hooks/` – `keys.ts` (Query-Schlüssel), `useClient.ts`, `library.ts` (alle Lese-Abfragen), `favorites.ts` (Favoriten), `playlists.ts` (Playlists), `useDebouncedValue.ts` (Suche).
+- **Ansichten:** Start (vier Abschnitte), Suche, Künstlerliste, Künstlerseite, Albenliste (Sortierung und Seiten), Album, Genres, Genre, Favoriten, Playlists, Playlist-Detail.
+- **Technik-Bausteine in `src/components/`** (nur Funktion, Optik folgt): `QueryStates` (Laden/Leer/Fehler), `Pager`, `AlbumGrid`, `ArtistGrid`, `SongList`, `FavoriteButton`, `AddToPlaylist`, `AlbumSection`.
+- **Provisorium:** die letzten Regeln in `src/styles.css` (`.topbar-nav`, `.filters`, `.pager`, `.track-row`, `.song-actions`, `.playlist-edit`, …) sind reines Layout, damit die Bausteine bedienbar sind. Design ersetzt sie beim Aufteilen der Datei. Herz und „Entfernen“ sind Textzeichen, `lucide-react` kommt vom Design.
+- **Gegen den Testserver geprüft:** Navidrome 0.64.2 (10114574), OpenSubsonic. `createPlaylist` liefert dort das `playlist`-Element zurück, `getPlaylist` die Titel als `entry`, serverseitig erzeugte Playlists tragen `readonly` und werden in der Oberfläche nicht zum Ändern angeboten.
+- **Offen aus Phase 1 herausgenommen:** „Beliebteste Titel“ auf der Künstlerseite. `getTopSongs` liefert auf Navidrome ohne Last.fm-Anbindung nichts (geprüft), deshalb fehlt der Abschnitt bewusst.
+
 
 ## Phase 2: Wiedergabe
 

@@ -1,6 +1,22 @@
 import { md5 } from "js-md5";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
-import type { Album, AlbumListType, AlbumWithSongs, Artist, Credentials } from "./types";
+import type {
+  Album,
+  AlbumListType,
+  AlbumWithSongs,
+  Artist,
+  ArtistIndex,
+  ArtistInfo,
+  ArtistWithAlbums,
+  Credentials,
+  Genre,
+  Playlist,
+  PlaylistWithSongs,
+  SearchResult3,
+  Song,
+  StarIds,
+  Starred,
+} from "./types";
 
 const API_VERSION = "1.16.1";
 const CLIENT_NAME = "niuva-sonic";
@@ -25,10 +41,14 @@ export function createAuth(password: string) {
   return { salt, token: md5(password + salt) };
 }
 
+/** Subsonic überträgt Mehrfachwerte (z. B. `id` bei `star`) als wiederholten Parameter. */
+export type ParamValue = string | number | boolean | undefined | Array<string | number>;
+type Params = Record<string, ParamValue>;
+
 export class SubsonicClient {
   constructor(private creds: Credentials) {}
 
-  private params(extra: Record<string, string | number | undefined> = {}) {
+  private params(extra: Params = {}) {
     const p = new URLSearchParams({
       u: this.creds.username,
       t: this.creds.token,
@@ -37,15 +57,19 @@ export class SubsonicClient {
       c: CLIENT_NAME,
       f: "json",
     });
-    for (const [k, v] of Object.entries(extra)) if (v !== undefined) p.set(k, String(v));
+    for (const [k, v] of Object.entries(extra)) {
+      if (v === undefined) continue;
+      if (Array.isArray(v)) for (const item of v) p.append(k, String(item));
+      else p.set(k, String(v));
+    }
     return p;
   }
 
-  private url(endpoint: string, extra?: Record<string, string | number | undefined>) {
+  private url(endpoint: string, extra?: Params) {
     return `${this.creds.serverUrl}/rest/${endpoint}?${this.params(extra)}`;
   }
 
-  private async call<T>(endpoint: string, extra?: Record<string, string | number | undefined>): Promise<T> {
+  private async call<T>(endpoint: string, extra?: Params): Promise<T> {
     const res = await httpFetch(this.url(endpoint, extra));
     if (!res.ok) throw new SubsonicError(res.status, `Server antwortet mit HTTP ${res.status}`);
     const body = (await res.json())["subsonic-response"];
@@ -57,19 +81,144 @@ export class SubsonicClient {
     return this.call<{ type?: string; serverVersion?: string }>("ping");
   }
 
-  async getArtists(): Promise<Artist[]> {
-    const r = await this.call<{ artists: { index: { artist: Artist[] }[] } }>("getArtists");
-    return r.artists.index.flatMap((i) => i.artist);
+  // --- Bibliothek -------------------------------------------------------
+
+  /** Künstler nach Buchstaben gruppiert, wie der Server sie liefert. */
+  async getArtistIndexes(): Promise<ArtistIndex[]> {
+    const r = await this.call<{ artists: { index?: ArtistIndex[] } }>("getArtists");
+    return (r.artists.index ?? []).map((i) => ({ name: i.name, artist: i.artist ?? [] }));
   }
 
-  async getAlbumList(type: AlbumListType, size = 30, offset = 0): Promise<Album[]> {
-    const r = await this.call<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type, size, offset });
+  /** Alle Künstler als flache Liste, in der Reihenfolge des Servers. */
+  async getArtists(): Promise<Artist[]> {
+    return (await this.getArtistIndexes()).flatMap((i) => i.artist);
+  }
+
+  /** Künstler mit Diskografie. */
+  async getArtist(id: string): Promise<ArtistWithAlbums> {
+    return (await this.call<{ artist: ArtistWithAlbums }>("getArtist", { id })).artist;
+  }
+
+  /** Biografie und ähnliche Künstler. */
+  async getArtistInfo2(id: string, count = 10): Promise<ArtistInfo> {
+    const r = await this.call<{ artistInfo2?: ArtistInfo }>("getArtistInfo2", { id, count });
+    return r.artistInfo2 ?? {};
+  }
+
+  async getAlbumList(
+    type: AlbumListType,
+    size = 30,
+    offset = 0,
+    extra: { fromYear?: number; toYear?: number; genre?: string } = {},
+  ): Promise<Album[]> {
+    const r = await this.call<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type, size, offset, ...extra });
     return r.albumList2.album ?? [];
   }
 
   async getAlbum(id: string): Promise<AlbumWithSongs> {
     return (await this.call<{ album: AlbumWithSongs }>("getAlbum", { id })).album;
   }
+
+  async getGenres(): Promise<Genre[]> {
+    const r = await this.call<{ genres?: { genre?: Genre[] } }>("getGenres");
+    return r.genres?.genre ?? [];
+  }
+
+  async getSongsByGenre(genre: string, count = 50, offset = 0): Promise<Song[]> {
+    const r = await this.call<{ songsByGenre?: { song?: Song[] } }>("getSongsByGenre", { genre, count, offset });
+    return r.songsByGenre?.song ?? [];
+  }
+
+  async getRandomSongs(size = 50, genre?: string): Promise<Song[]> {
+    const r = await this.call<{ randomSongs?: { song?: Song[] } }>("getRandomSongs", { size, genre });
+    return r.randomSongs?.song ?? [];
+  }
+
+  // --- Favoriten --------------------------------------------------------
+
+  async getStarred2(): Promise<Starred> {
+    const r = await this.call<{ starred2?: Starred }>("getStarred2");
+    return r.starred2 ?? {};
+  }
+
+  star(ids: StarIds) {
+    return this.call<unknown>("star", ids);
+  }
+
+  unstar(ids: StarIds) {
+    return this.call<unknown>("unstar", ids);
+  }
+
+  // --- Playlists --------------------------------------------------------
+
+  async getPlaylists(): Promise<Playlist[]> {
+    const r = await this.call<{ playlists?: { playlist?: Playlist[] } }>("getPlaylists");
+    return r.playlists?.playlist ?? [];
+  }
+
+  async getPlaylist(id: string): Promise<PlaylistWithSongs> {
+    return (await this.call<{ playlist: PlaylistWithSongs }>("getPlaylist", { id })).playlist;
+  }
+
+  /** Legt eine Playlist an. Der Server darf ohne `playlist`-Element antworten. */
+  async createPlaylist(input: { name: string; playlistId?: string; songIds?: string[] }): Promise<Playlist | null> {
+    const r = await this.call<{ playlist?: Playlist }>("createPlaylist", {
+      name: input.name,
+      playlistId: input.playlistId,
+      songId: input.songIds,
+    });
+    return r.playlist ?? null;
+  }
+
+  async updatePlaylist(input: {
+    playlistId: string;
+    name?: string;
+    comment?: string;
+    public?: boolean;
+    songIdsToAdd?: string[];
+    songIndexesToRemove?: number[];
+  }) {
+    return this.call<unknown>("updatePlaylist", {
+      playlistId: input.playlistId,
+      name: input.name,
+      comment: input.comment,
+      public: input.public,
+      songIdToAdd: input.songIdsToAdd,
+      songIndexToRemove: input.songIndexesToRemove,
+    });
+  }
+
+  async deletePlaylist(id: string) {
+    return this.call<unknown>("deletePlaylist", { id });
+  }
+
+  // --- Suche ------------------------------------------------------------
+
+  async search3(
+    query: string,
+    options: {
+      artistCount?: number;
+      artistOffset?: number;
+      albumCount?: number;
+      albumOffset?: number;
+      songCount?: number;
+      songOffset?: number;
+    } = {},
+  ): Promise<SearchResult3> {
+    const { artistCount = 10, artistOffset = 0, albumCount = 10, albumOffset = 0, songCount = 20, songOffset = 0 } = options;
+    const r = await this.call<{ searchResult3?: SearchResult3 }>("search3", {
+      query,
+      artistCount,
+      artistOffset,
+      albumCount,
+      albumOffset,
+      songCount,
+      songOffset,
+    });
+    return r.searchResult3 ?? {};
+  }
+
+  // --- URLs -------------------------------------------------------------
 
   coverArtUrl(id: string, size = 300) {
     return this.url("getCoverArt", { id, size });

@@ -1,42 +1,50 @@
 import { Link, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useSession } from "../state/session";
+import AddToPlaylist from "../components/AddToPlaylist";
+import FavoriteButton from "../components/FavoriteButton";
+import QueryStates from "../components/QueryStates";
+import SongList from "../components/SongList";
+import { useAlbum } from "../hooks/library";
+import { useClient } from "../hooks/useClient";
 import { usePlayer } from "../state/player";
-import { formatTime } from "../format";
 
 export default function Album() {
   const { id = "" } = useParams();
-  const client = useSession((s) => s.client)!;
-  const { queue, index, playing, playQueue } = usePlayer();
-  const album = useQuery({ queryKey: ["album", id], queryFn: () => client.getAlbum(id) });
-  const songs = album.data?.song ?? [];
-  const current = queue[index]?.id;
-
-  if (album.isPending) return <p className="muted">Lade …</p>;
-  if (album.isError) return <p className="form-error">{(album.error as Error).message}</p>;
+  const client = useClient();
+  const album = useAlbum(id);
+  const playQueue = usePlayer((s) => s.playQueue);
+  const data = album.data;
+  const songs = data?.song ?? [];
 
   return (
     <section className="album">
-      <Link to="/" className="back">← Zurück</Link>
-      <div className="album-head">
-        {album.data.coverArt && <img src={client.coverArtUrl(album.data.coverArt, 500)} alt="" />}
-        <div>
-          <h1>{album.data.name}</h1>
-          <p className="muted">{album.data.artist}{album.data.year ? ` · ${album.data.year}` : ""} · {songs.length} Titel</p>
-          <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}>Abspielen</button>
-        </div>
-      </div>
-      <ol className="tracklist">
-        {songs.map((s, i) => (
-          <li key={s.id} className={s.id === current ? "active" : ""}>
-            <button className="track" onClick={() => playQueue(songs, i)}>
-              <span className="track-no">{s.id === current && playing ? "♪" : s.track ?? i + 1}</span>
-              <span className="track-title">{s.title}</span>
-              <span className="muted">{formatTime(s.duration ?? 0)}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
+      <Link to="/albums" className="back">← Alben</Link>
+      <QueryStates pending={album.isPending} error={album.error} isEmpty={!data} empty="Album nicht gefunden.">
+        {data && (
+          <>
+            <div className="album-head">
+              {data.coverArt ? <img src={client.coverArtUrl(data.coverArt, 500)} alt="" /> : <div className="cover-empty" />}
+              <div>
+                <h1>{data.name}</h1>
+                <p className="muted">
+                  {data.artistId ? <Link to={`/artist/${data.artistId}`}>{data.artist}</Link> : data.artist}
+                  {data.year ? ` · ${data.year}` : ""} · {songs.length} Titel
+                  {data.genre ? ` · ${data.genre}` : ""}
+                </p>
+                <div className="song-actions">
+                  <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}>Abspielen</button>
+                  <FavoriteButton starred={Boolean(data.starred)} albumId={data.id} label="Album" />
+                </div>
+                <AddToPlaylist songIds={songs.map((s) => s.id)} label="Album anhängen" />
+              </div>
+            </div>
+            {songs.length ? (
+              <SongList songs={songs} onPlay={(i) => playQueue(songs, i)} numbers="track" />
+            ) : (
+              <p className="muted">Dieses Album hat keine Titel.</p>
+            )}
+          </>
+        )}
+      </QueryStates>
     </section>
   );
 }

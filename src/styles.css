@@ -54,3 +54,18 @@ button.play { width: 2.8rem; height: 2.8rem; padding: 0; display: grid; place-it
 .player-seek input { flex: 1; }
 .player-volume { justify-self: end; width: 140px; }
 @media (max-width: 600px) { .content { padding: 0 1rem 1.5rem; } .album-grid { grid-template-columns: repeat(2, 1fr); } .album-head { flex-direction: column; align-items: flex-start; } .player { grid-template-columns: 1fr; } .player-volume { display: none; } }
+
+/* --- Technik-Glue (Phase 1) ---
+   Nur so viel Layout, dass die neuen Bausteine bedienbar sind. Das Design
+   ersetzt diesen Block beim Aufteilen von styles.css durch eigene Regeln. */
+.topbar-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-left: 1.5rem; }
+.filters, .pager, .letter-nav, .add-to-playlist, .playlist-edit, .playlist-danger { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 1.25rem; }
+.letter-nav { gap: .25rem; }
+.filters label, .add-to-playlist label, .playlist-edit label { display: grid; gap: .25rem; }
+.filters select, .filters input, .add-to-playlist select, .playlist-edit input[type="text"], .playlist-edit input:not([type]) { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: .5rem; padding: .5rem .6rem; }
+.filters input[type="number"] { width: 6rem; }
+.playlist-edit label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: .4rem; }
+.playlist-edit input[type="checkbox"] { width: auto; accent-color: var(--pink); }
+.track-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .25rem; }
+.song-actions { display: flex; align-items: center; gap: .25rem; }
+
