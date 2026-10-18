@@ -40,8 +40,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          # Legt latest.json fuer den Updater mit in den Release.
-          uploadUpdaterJson: true
           tagName: ${{ github.ref_name }}
           releaseName: "Niuva Sonic ${{ github.ref_name }}"
           releaseBody: "Windows-Installer (ohne Administratorrechte installierbar). Hinweise zur Installation stehen in der README."
