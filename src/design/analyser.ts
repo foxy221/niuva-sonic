@@ -27,7 +27,7 @@ export function getAnalyser(): AnalyserNode | null {
     context = new AudioContext();
     analyser = context.createAnalyser();
     analyser.fftSize = 1024;
-    analyser.smoothingTimeConstant = 0.78;
+    analyser.smoothingTimeConstant = 0.55;
     analyser.connect(context.destination);
     for (const element of elements) context.createMediaElementSource(element).connect(analyser);
     context.addEventListener("statechange", keepRunning);
