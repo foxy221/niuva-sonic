@@ -13,7 +13,7 @@ interface SongListProps {
   /** Albumname in der Zeile anzeigen (Genres, Suche, Playlist, Favoriten). */
   showAlbum?: boolean;
   /** Zusätzliche Aktion je Zeile, z. B. „Entfernen“ in einer Playlist. */
-  action?: { label: string; onClick: (index: number) => void };
+  action?: { label: string; onClick: (index: number) => void; disabled?: boolean };
 }
 
 /** Titelliste mit Wiedergabe, Herz und optionaler Zusatzaktion. */
@@ -49,7 +49,7 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
             <span className="song-actions row-actions">
               <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label="Titel" />
               {action && (
-                <button type="button" className="icon row-action" onClick={() => action.onClick(i)} aria-label={action.label} title={action.label}>
+                <button type="button" className="icon row-action" onClick={() => action.onClick(i)} disabled={action.disabled} aria-label={action.label} title={action.label}>
                   <X size={18} />
                 </button>
               )}

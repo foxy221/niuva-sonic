@@ -18,6 +18,7 @@ interface PlayerState {
   prev: () => void;
   seek: (seconds: number) => void;
   setVolume: (v: number) => void;
+  reset: () => void;
 }
 
 export const usePlayer = create<PlayerState>((set, get) => {
@@ -73,6 +74,17 @@ export const usePlayer = create<PlayerState>((set, get) => {
       localStorage.setItem("volume", String(v));
       set({ volume: v });
     },
+
+    reset() {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      set({ queue: [], index: -1, playing: false, position: 0, duration: 0 });
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = null;
+        navigator.mediaSession.playbackState = "none";
+      }
+    },
   };
 });
 
@@ -108,3 +120,7 @@ function initMediaSessionActions() {
 
 initAudioEvents();
 initMediaSessionActions();
+
+useSession.subscribe((session, previous) => {
+  if (session.client !== previous.client) usePlayer.getState().reset();
+});

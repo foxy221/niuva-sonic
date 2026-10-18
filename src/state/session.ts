@@ -9,10 +9,22 @@ const KEY = "credentials";
 // Im Browser (pnpm dev ohne Tauri) faellt die Persistenz auf localStorage zurueck.
 const isTauri = () => "__TAURI_INTERNALS__" in window;
 
-async function readCredentials(): Promise<Credentials | null> {
+async function readCredentials(): Promise<unknown> {
   if (!isTauri()) return JSON.parse(localStorage.getItem(KEY) ?? "null");
   const store = await load(STORE_FILE);
   return (await store.get<Credentials>(KEY)) ?? null;
+}
+
+function isCredentials(value: unknown): value is Credentials {
+  if (!value || typeof value !== "object") return false;
+  const fields = value as Record<string, unknown>;
+  if (!["serverUrl", "username", "token", "salt"].every((key) => typeof fields[key] === "string" && fields[key].trim().length > 0)) return false;
+  try {
+    const url = new URL(fields.serverUrl as string);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 async function writeCredentials(creds: Credentials | null) {
@@ -42,7 +54,14 @@ export const useSession = create<SessionState>((set) => ({
   creds: null,
 
   async restore() {
-    const creds = await readCredentials();
+    let creds: Credentials | null = null;
+    try {
+      const stored = await readCredentials();
+      if (isCredentials(stored)) creds = stored;
+      else if (stored !== null) await writeCredentials(null);
+    } catch {
+      // Ein beschädigter oder nicht lesbarer Store darf den Login nicht blockieren.
+    }
     set({ ready: true, creds, client: creds ? new SubsonicClient(creds) : null });
   },
 

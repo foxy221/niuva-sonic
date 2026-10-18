@@ -16,20 +16,18 @@ export function useStar() {
 
   return useMutation({
     mutationFn: ({ ids, starred }: StarInput) => (starred ? client.unstar(ids) : client.star(ids)),
-    onSuccess: (_result, { ids }) => {
-      queryClient.invalidateQueries({ queryKey: keys.starred });
+    onSuccess: async (_result, { ids }) => {
+      const affected: (readonly string[])[] = [keys.starred, libraryPrefixes.search];
       // Nur die Listen auffrischen, in denen das Element vorkommen kann.
-      if (ids.albumId) queryClient.invalidateQueries({ queryKey: libraryPrefixes.albumList });
+      if (ids.albumId) affected.push(libraryPrefixes.album, libraryPrefixes.albumList, libraryPrefixes.artist);
       if (ids.artistId) {
-        queryClient.invalidateQueries({ queryKey: libraryPrefixes.artist });
-        queryClient.invalidateQueries({ queryKey: libraryPrefixes.artists });
+        affected.push(libraryPrefixes.artist, libraryPrefixes.artists, libraryPrefixes.artistInfo);
       }
       if (ids.id) {
-        queryClient.invalidateQueries({ queryKey: libraryPrefixes.album });
-        queryClient.invalidateQueries({ queryKey: libraryPrefixes.songsByGenre });
-        queryClient.invalidateQueries({ queryKey: libraryPrefixes.playlist });
-        queryClient.invalidateQueries({ queryKey: libraryPrefixes.search });
+        affected.push(libraryPrefixes.album, libraryPrefixes.songsByGenre, libraryPrefixes.playlist);
       }
+      // Der Button bleibt bis zu den aktualisierten starred-Werten gesperrt.
+      await Promise.all(affected.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
     },
   });
 }

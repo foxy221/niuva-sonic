@@ -11,8 +11,7 @@ const PAGE_SIZE = 100;
 
 /** Alle Titel eines Genres (`getSongsByGenre`), seitenweise. */
 export default function Genre() {
-  const { name = "" } = useParams();
-  const genre = decodeURIComponent(name);
+  const { name: genre = "" } = useParams();
   const [page, setPage] = useState(0);
   const songs = useSongsByGenre(genre, PAGE_SIZE, page * PAGE_SIZE);
   const playQueue = usePlayer((s) => s.playQueue);

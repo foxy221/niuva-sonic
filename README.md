@@ -19,6 +19,7 @@
 
 ```bash
 pnpm install
+pnpm test                 # Regressionstests für Sitzung, Bibliothek und Playlists
 pnpm tauri dev            # Windows-Desktop
 pnpm tauri android dev    # Android (Gerät/Emulator)
 pnpm tauri build          # Release-Build

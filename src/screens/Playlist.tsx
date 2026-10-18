@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ListMusic, Play, Save, Trash2 } from "lucide-react";
 import QueryStates from "../components/QueryStates";
@@ -25,6 +25,8 @@ export default function Playlist() {
   const [comment, setComment] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const updateInFlight = useRef(false);
+  const editingDisabled = update.isPending || remove.isPending || playlist.isFetching;
 
   // Felder füllen, sobald die Playlist geladen ist; beim Wechsel der ID neu.
   const loadedId = data?.id;
@@ -37,14 +39,22 @@ export default function Playlist() {
 
   function save(e: FormEvent) {
     e.preventDefault();
-    update.mutate({ name: name.trim() || data?.name, comment, public: isPublic });
+    changePlaylist({ name: name.trim() || data?.name, comment, public: isPublic });
+  }
+
+  function changePlaylist(input: Parameters<typeof update.mutate>[0]) {
+    // Der Ref sperrt auch zwei Klicks vor dem nächsten React-Render.
+    if (readonly || editingDisabled || updateInFlight.current) return;
+    updateInFlight.current = true;
+    update.mutate(input, { onSettled: () => { updateInFlight.current = false; } });
   }
 
   function removeSong(index: number) {
-    update.mutate({ songIndexesToRemove: [index] });
+    changePlaylist({ songIndexesToRemove: [index] });
   }
 
   function deletePlaylist() {
+    if (readonly || editingDisabled || updateInFlight.current) return;
     remove.mutate(id, { onSuccess: () => navigate("/playlists") });
   }
 
@@ -87,7 +97,7 @@ export default function Playlist() {
                 <label>
                   <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} /> öffentlich
                 </label>
-                <button type="submit" disabled={update.isPending}>
+                <button type="submit" disabled={editingDisabled}>
                   <Save size={18} /> {update.isPending ? "Speichere …" : "Speichern"}
                 </button>
               </form>
@@ -99,7 +109,7 @@ export default function Playlist() {
                 songs={songs}
                 onPlay={(i) => playQueue(songs, i)}
                 showAlbum
-                action={readonly ? undefined : { label: "Entfernen", onClick: removeSong }}
+                action={readonly ? undefined : { label: "Entfernen", onClick: removeSong, disabled: editingDisabled }}
               />
             ) : (
               <p className="muted">Noch keine Titel. Auf einer Album-Seite hängt „Album anhängen“ Titel hier an.</p>
@@ -109,7 +119,7 @@ export default function Playlist() {
               <p className="playlist-danger">
                 {confirming ? (
                   <>
-                    <button type="button" className="ghost" onClick={deletePlaylist} disabled={remove.isPending}>
+                    <button type="button" className="ghost" onClick={deletePlaylist} disabled={editingDisabled}>
                       Wirklich löschen
                     </button>
                     <button type="button" className="ghost" onClick={() => setConfirming(false)}>
@@ -117,7 +127,7 @@ export default function Playlist() {
                     </button>
                   </>
                 ) : (
-                  <button type="button" className="ghost" onClick={() => setConfirming(true)}>
+                  <button type="button" className="ghost" onClick={() => setConfirming(true)} disabled={editingDisabled}>
                     <Trash2 size={18} /> Playlist löschen
                   </button>
                 )}

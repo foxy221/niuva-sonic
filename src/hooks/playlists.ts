@@ -35,10 +35,12 @@ export function useUpdatePlaylist(playlistId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Omit<UpdateInput, "playlistId">) => client.updatePlaylist({ playlistId, ...input }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: keys.playlist(playlistId) });
-      queryClient.invalidateQueries({ queryKey: libraryPrefixes.playlists });
-    },
+    // Auch bei einem Netzwerkfehler könnte der Server die Änderung schon
+    // ausgeführt haben. Vor weiteren Index-Aktionen die Liste neu abgleichen.
+    onSettled: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.playlist(playlistId) }),
+      queryClient.invalidateQueries({ queryKey: libraryPrefixes.playlists }),
+    ]),
   });
 }
 

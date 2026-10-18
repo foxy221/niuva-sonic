@@ -29,6 +29,7 @@ export const libraryPrefixes = {
   albumList: ["albumList"] as const,
   album: ["album"] as const,
   artist: ["artist"] as const,
+  artistInfo: ["artistInfo"] as const,
   artists: ["artists"] as const,
   songsByGenre: ["songsByGenre"] as const,
   playlist: ["playlist"] as const,
