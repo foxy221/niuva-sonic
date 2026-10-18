@@ -18,7 +18,7 @@ Ein moderner Desktop-Client für deine eigene Musiksammlung, gebaut für [Navidr
 
 Niuva Sonic spielt die Musik von deinem eigenen Server ab: ohne Abo, ohne Werbung, ohne Cloud eines Dritten. Du verbindest die App mit deiner Navidrome-Instanz (oder einem anderen Subsonic-kompatiblen Server) und bekommst eine schnelle, aufgeräumte Oberfläche für deine Bibliothek.
 
-> **Status:** Die App ist noch nicht veröffentlicht. Die Grundlagen stehen und werden gegen einen echten Navidrome-Server geprüft. Der erste Release für Windows ist in Vorbereitung.
+> **Status:** Die App gibt es als Windows-Version (Release 0.1.x). Sie wird gegen einen echten Navidrome-Server geprüft. Der Installer ist noch nicht mit einem Authenticode-Zertifikat signiert, siehe [Bekannte Einschränkungen](#bekannte-einschränkungen).
 
 ## Funktionen
 
@@ -42,6 +42,7 @@ Niuva Sonic spielt die Musik von deinem eigenen Server ab: ohne Abo, ohne Werbun
 - Medientasten und System-Overlay über die Windows-Mediensteuerung
 - Fenstergröße und -position werden gemerkt, eine zweite Instanz holt das vorhandene Fenster nach vorn
 - Installer ohne Administratorrechte
+- Automatische Updates: Die App sucht in den Einstellungen nach neuen Fassungen, lädt sie mit Fortschrittsanzeige, prüft die Signatur und startet nach dem Einspielen neu
 
 **Datenschutz**
 - Dein Passwort wird nicht gespeichert. Die Anmeldung läuft über Token und Salt der Subsonic-API.
@@ -55,9 +56,25 @@ Niuva Sonic spielt die Musik von deinem eigenen Server ab: ohne Abo, ohne Werbun
 
 ## Installation
 
-Sobald es einen Release gibt, findest du den Installer unter [Releases](https://github.com/foxy221/niuva-sonic/releases). Bis dahin kannst du die App selbst bauen (siehe unten).
+Den Installer (`Niuva.Sonic_<Version>_x64-setup.exe`) findest du unter [Releases](https://github.com/foxy221/niuva-sonic/releases). Alternativ kannst du die App selbst bauen (siehe unten).
 
-Voraussetzung: Windows 10 oder 11 mit WebView2 (ist in Windows 11 enthalten) und ein erreichbarer Navidrome- oder Subsonic-Server.
+Voraussetzung: Windows 10 oder 11 (64 Bit) mit WebView2 (ist in Windows 11 enthalten) und ein erreichbarer Navidrome- oder Subsonic-Server.
+
+1. Installer herunterladen und starten. Die Installation läuft für dein Benutzerkonto und braucht keine Administratorrechte; die App erscheint im Startmenü.
+2. Windows zeigt bei einem unsignierten Installer eventuell „Der Computer wurde durch Windows geschützt“ (SmartScreen). Wähle **Weitere Informationen → Trotzdem ausführen**. Wer die Herkunft prüfen will, vergleicht die Datei mit dem Release auf GitHub.
+3. Beim ersten Start gibst du Serveradresse, Benutzername und Passwort ein. Das Passwort wird nicht gespeichert.
+
+**Aktualisieren:** *Einstellungen → Windows → Updates → Nach Updates suchen*. Die App lädt die neue Fassung, prüft ihre Signatur und installiert sie nach einem Klick auf „Installieren und neu starten“. Updates kommen ausschließlich aus den GitHub-Releases dieses Projekts und sind mit einem eigenen Schlüssel signiert.
+
+**Deinstallieren:** *Einstellungen → Apps → Installierte Apps → Niuva Sonic*. Server-Profile, Einstellungen und der Eintrag im Windows-Schlüsselbund bleiben erhalten, falls du später neu installierst. Zum vollständigen Entfernen vorher in der App unter „Server-Profile“ die Profile entfernen und danach den Ordner `%APPDATA%\de.niuva.sonic` löschen.
+
+## Bekannte Einschränkungen
+
+- **Keine Authenticode-Signatur:** Der Installer ist nicht mit einem Code-Signing-Zertifikat signiert. Windows SmartScreen warnt deshalb beim ersten Start des heruntergeladenen Installers. Die Updates der App sind davon nicht betroffen; sie werden mit dem Projekt-Schlüssel geprüft.
+- **Name in der Mediensteuerung:** Die Windows-Mediensteuerung zeigt die WebView2-Anwendung als „Unbekannte Anwendung“. Titel, Interpret und Cover stimmen. Der Name lässt sich mit der Web-Media-Session-Schnittstelle nicht setzen.
+- **Nur Windows (64 Bit):** Eine Android-Version gibt es noch nicht.
+- **Abmelden:** Es beendet nur die Sitzung. Das Profil und seine Zugangsdaten im Schlüsselbund bleiben gemerkt; zum Vergessen entfernst du das Profil in den Einstellungen.
+- **Server:** Getestet ist die App mit Navidrome. Andere Subsonic-Server funktionieren, melden aber weniger OpenSubsonic-Erweiterungen (zum Beispiel ReplayGain-Werte).
 
 ## Selbst bauen
 
