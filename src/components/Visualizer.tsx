@@ -3,8 +3,11 @@ import { getAnalyser } from "../design/analyser";
 import { usePlayer } from "../state/player";
 
 const BANDS = 48;
-const MAX_RINGS = 14;
-const RING_POINTS = 72;
+const RING_COUNT = 7;
+const RING_POINTS = 90;
+/** Wie viele Bilder Spektrum-Verlauf vorgehalten werden; jeder Ring liest ein Stück weiter zurück. */
+const HISTORY = 48;
+const RING_LAG = 5;
 const TAU = Math.PI * 2;
 
 interface Cloud {
@@ -41,19 +44,6 @@ const CLOUDS: Cloud[] = [
   { from: 22, to: 32, x: 0.22, y: 0.78, driftX: 0.1, driftY: 0.08, speed: 0.00022, phase: 5.2, size: 0.4, aspect: 0.5, spin: 6, tone: VIOLET },
   { from: 32, to: 47, x: 0.9, y: 0.6, driftX: 0.08, driftY: 0.16, speed: 0.0003, phase: 3.3, size: 0.36, aspect: 0.55, spin: 8, tone: AMBER },
 ];
-
-interface Ring {
-  /** Abstand zum Cover-Rand. */
-  r: number;
-  speed: number;
-  /** 0..1, wie kräftig der Schlag war; bestimmt Helligkeit und Verformung. */
-  strength: number;
-  tone: number;
-  /** Abdruck des Spektrums im Moment des Schlags: formt den Ring. */
-  shape: Float32Array;
-  /** Drehung der Abbildung, damit nicht jeder Ring gleich liegt. */
-  turn: number;
-}
 
 /** Liest die aktuelle Akzentfarbe als RGB. */
 function readAccent(scratch: CanvasRenderingContext2D): number[] {
@@ -100,7 +90,8 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     const energy = new Float32Array(CLOUDS.length);
     const average = new Float32Array(CLOUDS.length).fill(0.3);
     const kick = new Float32Array(CLOUDS.length);
-    const rings: Ring[] = [];
+    const history: Float32Array[] = Array.from({ length: HISTORY }, () => new Float32Array(BANDS));
+    let head = 0;
     const idle = { level: 0.2 };
     let width = 0;
     let height = 0;
@@ -112,9 +103,6 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
     let accentAt = 0;
     let measureAt = 0;
     let last = 0;
-    let lastBeat = 0;
-    let lastDrift = 0;
-    let bassAvg = 0.3;
     let loudness = 0;
     let frame = 0;
     let analyserData: Uint8Array<ArrayBuffer> | null = null;
@@ -200,18 +188,6 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       loudness += (Math.min(1, sum / BANDS / 0.5) - loudness) * (1 - Math.exp(-dt / 250));
     }
 
-    function spawnRing(strength: number, speed: number) {
-      if (rings.length >= MAX_RINGS) rings.shift();
-      rings.push({
-        r: 0,
-        speed,
-        strength,
-        tone: Math.random() < 0.45 ? 3 : Math.floor(Math.random() * 3),
-        shape: Float32Array.from(bands),
-        turn: Math.random(),
-      });
-    }
-
     /** Pegel am Umfangsanteil `u`: links und rechts gespiegelt, oben die Bässe, unten die Höhen. */
     const shapeAt = (shape: Float32Array, u: number) => {
       const mirrored = 1 - Math.abs((((u % 1) + 1) % 1) * 2 - 1);
@@ -220,32 +196,33 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
       return shape[i] + (shape[Math.min(BANDS - 1, i + 1)] - shape[i]) * (f - i);
     };
 
-    function drawRings(dt: number) {
+    /**
+     * Sieben Ringe an festen Plätzen um das Cover. Jeder zeigt das Spektrum von
+     * vor ein paar Bildern, der innerste das jüngste: so läuft eine Welle von
+     * innen nach außen durch die Ringe, ohne dass einer wandert.
+     */
+    function drawRings(t: number) {
       const dpr = canvas!.width / Math.max(1, width);
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx!.clearRect(0, 0, width, height);
       ctx!.lineJoin = "round";
-      const reach = Math.max(width, height) * 0.62;
-      const drive = 0.7 + loudness * 0.7;
+      history[head].set(bands);
 
-      for (let i = rings.length - 1; i >= 0; i--) {
-        const ring = rings[i];
-        ring.r += ring.speed * drive * dt;
-        const travelled = ring.r / reach;
-        if (travelled >= 1) {
-          rings.splice(i, 1);
-          continue;
-        }
-        const fadeIn = Math.min(1, ring.r / 36);
-        const alpha = ring.strength * fadeIn * Math.pow(1 - travelled, 1.2);
-        const base = coverR * 1.04 + ring.r;
-        // Die Verformung wächst mit der Entfernung ein Stück mit und bleibt dabei weich.
-        const wobble = coverR * 0.32 * ring.strength * (0.5 + travelled * 0.9);
+      for (let ring = RING_COUNT - 1; ring >= 0; ring--) {
+        const shape = history[(head - ring * RING_LAG + HISTORY * 4) % HISTORY];
+        let level = 0;
+        for (let i = 0; i < BANDS; i++) level += shape[i];
+        level /= BANDS;
+        const strength = Math.min(1, level / 0.45);
+        const base = coverR * (1.14 + ring * 0.2);
+        const swell = coverR * 0.16 * strength;
+        const wobble = coverR * (0.34 - ring * 0.025);
+        const turn = t * 0.000018 * (ring % 2 ? 1 : -1);
         const pts: [number, number][] = [];
         for (let k = 0; k < RING_POINTS; k++) {
           const u = k / RING_POINTS;
           const a = u * TAU - Math.PI / 2;
-          const r = base + (shapeAt(ring.shape, u + ring.turn * 0.04) - 0.3) * wobble;
+          const r = base + swell + (shapeAt(shape, u + turn) - level) * wobble;
           pts.push([coverX + Math.cos(a) * r, coverY + Math.sin(a) * r]);
         }
         ctx!.beginPath();
@@ -256,20 +233,22 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
           ctx!.quadraticCurveTo(p[0], p[1], (p[0] + n[0]) / 2, (p[1] + n[1]) / 2);
         }
         ctx!.closePath();
-        const color = tones[ring.tone];
-        // Zwei Durchgänge: breit und blass als Schimmer, dünn und hell als eigentliche Linie.
+        const color = tones[ring % tones.length];
+        // Außen leiser als innen, bei Schlägen heller. Zwei Durchgänge: Schimmer und dünne Linie.
+        const alpha = (0.28 + strength * 0.62) * (1 - ring * 0.085);
         ctx!.strokeStyle = rgba(color, 1);
-        ctx!.lineWidth = 12 + ring.strength * 8;
+        ctx!.lineWidth = 10 + strength * 10;
         ctx!.globalAlpha = alpha * 0.14;
         ctx!.stroke();
         ctx!.lineWidth = 4;
         ctx!.globalAlpha = alpha * 0.3;
         ctx!.stroke();
-        ctx!.lineWidth = 1.6;
-        ctx!.globalAlpha = Math.min(1, alpha * 0.95);
+        ctx!.lineWidth = 1.5;
+        ctx!.globalAlpha = Math.min(1, alpha);
         ctx!.stroke();
       }
       ctx!.globalAlpha = 1;
+      head = (head + 1) % HISTORY;
     }
 
     function draw(t: number) {
@@ -302,27 +281,8 @@ export default function Visualizer({ anchor }: { anchor: RefObject<HTMLElement |
         el.style.opacity = Math.min(0.75, 0.03 + e * 0.38 + kick[k] * 0.3).toFixed(3);
       });
 
-      if (!reduceMotion) {
-        let bass = 0;
-        for (let i = 0; i < 6; i++) bass += bands[i];
-        bass /= 6;
-        bassAvg += (bass - bassAvg) * (1 - Math.exp(-dt / 700));
-        // Bassschlag: ein kräftiger Ring, bei starkem Schlag direkt ein zweiter hinterher.
-        if (playing && bass > bassAvg * 1.14 + 0.02 && t - lastBeat > 170) {
-          const strength = Math.min(1, ((bass - bassAvg) / Math.max(bassAvg, 0.1)) * 2.2 + 0.45);
-          lastBeat = t;
-          lastDrift = t;
-          spawnRing(strength, 0.3 + strength * 0.16);
-          if (strength > 0.8) spawnRing(strength * 0.6, 0.22);
-        }
-        // Zwischen den Schlägen läuft in ruhigen Passagen gelegentlich ein leiser Ring mit.
-        if (playing && t - lastDrift > 900 - loudness * 450) {
-          lastDrift = t;
-          spawnRing(0.35 + loudness * 0.25, 0.2);
-        }
-        drawRings(dt);
-        frame = requestAnimationFrame(draw);
-      }
+      drawRings(t);
+      if (!reduceMotion) frame = requestAnimationFrame(draw);
     }
 
     resize();
