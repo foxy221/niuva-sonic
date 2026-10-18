@@ -6,9 +6,11 @@ import QueryStates from "../components/QueryStates";
 import { formatTime } from "../format";
 import { useClient } from "../hooks/useClient";
 import { useCreatePlaylist, usePlaylists } from "../hooks/playlists";
+import { useT } from "../i18n";
 
 /** Playlist-Übersicht mit Anlegen (`getPlaylists`, `createPlaylist`). */
 export default function Playlists() {
+  const t = useT();
   const client = useClient();
   const playlists = usePlaylists();
   const create = useCreatePlaylist();
@@ -30,19 +32,19 @@ export default function Playlists() {
 
   return (
     <>
-      <h1>Playlists</h1>
+      <h1>{t("nav.playlists")}</h1>
       <form className="filters" onSubmit={submit}>
         <label>
-          <span className="sr-only">Name der neuen Playlist</span>
-          <input type="text" placeholder="Neue Playlist" value={name} onChange={(e) => setName(e.target.value)} required />
+          <span className="sr-only">{t("playlists.nameLabel")}</span>
+          <input type="text" placeholder={t("playlists.new")} value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <button type="submit" disabled={!name.trim() || create.isPending}>
-          <Plus size={20} /> {create.isPending ? "Lege an …" : "Anlegen"}
+          <Plus size={20} /> {create.isPending ? t("playlists.creating") : t("playlists.create")}
         </button>
       </form>
       {create.isError && <p className="form-error">{(create.error as Error).message}</p>}
 
-      <QueryStates pending={playlists.isPending} error={playlists.error} isEmpty={!data.length} empty="Noch keine Playlists. Lege oben die erste an.">
+      <QueryStates pending={playlists.isPending} error={playlists.error} isEmpty={!data.length} empty={t("playlists.empty")}>
         <ul className="album-grid">
           {data.map((playlist) => (
             <CoverTile
@@ -50,7 +52,7 @@ export default function Playlists() {
               to={`/playlist/${playlist.id}`}
               image={playlist.coverArt ? client.coverArtUrl(playlist.coverArt, 400) : undefined}
               title={playlist.name}
-              subtitle={`${playlist.songCount ?? 0} Titel${playlist.duration ? ` · ${formatTime(playlist.duration)}` : ""}${playlist.readonly ? " · vom Server" : ""}`}
+              subtitle={`${t("count.tracks", { count: playlist.songCount ?? 0 })}${playlist.duration ? ` · ${formatTime(playlist.duration)}` : ""}${playlist.readonly ? ` · ${t("playlists.fromServer")}` : ""}`}
               fallback={<ListMusic size={36} />}
             />
           ))}

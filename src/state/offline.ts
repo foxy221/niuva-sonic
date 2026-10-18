@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { create } from "zustand";
 import { md5 } from "js-md5";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -177,7 +178,7 @@ async function runJob(job: DownloadJob, pending: Song[], album: AlbumWithSongs |
     if (limit > 0) {
       const used = await offlineDiskUsage().catch(() => 0);
       if (used + (song.size ?? 0) > limit) {
-        patchJob(job.id, { state: "error", error: "Speicherlimit erreicht. Alte Downloads entfernen oder das Limit in den Einstellungen erhöhen." });
+        patchJob(job.id, { state: "error", error: t("offline.limitReached") });
         canceled = true;
         break;
       }
@@ -198,7 +199,7 @@ async function runJob(job: DownloadJob, pending: Song[], album: AlbumWithSongs |
         canceled = true;
         break;
       }
-      logError(error, `Download fehlgeschlagen: ${song.title}`);
+      logError(error, `Download failed: ${song.title}`);
       bump("failedCount");
     }
   }
@@ -217,7 +218,7 @@ async function runJob(job: DownloadJob, pending: Song[], album: AlbumWithSongs |
   if (final && final.state === "running") {
     patchJob(job.id, {
       state: canceled ? "canceled" : final.failedCount > 0 && final.doneCount === 0 ? "error" : "done",
-      error: !canceled && final.failedCount > 0 && final.doneCount === 0 ? "Kein Titel konnte geladen werden." : undefined,
+      error: !canceled && final.failedCount > 0 && final.doneCount === 0 ? t("offline.noneLoaded") : undefined,
     });
   }
   void useOffline.getState().refreshUsage();

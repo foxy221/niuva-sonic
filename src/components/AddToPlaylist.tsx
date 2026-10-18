@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ListPlus } from "lucide-react";
 import { usePlaylists, useUpdatePlaylist } from "../hooks/playlists";
+import { useT } from "../i18n";
 
 interface AddToPlaylistProps {
   /** Titel, die angehängt werden – ein Titel oder ein ganzes Album. */
@@ -12,7 +13,8 @@ interface AddToPlaylistProps {
  * Bedienelement für `updatePlaylist`: Playlist wählen, Titel anhängen.
  * Serverseitig erzeugte Playlists sind schreibgeschützt und werden nicht angeboten.
  */
-export default function AddToPlaylist({ songIds, label = "Hinzufügen" }: AddToPlaylistProps) {
+export default function AddToPlaylist({ songIds, label }: AddToPlaylistProps) {
+  const t = useT();
   const playlists = usePlaylists();
   const [playlistId, setPlaylistId] = useState("");
   const update = useUpdatePlaylist(playlistId);
@@ -29,9 +31,9 @@ export default function AddToPlaylist({ songIds, label = "Hinzufügen" }: AddToP
   return (
     <form className="add-to-playlist" onSubmit={submit}>
       <label>
-        <span className="sr-only">Zu Playlist</span>
+        <span className="sr-only">{t("playlistAdd.to")}</span>
         <select value={playlistId} onChange={(e) => setPlaylistId(e.target.value)}>
-          <option value="">Playlist wählen …</option>
+          <option value="">{t("playlistAdd.choose")}</option>
           {writable.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -40,7 +42,7 @@ export default function AddToPlaylist({ songIds, label = "Hinzufügen" }: AddToP
         </select>
       </label>
       <button type="submit" className="ghost" disabled={!playlistId || !songIds.length || update.isPending}>
-        <ListPlus size={18} /> {update.isPending ? "Hänge an …" : label}
+        <ListPlus size={18} /> {update.isPending ? t("playlistAdd.adding") : label ?? t("playlistAdd.add")}
       </button>
       {update.isError && <span className="form-error">{(update.error as Error).message}</span>}
     </form>

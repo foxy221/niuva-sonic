@@ -66,7 +66,7 @@ fn request_exit<R: Runtime>(app: &AppHandle<R>) {
     {
         return;
     }
-    let _ = crate::logfile::write(app, "info", "Beenden angefordert");
+    let _ = crate::logfile::write(app, "info", "Exit requested");
     let _ = app.emit_to("main", "app-exit-requested", ());
     // Auch bei einem defekten WebView muss Beenden möglich bleiben.
     let app = app.clone();
@@ -100,14 +100,40 @@ fn emit_command<R: Runtime>(app: &AppHandle<R>, command: &str) {
     let _ = app.emit(EVENT_PLAYER_COMMAND, command);
 }
 
+/// Texte des Tray-Menues in der Reihenfolge Fenster, Wiedergabe, Weiter, Zurueck, Beenden.
+/// Unbekannte Sprachen fallen auf Englisch zurueck, wie in der Oberflaeche.
+pub fn tray_texts(language: &str) -> [&'static str; 5] {
+    match language {
+        "de" => ["Fenster anzeigen", "Wiedergabe / Pause", "Nächster Titel", "Vorheriger Titel", "Beenden"],
+        _ => ["Show window", "Play / Pause", "Next track", "Previous track", "Quit"],
+    }
+}
+
+/// Die Menuepunkte des Tray-Symbols, damit die Sprache spaeter wechseln kann.
+pub struct TrayItems<R: Runtime> {
+    items: [MenuItem<R>; 5],
+}
+
+/// Tray-Menue in eine andere Sprache umstellen. Ohne Tray-Symbol ist das ein Nichts.
+pub fn apply_language<R: Runtime>(app: &AppHandle<R>, language: &str) -> Result<(), String> {
+    let Some(tray) = app.try_state::<TrayItems<R>>() else {
+        return Ok(());
+    };
+    for (item, text) in tray.items.iter().zip(tray_texts(language)) {
+        item.set_text(text).map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
 /// Tray-Symbol mit Menue. Linksklick holt das Fenster nach vorn, das Menue haengt
-/// am Rechtsklick.
+/// am Rechtsklick. Die Oberflaeche stellt die Sprache nach dem Start um.
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, "show", "Fenster anzeigen", true, None::<&str>)?;
-    let toggle = MenuItem::with_id(app, "toggle", "Wiedergabe / Pause", true, None::<&str>)?;
-    let next = MenuItem::with_id(app, "next", "Naechster Titel", true, None::<&str>)?;
-    let previous = MenuItem::with_id(app, "previous", "Vorheriger Titel", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Beenden", true, None::<&str>)?;
+    let [t_show, t_toggle, t_next, t_previous, t_quit] = tray_texts("en");
+    let show = MenuItem::with_id(app, "show", t_show, true, None::<&str>)?;
+    let toggle = MenuItem::with_id(app, "toggle", t_toggle, true, None::<&str>)?;
+    let next = MenuItem::with_id(app, "next", t_next, true, None::<&str>)?;
+    let previous = MenuItem::with_id(app, "previous", t_previous, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", t_quit, true, None::<&str>)?;
     let before = PredefinedMenuItem::separator(app)?;
     let after = PredefinedMenuItem::separator(app)?;
 
@@ -139,6 +165,8 @@ pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             }
         })
         .build(app)?;
+
+    app.manage(TrayItems { items: [show, toggle, next, previous, quit] });
 
     Ok(())
 }
@@ -184,7 +212,7 @@ pub fn apply_global_shortcuts<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> 
             });
         if let Err(error) = registered {
             let _ = shortcuts.unregister_all();
-            return Err(format!("{code:?} konnte nicht belegt werden: {error}"));
+            return Err(format!("{code:?} could not be registered: {error}"));
         }
     }
 
@@ -235,12 +263,12 @@ pub async fn download_update<R: Runtime>(app: &AppHandle<R>) -> Result<String, S
     let update = {
         let mut slot = pending.lock();
         if slot.downloading {
-            return Err("Das Update wird bereits geladen.".to_string());
+            return Err("The update is already being downloaded.".to_string());
         }
         let update = slot
             .update
             .clone()
-            .ok_or("Es ist keine neue Fassung vorgemerkt. Bitte erneut suchen.")?;
+            .ok_or("No new version is pending. Please check again.")?;
         if slot.bytes.is_some() {
             return Ok(update.version);
         }
@@ -248,7 +276,7 @@ pub async fn download_update<R: Runtime>(app: &AppHandle<R>) -> Result<String, S
         update
     };
 
-    let _ = crate::logfile::write(app, "info", &format!("Update {} wird geladen", update.version));
+    let _ = crate::logfile::write(app, "info", &format!("Downloading update {}", update.version));
     let mut received: u64 = 0;
     let result = update
         .download(
@@ -268,11 +296,11 @@ pub async fn download_update<R: Runtime>(app: &AppHandle<R>) -> Result<String, S
     match result {
         Ok(bytes) => {
             slot.bytes = Some(bytes);
-            let _ = crate::logfile::write(app, "info", &format!("Update {} geladen und geprueft", update.version));
+            let _ = crate::logfile::write(app, "info", &format!("Update {} downloaded and verified", update.version));
             Ok(update.version)
         }
         Err(error) => {
-            let _ = crate::logfile::write(app, "error", &format!("Update konnte nicht geladen werden: {error}"));
+            let _ = crate::logfile::write(app, "error", &format!("Update could not be downloaded: {error}"));
             Err(error.to_string())
         }
     }
@@ -286,12 +314,12 @@ pub fn install_update<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
         let slot = pending.lock();
         match (slot.update.clone(), slot.bytes.clone()) {
             (Some(update), Some(bytes)) => (update, bytes),
-            _ => return Err("Das Update ist noch nicht geladen.".to_string()),
+            _ => return Err("The update has not been downloaded yet.".to_string()),
         }
     };
-    let _ = crate::logfile::write(app, "info", &format!("Update {} wird eingespielt", update.version));
+    let _ = crate::logfile::write(app, "info", &format!("Installing update {}", update.version));
     if let Err(error) = update.install(bytes) {
-        let _ = crate::logfile::write(app, "error", &format!("Update konnte nicht eingespielt werden: {error}"));
+        let _ = crate::logfile::write(app, "error", &format!("Update could not be installed: {error}"));
         return Err(error.to_string());
     }
     app.restart()
@@ -365,8 +393,17 @@ fn updater_configured(config: Option<&serde_json::Value>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::updater_configured;
+    use super::{tray_texts, updater_configured};
     use serde_json::json;
+
+    #[test]
+    fn tray_menue_gibt_es_auf_englisch_und_deutsch() {
+        assert_eq!(tray_texts("en")[4], "Quit");
+        assert_eq!(tray_texts("de")[4], "Beenden");
+        // Unbekannte Sprachen fallen auf Englisch zurueck.
+        assert_eq!(tray_texts("fr"), tray_texts("en"));
+        assert!(tray_texts("de").iter().all(|text| !text.is_empty()));
+    }
 
     #[test]
     fn update_braucht_adresse_und_schluessel() {

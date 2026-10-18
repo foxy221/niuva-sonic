@@ -4,11 +4,13 @@ import { ChevronLeft, Disc3, Play, X } from "lucide-react";
 import QueryStates from "../components/QueryStates";
 import SongList from "../components/SongList";
 import { formatBytes } from "../format";
+import { useT } from "../i18n";
 import { usePlayer } from "../state/player";
 import { offlineAlbumSongs, useOffline } from "../state/offline";
 
 /** Albumansicht ganz aus der Offline-Ablage; der Server wird nicht gefragt. */
 export default function OfflineAlbum() {
+  const t = useT();
   const { id = "" } = useParams();
   const entry = useOffline((s) => s.albums[id]);
   const songMap = useOffline((s) => s.songs);
@@ -21,8 +23,8 @@ export default function OfflineAlbum() {
 
   return (
     <section className="album">
-      <Link to="/offline" className="back"><ChevronLeft size={18} /> Offline</Link>
-      <QueryStates pending={false} error={null} isEmpty={!album} empty="Dieses Album liegt nicht mehr in der Offline-Ablage.">
+      <Link to="/offline" className="back"><ChevronLeft size={18} /> {t("nav.offline")}</Link>
+      <QueryStates pending={false} error={null} isEmpty={!album} empty={t("offlineAlbum.gone")}>
         {album && (
           <>
             <div className="album-head">
@@ -35,11 +37,11 @@ export default function OfflineAlbum() {
                 <h1>{album.name}</h1>
                 <p className="muted">
                   {album.artist}
-                  {album.year ? ` · ${album.year}` : ""} · {list.length} Titel · {formatBytes(size)} · offline verfügbar
+                  {album.year ? ` · ${album.year}` : ""} · {t("count.tracks", { count: list.length })} · {formatBytes(size)} · {t("offlineAlbum.available")}
                 </p>
                 <div className="song-actions">
-                  <button onClick={() => playQueue(list, 0)} disabled={!list.length}><Play size={20} fill="currentColor" /> Abspielen</button>
-                  <button className="ghost" onClick={() => void removeAlbum(album.id)}><X size={18} /> Offline entfernen</button>
+                  <button onClick={() => playQueue(list, 0)} disabled={!list.length}><Play size={20} fill="currentColor" /> {t("common.play")}</button>
+                  <button className="ghost" onClick={() => void removeAlbum(album.id)}><X size={18} /> {t("album.removeOffline")}</button>
                 </div>
               </div>
             </div>
@@ -51,7 +53,7 @@ export default function OfflineAlbum() {
                 downloads={false}
               />
             ) : (
-              <p className="muted">Die Titel dieses Albums sind nicht mehr heruntergeladen.</p>
+              <p className="muted">{t("offlineAlbum.noTracks")}</p>
             )}
           </>
         )}

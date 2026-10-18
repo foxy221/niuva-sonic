@@ -25,9 +25,12 @@ Niuva Sonic plays the music on **your own server**. Connect it to a Navidrome in
 
 The app is a small native Windows program (a few megabytes, built with [Tauri](https://tauri.app/) and Rust), not a bundled browser. Your password is never stored.
 
-> **Status:** Niuva Sonic is in active development (0.x). It is stable enough for daily use on Windows and is tested against Navidrome. The current interface language is German; an English interface (the default) and a language switch are planned for 1.0.0, see the [roadmap](#roadmap).
+> **Status:** Niuva Sonic is in active development (0.x). It is stable enough for daily use on Windows and is tested against Navidrome. The interface is available in **English** (default) and **German**; switch under *Settings → Language*.
 
 ## Features
+
+**Interface**
+- English and German, switchable at any time in the settings (fresh installs start in English)
 
 **Library**
 - Browse artists, albums, genres and playlists, with sorting and paging
@@ -70,8 +73,6 @@ The app is a small native Windows program (a few megabytes, built with [Tauri](h
 **Requirements:** Windows 10 or 11 (64-bit) with WebView2 (included in Windows 11), and a reachable Navidrome or Subsonic server.
 
 **Updating:** *Settings → Windows → Updates → Check for updates*. The app downloads the new version, verifies its signature and installs it after you click *Install and restart*. Updates only come from the GitHub releases of this project and are signed with the project's own key.
-
-> Menu names in this README use the English wording. Until the language switch lands (see the [roadmap](#roadmap)), the app shows the German equivalents, for example *Einstellungen* (Settings) and *Nach Updates suchen* (Check for updates).
 
 **Uninstalling:** *Settings → Apps → Installed apps → Niuva Sonic*. Server profiles and your sign-in are kept in case you reinstall. To remove everything, delete the profiles inside the app first, then delete `%APPDATA%\de.niuva.sonic`.
 
@@ -131,7 +132,6 @@ branding/         Logos
 
 The goal is **version 1.0.0**: a fully finished Windows app. The main steps:
 
-- **English and German interface** with a language switch in the settings. English is the default on a fresh install.
 - **Visualizer polish:** calmer clouds whose colours follow the cover art.
 - **Interface:** top bar with search and profile, playlist mosaic covers, page transitions, a progress bar with hover preview.
 - **Features:** synchronised lyrics, adding a server profile without signing out, more keyboard shortcuts.

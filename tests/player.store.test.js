@@ -100,7 +100,7 @@ describe("Fehler und Wiederholen", () => {
 
     expect(usePlayer.getState().error).toBe("Format nicht unterstützt oder Datei fehlt.");
     expect(usePlayer.getState().playing).toBe(false);
-    expect(logged.mock.calls.some(([line]) => String(line).includes("Wiedergabe fehlgeschlagen"))).toBe(true);
+    expect(logged.mock.calls.some(([line]) => String(line).includes("Playback failed"))).toBe(true);
   });
 
   it("lädt beim Wiederholen denselben Titel an derselben Stelle", () => {

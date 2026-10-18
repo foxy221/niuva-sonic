@@ -61,7 +61,7 @@ impl Downloads {
         // Pro Job genau ein Download: die Oberflaeche arbeitet die Titel der
         // Reihe nach ab, ein zweiter Aufruf waere ein Versehen.
         if cancels.contains_key(job) {
-            return Err("Dieser Download laeuft bereits.".to_string());
+            return Err("This download is already running.".to_string());
         }
         let flag = Arc::new(AtomicBool::new(false));
         cancels.insert(job.to_string(), Arc::clone(&flag));
@@ -81,9 +81,9 @@ fn offline_root<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_data_dir()
-        .map_err(|error| format!("Der App-Ordner ist nicht ermittelbar: {error}"))?
+        .map_err(|error| format!("The app folder cannot be determined: {error}"))?
         .join("offline");
-    std::fs::create_dir_all(&dir).map_err(|error| format!("Der Offline-Ordner liegt nicht an: {error}"))?;
+    std::fs::create_dir_all(&dir).map_err(|error| format!("The offline folder cannot be created: {error}"))?;
     Ok(dir)
 }
 
@@ -91,7 +91,7 @@ fn offline_root<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
 /// Schraegstrichen. Das weist `..`, Laufwerkspfade und Trennzeichen anderer
 /// Plattformen ab, bevor der Pfad an die Wurzel gehaengt wird.
 pub fn validate_rel(rel: &str) -> Result<(), String> {
-    let invalid = || format!("Unzulaessiger Pfad fuer die Offline-Ablage: {rel}");
+    let invalid = || format!("Invalid path for offline storage: {rel}");
     if rel.is_empty() || rel.len() > 240 || rel.starts_with('/') {
         return Err(invalid());
     }
@@ -120,7 +120,7 @@ async fn download<R: Runtime>(
     let root = offline_root(app)?;
     let dest = root.join(rel);
     if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent).map_err(|error| format!("Der Zielordner liegt nicht an: {error}"))?;
+        std::fs::create_dir_all(parent).map_err(|error| format!("The target folder cannot be created: {error}"))?;
     }
     // Erst in einer Teildatei sammeln, dann umbenennen: Abstuerze und Abbrueche
     // hinterlassen keine halben Titel, die wie vollstaendige aussehen.
@@ -148,31 +148,31 @@ async fn write_stream<R: Runtime>(
         .get(url)
         .send()
         .await
-        .map_err(|error| format!("Der Server ist nicht erreichbar: {error}"))?;
+        .map_err(|error| format!("The server cannot be reached: {error}"))?;
     if !response.status().is_success() {
-        return Err(format!("Der Server antwortet mit HTTP {}", response.status()));
+        return Err(format!("The server answered with HTTP {}", response.status()));
     }
     // Subsonic meldet Fehler (falsche ID, fehlende Download-Rolle) mit HTTP 200 und
     // einem XML-/JSON-Text; der darf nicht als Titel in der Ablage landen.
     if is_error_body(response.headers().get(reqwest::header::CONTENT_TYPE)) {
-        return Err("Der Server hat statt der Datei eine Fehlermeldung geschickt.".to_string());
+        return Err("The server sent an error message instead of the file.".to_string());
     }
     let total = response.content_length().unwrap_or(0);
     let mut file = tokio::fs::File::create(tmp)
         .await
-        .map_err(|error| format!("Die Datei kann nicht angelegt werden: {error}"))?;
+        .map_err(|error| format!("The file cannot be created: {error}"))?;
     let mut received: u64 = 0;
     let mut last_emit: Option<Instant> = None;
     let mut stream = response.bytes_stream();
     use futures_util::StreamExt;
     while let Some(chunk) = stream.next().await {
         if cancel.load(Ordering::Relaxed) {
-            return Err("Download abgebrochen.".to_string());
+            return Err("Download canceled.".to_string());
         }
-        let chunk = chunk.map_err(|error| format!("Der Download wurde unterbrochen: {error}"))?;
+        let chunk = chunk.map_err(|error| format!("The download was interrupted: {error}"))?;
         file.write_all(&chunk)
             .await
-            .map_err(|error| format!("Die Datei kann nicht geschrieben werden: {error}"))?;
+            .map_err(|error| format!("The file cannot be written: {error}"))?;
         received += chunk.len() as u64;
         let due = last_emit.is_none_or(|at| at.elapsed() >= PROGRESS_EVERY);
         if due {
@@ -180,15 +180,15 @@ async fn write_stream<R: Runtime>(
             last_emit = Some(Instant::now());
         }
     }
-    file.flush().await.map_err(|error| format!("Die Datei kann nicht abgeschlossen werden: {error}"))?;
+    file.flush().await.map_err(|error| format!("The file cannot be finished: {error}"))?;
     drop(file);
     if received == 0 {
-        return Err("Der Server hat eine leere Datei geschickt.".to_string());
+        return Err("The server sent an empty file.".to_string());
     }
     let _ = app.emit("download-progress", Progress { job_id, received, total: received });
     tokio::fs::rename(tmp, dest)
         .await
-        .map_err(|error| format!("Die Datei kann nicht abgeschlossen werden: {error}"))?;
+        .map_err(|error| format!("The file cannot be finished: {error}"))?;
     Ok(DownloadedFile {
         path: dest.to_string_lossy().into_owned(),
         size: received,
@@ -272,7 +272,7 @@ pub fn delete_offline_file<R: Runtime>(app: AppHandle<R>, rel_path: String) -> R
     match std::fs::remove_file(&dest) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(format!("Die Datei kann nicht geloescht werden: {error}")),
+        Err(error) => Err(format!("The file cannot be deleted: {error}")),
     }
 }
 
@@ -291,7 +291,7 @@ pub fn clear_offline<R: Runtime>(app: AppHandle<R>) -> Result<u64, String> {
             std::fs::remove_file(&path)
         };
         if let Err(error) = removed {
-            return Err(format!("Die Ablage kann nicht geleert werden: {error}"));
+            return Err(format!("The storage cannot be emptied: {error}"));
         }
     }
     Ok(freed)

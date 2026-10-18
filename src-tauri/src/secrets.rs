@@ -22,13 +22,13 @@ const MAX_SECRET: usize = 1200;
 /// leerer Schluessel koennte einen fremden Eintrag treffen.
 pub fn validate_key(key: &str) -> Result<(), String> {
     if key.trim().is_empty() {
-        return Err("Der Schluessel fuer den Schluesselbund darf nicht leer sein.".to_string());
+        return Err("The credential key must not be empty.".to_string());
     }
     if key.len() > MAX_KEY {
-        return Err("Der Schluessel fuer den Schluesselbund ist zu lang.".to_string());
+        return Err("The credential key is too long.".to_string());
     }
     if key.chars().any(|c| c.is_control()) {
-        return Err("Der Schluessel fuer den Schluesselbund enthaelt Steuerzeichen.".to_string());
+        return Err("The credential key contains control characters.".to_string());
     }
     Ok(())
 }
@@ -37,10 +37,10 @@ pub fn validate_key(key: &str) -> Result<(), String> {
 /// damit ein Fehler in der Oberflaeche keinen leeren Eintrag hinterlaesst.
 pub fn validate_secret(secret: &str) -> Result<(), String> {
     if secret.trim().is_empty() {
-        return Err("Es gibt nichts zu speichern.".to_string());
+        return Err("There is nothing to store.".to_string());
     }
     if secret.len() > MAX_SECRET {
-        return Err("Die Zugangsdaten sind zu umfangreich fuer den Schluesselbund.".to_string());
+        return Err("The credentials are too large for the credential manager.".to_string());
     }
     Ok(())
 }
@@ -55,7 +55,7 @@ mod store {
         let entry = Entry::new(SERVICE, key).map_err(|error| error.to_string())?;
         entry
             .set_password(secret)
-            .map_err(|error| format!("Der Schluesselbund nimmt die Zugangsdaten nicht an: {error}"))
+            .map_err(|error| format!("The credential manager does not accept the credentials: {error}"))
     }
 
     pub fn load(key: &str) -> Result<Option<String>, String> {
@@ -63,7 +63,7 @@ mod store {
         match entry.get_password() {
             Ok(secret) => Ok(Some(secret)),
             Err(Error::NoEntry) => Ok(None),
-            Err(error) => Err(format!("Der Schluesselbund antwortet nicht: {error}")),
+            Err(error) => Err(format!("The credential manager does not respond: {error}")),
         }
     }
 
@@ -73,7 +73,7 @@ mod store {
         match entry.delete_credential() {
             Ok(()) | Err(Error::NoEntry) => Ok(()),
             Err(error) => Err(format!(
-                "Der Schluesselbund gibt den Eintrag nicht frei: {error}"
+                "The credential manager does not release the entry: {error}"
             )),
         }
     }
@@ -109,7 +109,7 @@ pub fn save_credential(key: String, secret: String) -> Result<(), String> {
     #[cfg(not(windows))]
     {
         let _ = (key, secret);
-        Err("Der Schluesselbund gibt es nur unter Windows.".to_string())
+        Err("The credential manager is only available on Windows.".to_string())
     }
 }
 
@@ -124,7 +124,7 @@ pub fn load_credential(key: String) -> Result<Option<String>, String> {
     #[cfg(not(windows))]
     {
         let _ = key;
-        Err("Der Schluesselbund gibt es nur unter Windows.".to_string())
+        Err("The credential manager is only available on Windows.".to_string())
     }
 }
 
@@ -139,7 +139,7 @@ pub fn delete_credential(key: String) -> Result<(), String> {
     #[cfg(not(windows))]
     {
         let _ = key;
-        Err("Der Schluesselbund gibt es nur unter Windows.".to_string())
+        Err("The credential manager is only available on Windows.".to_string())
     }
 }
 

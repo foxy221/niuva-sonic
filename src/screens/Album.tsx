@@ -7,10 +7,12 @@ import SongList from "../components/SongList";
 import { usePageAccent } from "../design/useAccent";
 import { useAlbum } from "../hooks/library";
 import { useClient } from "../hooks/useClient";
+import { useT } from "../i18n";
 import { usePlayer } from "../state/player";
 import { offlineSupported, useOffline } from "../state/offline";
 
 export default function Album() {
+  const t = useT();
   const { id = "" } = useParams();
   const client = useClient();
   const album = useAlbum(id);
@@ -25,8 +27,8 @@ export default function Album() {
 
   return (
     <section className="album">
-      <Link to="/albums" className="back"><ChevronLeft size={18} /> Alben</Link>
-      <QueryStates pending={album.isPending} error={album.error} isEmpty={!data} empty="Album nicht gefunden.">
+      <Link to="/albums" className="back"><ChevronLeft size={18} /> {t("nav.albums")}</Link>
+      <QueryStates pending={album.isPending} error={album.error} isEmpty={!data} empty={t("album.notFound")}>
         {data && (
           <>
             <div className="album-head">
@@ -35,28 +37,28 @@ export default function Album() {
                 <h1>{data.name}</h1>
                 <p className="muted">
                   {data.artistId ? <Link to={`/artist/${data.artistId}`}>{data.artist}</Link> : data.artist}
-                  {data.year ? ` · ${data.year}` : ""} · {songs.length} Titel
+                  {data.year ? ` · ${data.year}` : ""} · {t("count.tracks", { count: songs.length })}
                   {data.genre ? ` · ${data.genre}` : ""}
                 </p>
                 <div className="song-actions">
-                  <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}><Play size={20} fill="currentColor" /> Abspielen</button>
-                  <FavoriteButton starred={Boolean(data.starred)} albumId={data.id} label="Album" />
+                  <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}><Play size={20} fill="currentColor" /> {t("common.play")}</button>
+                  <FavoriteButton starred={Boolean(data.starred)} albumId={data.id} label={t("favorite.album")} />
                   {offlineSupported() && !job && (
                     storedAlbum ? (
-                      <button className="ghost" onClick={() => void removeAlbum(data.id)}><X size={18} /> Offline entfernen</button>
+                      <button className="ghost" onClick={() => void removeAlbum(data.id)}><X size={18} /> {t("album.removeOffline")}</button>
                     ) : (
-                      <button onClick={() => download(songs, data)} disabled={!songs.length}><ArrowDownToLine size={18} /> Herunterladen</button>
+                      <button onClick={() => download(songs, data)} disabled={!songs.length}><ArrowDownToLine size={18} /> {t("album.download")}</button>
                     )
                   )}
-                  {job && <span className="muted">Wird geladen … {job.doneCount}/{job.totalCount}</span>}
+                  {job && <span className="muted">{t("album.downloading", { done: job.doneCount, total: job.totalCount })}</span>}
                 </div>
-                <AddToPlaylist songIds={songs.map((s) => s.id)} label="Album anhängen" />
+                <AddToPlaylist songIds={songs.map((s) => s.id)} label={t("album.addToPlaylist")} />
               </div>
             </div>
             {songs.length ? (
               <SongList songs={songs} onPlay={(i) => playQueue(songs, i)} numbers="track" />
             ) : (
-              <p className="muted">Dieses Album hat keine Titel.</p>
+              <p className="muted">{t("album.noTracks")}</p>
             )}
           </>
         )}

@@ -52,7 +52,7 @@ export default function FullPlayer() {
                 {song.album && <span className="muted"> · {song.albumId ? <Link to={`/album/${song.albumId}`} onClick={close}>{song.album}</Link> : song.album}</span>}
               </p>
             </div>
-            <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("common.track")} />
+            <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />
           </div>
           <SeekBar />
           <Transport size={28} />

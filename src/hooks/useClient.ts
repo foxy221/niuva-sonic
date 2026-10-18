@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import type { SubsonicClient } from "../api/subsonic";
 import { useSession } from "../state/session";
 
@@ -7,6 +8,6 @@ import { useSession } from "../state/session";
  */
 export function useClient(): SubsonicClient {
   const client = useSession((s) => s.client);
-  if (!client) throw new Error("Keine Verbindung zum Server.");
+  if (!client) throw new Error(t("api.noConnection"));
   return client;
 }

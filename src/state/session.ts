@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { create } from "zustand";
 import { SubsonicClient, SubsonicError, createAuth, normalizeServerUrl } from "../api/subsonic";
 import type { Credentials } from "../api/types";
@@ -76,7 +77,7 @@ async function persistCredentials(creds: Credentials | null): Promise<void> {
     await writeStored(creds).catch(() => {});
     return;
   }
-  logWrite("warn", "Kein Schlüsselbund verfügbar: die Anmeldung wird nicht gemerkt.");
+  logWrite("warn", "No credential manager available: the sign-in will not be remembered.");
   await writeStored(null).catch(() => {});
 }
 
@@ -86,7 +87,7 @@ async function resolveCredentials(stored: unknown): Promise<Credentials | null> 
     const creds = credentialsFromSecret(await loadSecret(credentialsKey(stored)));
     if (creds) return creds;
     // Eintrag fehlt, etwa nach dem Aufräumen im Schlüsselbund: Verweis entfernen.
-    logWrite("warn", "Im Schlüsselbund liegen keine Zugangsdaten mehr.");
+    logWrite("warn", "The credential manager no longer holds the credentials.");
     await writeStored(null).catch(() => {});
     return null;
   }
@@ -134,7 +135,7 @@ export const useSession = create<SessionState>((set) => ({
       try {
         creds = await resolveCredentials(stored);
       } catch (error) {
-        logError(error, "Sitzung konnte nicht wiederhergestellt werden");
+        logError(error, "Could not restore the session");
       }
       if (revision === sessionRevision) set({ ready: true, creds, client: creds ? new SubsonicClient(creds) : null });
     })().finally(() => { restoreTask = null; });
@@ -149,7 +150,7 @@ export const useSession = create<SessionState>((set) => ({
     const server = await client.ping();
     await persistCredentials(creds);
     set({ creds, client });
-    logWrite("info", `Angemeldet an ${server.serverVersion ?? server.type ?? "Server"}`);
+    logWrite("info", `Signed in to ${server.serverVersion ?? server.type ?? "Server"}`);
   },
 
   async adopt(creds) {
@@ -158,21 +159,21 @@ export const useSession = create<SessionState>((set) => ({
     const server = await client.ping();
     await persistCredentials(creds);
     set({ creds, client });
-    logWrite("info", `Profil gewechselt zu ${creds.username} (${server.serverVersion ?? server.type ?? "Server"})`);
+    logWrite("info", `Switched profile to ${creds.username} (${server.serverVersion ?? server.type ?? "Server"})`);
   },
 
   async logout() {
     sessionRevision++;
     await persistCredentials(null);
     set({ creds: null, client: null });
-    logWrite("info", "Abgemeldet");
+    logWrite("info", "Signed out");
   },
 }));
 
 export function describeLoginError(e: unknown) {
   if (e instanceof SubsonicError) {
-    if (e.code === 40) return "Benutzername oder Passwort ist falsch.";
+    if (e.code === 40) return t("login.wrongCredentials");
     return e.message;
   }
-  return "Der Server ist nicht erreichbar. Adresse prüfen.";
+  return t("login.unreachable");
 }

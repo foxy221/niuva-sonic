@@ -246,7 +246,7 @@ function handleEnded() {
  */
 function handleError(failure: MediaFailure) {
   cancelFailure();
-  logError(failure.message, "Wiedergabe fehlgeschlagen");
+  logError(failure.message, "Playback failed");
   usePlayer.setState({ playing: false, buffering: false, error: failure.message });
   setPlaybackState("paused");
   const { queue, index } = usePlayer.getState();

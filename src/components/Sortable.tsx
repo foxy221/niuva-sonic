@@ -4,13 +4,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
-
-const announcements = {
-  onDragStart: () => "Aufgenommen.",
-  onDragOver: ({ over }: { over: { id: string | number } | null }) => (over ? `Über Position ${Number(over.id) + 1}.` : "Über keiner Position."),
-  onDragEnd: ({ over }: { over: { id: string | number } | null }) => (over ? `Abgelegt auf Position ${Number(over.id) + 1}.` : "Abgelegt."),
-  onDragCancel: () => "Verschieben abgebrochen.",
-};
+import { useT } from "../i18n";
 
 interface SortableListProps {
   /** Erste und letzte Position der verschiebbaren Zeilen (absolute Indizes). */
@@ -22,6 +16,13 @@ interface SortableListProps {
 
 /** Macht eine senkrechte Liste per Maus, Touch und Tastatur umsortierbar. */
 export function SortableList({ indexes, onMove, children }: SortableListProps) {
+  const t = useT();
+  const announcements = {
+    onDragStart: () => t("sortable.pickedUp"),
+    onDragOver: ({ over }: { over: { id: string | number } | null }) => (over ? t("sortable.over", { position: Number(over.id) + 1 }) : t("sortable.overNone")),
+    onDragEnd: ({ over }: { over: { id: string | number } | null }) => (over ? t("sortable.dropped", { position: Number(over.id) + 1 }) : t("sortable.droppedNone")),
+    onDragCancel: () => t("sortable.cancelled"),
+  };
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -39,7 +40,7 @@ export function SortableList({ indexes, onMove, children }: SortableListProps) {
       onDragEnd={onDragEnd}
       accessibility={{
         announcements,
-        screenReaderInstructions: { draggable: "Leertaste nimmt die Zeile auf, Pfeiltasten verschieben sie, Leertaste legt sie ab. Escape bricht ab." },
+        screenReaderInstructions: { draggable: t("sortable.instructions") },
       }}
     >
       <SortableContext items={indexes.map(String)} strategy={verticalListSortingStrategy}>
@@ -59,11 +60,12 @@ interface SortableRowProps {
 
 /** Eine verschiebbare Zeile (`<li>`) mit eigenem Griff. */
 export function SortableRow({ index, className = "", children }: SortableRowProps) {
+  const t = useT();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: String(index) });
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
 
   const handle = (
-    <button type="button" className="icon drag-handle" ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label="Verschieben">
+    <button type="button" className="icon drag-handle" ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={t("sortable.move")}>
       <GripVertical size={18} />
     </button>
   );

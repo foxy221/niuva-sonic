@@ -15,14 +15,14 @@ export function useDesktopExit() {
       if (cancelled || exiting) return;
       exiting = true;
       void usePlayer.getState().flush()
-        .catch((error: unknown) => console.error("Player-Zustand konnte nicht gespeichert werden.", error))
+        .catch((error: unknown) => console.error("Could not save the player state.", error))
         .then(() => invoke("finish_exit"))
-        .catch((error: unknown) => console.error("Beenden konnte nicht bestätigt werden.", error));
+        .catch((error: unknown) => console.error("Could not confirm exit.", error));
     }).then((unlisten) => {
       if (cancelled) unlisten();
       else stop = unlisten;
     }).catch((error: unknown) => {
-      if (!cancelled) console.error("Beenden konnte nicht verbunden werden.", error);
+      if (!cancelled) console.error("Could not connect the exit handler.", error);
     });
     return () => { cancelled = true; stop?.(); };
   }, []);

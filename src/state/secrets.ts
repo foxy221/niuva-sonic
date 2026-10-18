@@ -25,7 +25,7 @@ export async function keychainAvailable(): Promise<boolean> {
   try {
     return await invoke<boolean>("keychain_available");
   } catch (error) {
-    logError(error, "Schlüsselbund nicht erreichbar");
+    logError(error, "Credential manager not reachable");
     return false;
   }
 }
@@ -37,7 +37,7 @@ export async function saveSecret(key: string, secret: string): Promise<boolean> 
     await invoke("save_credential", { key, secret });
     return true;
   } catch (error) {
-    logError(error, "Zugangsdaten konnten nicht im Schlüsselbund abgelegt werden");
+    logError(error, "Credentials could not be stored in the credential manager");
     return false;
   }
 }
@@ -48,7 +48,7 @@ export async function loadSecret(key: string): Promise<string | null> {
   try {
     return await invoke<string | null>("load_credential", { key });
   } catch (error) {
-    logError(error, "Zugangsdaten konnten nicht aus dem Schlüsselbund gelesen werden");
+    logError(error, "Credentials could not be read from the credential manager");
     return null;
   }
 }
@@ -59,6 +59,6 @@ export async function deleteSecret(key: string): Promise<void> {
   try {
     await invoke("delete_credential", { key });
   } catch (error) {
-    logError(error, "Zugangsdaten konnten nicht aus dem Schlüsselbund entfernt werden");
+    logError(error, "Credentials could not be removed from the credential manager");
   }
 }

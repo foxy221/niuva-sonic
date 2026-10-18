@@ -4,6 +4,7 @@ import CoverTile from "../components/CoverTile";
 import QueryStates from "../components/QueryStates";
 import SongList from "../components/SongList";
 import { formatBytes } from "../format";
+import { currentLocale, t, useT } from "../i18n";
 import { usePlayer } from "../state/player";
 import { offlineAlbumSongs, useOffline, type DownloadJob } from "../state/offline";
 import { useSettings } from "../state/settings";
@@ -14,14 +15,15 @@ function jobPercent(job: DownloadJob) {
 }
 
 function describeJob(job: DownloadJob) {
-  if (job.state === "done") return `Fertig${job.failedCount ? `, ${job.failedCount} fehlgeschlagen` : ""}.`;
-  if (job.state === "canceled") return "Abgebrochen.";
-  if (job.state === "error") return job.error ?? "Fehlgeschlagen.";
-  return `${job.doneCount}/${job.totalCount} Titel`;
+  if (job.state === "done") return job.failedCount ? t("offline.jobDoneFailed", { count: job.failedCount }) : t("offline.jobDone");
+  if (job.state === "canceled") return t("offline.jobCanceled");
+  if (job.state === "error") return job.error ?? t("offline.jobFailed");
+  return t("offline.jobProgress", { done: job.doneCount, total: job.totalCount });
 }
 
 /** Offline-Bibliothek: Downloads, heruntergeladene Alben und Titel, lokale Suche. */
 export default function Offline() {
+  const tr = useT();
   const ready = useOffline((s) => s.ready);
   const songs = useOffline((s) => s.songs);
   const albums = useOffline((s) => s.albums);
@@ -39,7 +41,7 @@ export default function Offline() {
 
   const albumList = Object.values(albums)
     .filter(({ album }) => matches(album.name, album.artist))
-    .sort((a, b) => a.album.name.localeCompare(b.album.name, "de"));
+    .sort((a, b) => a.album.name.localeCompare(b.album.name, currentLocale()));
   const albumIds = new Set(albumList.map(({ album }) => album.id));
   const singles = Object.values(songs)
     .filter((entry) => !albums[entry.song.albumId ?? ""])
@@ -50,10 +52,10 @@ export default function Offline() {
 
   return (
     <section className="offline">
-      <h1>Offline</h1>
+      <h1>{tr("nav.offline")}</h1>
       <QueryStates pending={!ready} error={null} isEmpty={false}>
         <p className="muted">
-          {formatBytes(usage ?? 0)} belegt{limitGb > 0 ? ` von ${limitGb} GB` : ""}. Heruntergeladene Titel spielen auch ohne Serververbindung.
+          {tr("offline.used", { size: formatBytes(usage ?? 0) })}{limitGb > 0 ? tr("offline.ofLimit", { limit: limitGb }) : ""}. {tr("offline.intro")}
         </p>
 
         {jobs.length > 0 && (
@@ -67,7 +69,7 @@ export default function Offline() {
                 {job.state === "running" && (
                   <>
                     <span className="progress" aria-hidden="true"><span style={{ width: `${jobPercent(job)}%` }} /></span>
-                    <button type="button" className="icon" onClick={() => cancel(job.id)} aria-label="Download abbrechen" title="Abbrechen"><X size={18} /></button>
+                    <button type="button" className="icon" onClick={() => cancel(job.id)} aria-label={tr("offline.cancelDownload")} title={tr("common.cancel")}><X size={18} /></button>
                   </>
                 )}
               </li>
@@ -78,13 +80,13 @@ export default function Offline() {
         <input
           className="offline-search"
           type="search"
-          placeholder="Offline-Bibliothek durchsuchen"
+          placeholder={tr("offline.search")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          aria-label="Offline-Bibliothek durchsuchen"
+          aria-label={tr("offline.search")}
         />
 
-        <h2>Alben</h2>
+        <h2>{tr("nav.albums")}</h2>
         {albumList.length ? (
           <ul className="album-grid">
             {albumList.map(({ album }) => {
@@ -103,20 +105,20 @@ export default function Offline() {
             })}
           </ul>
         ) : (
-          <p className="muted">{hiddenBySearch ? "Kein Album passt zur Suche." : "Noch kein Album heruntergeladen. Öffne ein Album und wähle „Herunterladen“."}</p>
+          <p className="muted">{hiddenBySearch ? tr("offline.noAlbumMatch") : tr("offline.noAlbums")}</p>
         )}
 
-        <h2>Einzelne Titel</h2>
+        <h2>{tr("offline.singles")}</h2>
         {singleSongs.length ? (
           <SongList
             songs={singleSongs}
             onPlay={(i) => playQueue(singleSongs, i)}
             showAlbum
             downloads={false}
-            action={{ label: "Aus der Offline-Bibliothek entfernen", onClick: (i) => void removeSong(singleSongs[i].id) }}
+            action={{ label: tr("offline.removeFromLibrary"), onClick: (i) => void removeSong(singleSongs[i].id) }}
           />
         ) : (
-          <p className="muted">{needle ? "Kein Titel passt zur Suche." : "Noch keine einzelnen Titel heruntergeladen."}</p>
+          <p className="muted">{needle ? tr("offline.noSongMatch") : tr("offline.noSingles")}</p>
         )}
       </QueryStates>
     </section>

@@ -1,9 +1,11 @@
+import { currentLocale } from "./i18n";
+
 export function formatTime(seconds: number) {
   const s = Math.max(0, Math.floor(seconds || 0));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-/** Bytezahl als lesbare Größe, z. B. „1,2 GB“. */
+/** Bytezahl als lesbare Größe, z. B. „1,2 GB“ (englisch „1.2 GB“). */
 export function formatBytes(bytes: number) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -13,7 +15,7 @@ export function formatBytes(bytes: number) {
     value /= 1000;
     unit++;
   }
-  const text = unit === 0 || value >= 100 ? String(Math.round(value)) : value.toFixed(1).replace(".", ",");
+  const text = unit === 0 || value >= 100 ? String(Math.round(value)) : value.toFixed(1).replace(".", currentLocale().startsWith("de") ? "," : ".");
   return `${text} ${units[unit]}`;
 }
 

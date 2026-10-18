@@ -4,6 +4,7 @@ import { CircleAlert, LogOut, Stethoscope, UserRound } from "lucide-react";
 import Segmented from "../components/Segmented";
 import Switch from "../components/Switch";
 import { formatBytes } from "../format";
+import { LANGUAGES, t, useLanguage, useT, type MessageKey } from "../i18n";
 import { replayGainSupported, useCapabilities } from "../state/capabilities";
 import {
   checkForUpdate,
@@ -40,33 +41,37 @@ function Setting({ title, hint, children }: { title: string; hint: string; child
   );
 }
 
-const bitRates = bitRateOptions.map((value) => ({ value, label: value === 0 ? "Original" : String(value) }));
-const formats = formatOptions.map((value) => ({ value, label: value === "" ? "Original" : value.toUpperCase() }));
-const limits = limitOptions.map((value) => ({ value, label: value === 0 ? "Unbegrenzt" : `${value} GB` }));
-const gains: { value: PlaybackSettings["replayGain"]; label: string }[] = [
-  { value: "off", label: "Aus" },
-  { value: "track", label: "Pro Titel" },
-  { value: "album", label: "Pro Album" },
+const gains: { value: PlaybackSettings["replayGain"]; label: MessageKey }[] = [
+  { value: "off", label: "settings.gainOff" },
+  { value: "track", label: "settings.gainTrack" },
+  { value: "album", label: "settings.gainAlbum" },
 ];
 
 /** Zustandstext der Update-Prüfung. */
 export function describeUpdate(status: UpdateStatus | null): string {
-  if (!status) return "Noch nicht geprüft.";
-  if (status.state === "notConfigured") return `Version ${status.currentVersion}. Auto-Update ist noch nicht eingerichtet.`;
-  if (status.state === "upToDate") return `Version ${status.currentVersion} ist aktuell.`;
-  if (status.state === "available") return `Version ${status.version} steht bereit (installiert: ${status.currentVersion}).`;
-  return `Die Prüfung ist fehlgeschlagen: ${status.message}`;
+  if (!status) return t("update.notChecked");
+  if (status.state === "notConfigured") return t("update.notConfigured", { current: status.currentVersion ?? "" });
+  if (status.state === "upToDate") return t("update.upToDate", { current: status.currentVersion ?? "" });
+  if (status.state === "available") return t("update.available", { version: status.version ?? "", current: status.currentVersion ?? "" });
+  return t("update.checkFailed", { message: status.message ?? "" });
 }
 
 /** Zusatz zum Prüfergebnis, solange ein Update geladen oder eingespielt wird. */
 export function describePhase(phase: UpdatePhase, version: string | null, percent: number | null): string {
-  if (phase === "downloading") return `Version ${version} wird geladen${percent === null ? " …" : `: ${percent} %`}`;
-  if (phase === "ready") return `Version ${version} ist geladen und geprüft. Zum Einspielen wird die App neu gestartet.`;
-  if (phase === "installing") return `Version ${version} wird eingespielt. Die App startet gleich neu …`;
+  if (phase === "downloading") return percent === null ? t("update.downloading", { version: version ?? "" }) : t("update.downloadingPercent", { version: version ?? "", percent });
+  if (phase === "ready") return t("update.ready", { version: version ?? "" });
+  if (phase === "installing") return t("update.installing", { version: version ?? "" });
   return "";
 }
 
 export default function Settings() {
+  const tr = useT();
+  const language = useLanguage((s) => s.language);
+  const setLanguage = useLanguage((s) => s.setLanguage);
+  const bitRates = bitRateOptions.map((value) => ({ value, label: value === 0 ? tr("settings.original") : String(value) }));
+  const formats = formatOptions.map((value) => ({ value, label: value === "" ? tr("settings.original") : value.toUpperCase() }));
+  const limits = limitOptions.map((value) => ({ value, label: value === 0 ? tr("settings.unlimited") : `${value} GB` }));
+  const gainOptions = gains.map(({ value, label }) => ({ value, label: tr(label) }));
   const { settings, update } = useSettings();
   const { creds, logout } = useSession();
   const desktop = isDesktopApp();
@@ -104,7 +109,7 @@ export default function Settings() {
     let cancelled = false;
     void readWindowPrefs()
       .then((prefs) => { if (!cancelled) setWindowPrefs(prefs); })
-      .catch(() => { if (!cancelled) setProblem("Die Windows-Einstellungen konnten nicht gelesen werden."); });
+      .catch(() => { if (!cancelled) setProblem(tr("settings.windowReadFailed")); });
     void trayReady()
       .then((ready) => { if (!cancelled) setHasTray(ready); })
       .catch(() => { if (!cancelled) setHasTray(true); });
@@ -124,7 +129,7 @@ export default function Settings() {
     try {
       setWindowPrefs(await action());
     } catch (error) {
-      setProblem(typeof error === "string" ? error : "Die Änderung wurde nicht übernommen.");
+      setProblem(typeof error === "string" ? error : tr("settings.changeFailed"));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -145,7 +150,7 @@ export default function Settings() {
         if (status.state !== "available") setUpdatePhase("idle");
       }
     } catch {
-      setProblem("Die Update-Prüfung ist fehlgeschlagen.");
+      setProblem(tr("update.searchFailed"));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -165,7 +170,7 @@ export default function Settings() {
       setUpdatePhase("ready");
     } catch (error) {
       setUpdatePhase("idle");
-      setProblem(`Das Update konnte nicht geladen werden: ${typeof error === "string" ? error : "unbekannter Fehler"}`);
+      setProblem(tr("update.downloadFailed", { error: typeof error === "string" ? error : tr("update.unknownError") }));
     } finally {
       stop?.();
       inFlight.current = false;
@@ -181,11 +186,11 @@ export default function Settings() {
     setUpdatePhase("installing");
     try {
       // Unter Windows beendet der Installer die App: Warteschlange und Position vorher sichern.
-      await usePlayer.getState().flush().catch((error: unknown) => console.error("Player-Zustand konnte nicht gespeichert werden.", error));
+      await usePlayer.getState().flush().catch((error: unknown) => console.error("Could not save the player state.", error));
       await installUpdate();
     } catch (error) {
       setUpdatePhase("ready");
-      setProblem(`Das Update konnte nicht eingespielt werden: ${typeof error === "string" ? error : "unbekannter Fehler"}`);
+      setProblem(tr("update.installFailed", { error: typeof error === "string" ? error : tr("update.unknownError") }));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -194,117 +199,122 @@ export default function Settings() {
 
   return (
     <section className="settings">
-      <h1>Einstellungen</h1>
+      <h1>{tr("nav.settings")}</h1>
 
-      <h2>Klang</h2>
-      <Setting title="Streaming-Qualität" hint="Höchste Bitrate in kbit/s. Niedrigere Werte sparen mobile Daten. Gilt sofort, auch für den laufenden Titel.">
-        <Segmented label="Streaming-Qualität" value={settings.maxBitRate} options={bitRates} onChange={(maxBitRate) => update({ maxBitRate })} />
+      <h2>{tr("settings.language")}</h2>
+      <Setting title={tr("settings.language")} hint={tr("settings.languageHint")}>
+        <Segmented label={tr("settings.language")} value={language} options={LANGUAGES} onChange={setLanguage} />
       </Setting>
-      <Setting title="Audioformat" hint="Der Server rechnet die Datei dafür um. Original lässt sie unverändert.">
-        <Segmented label="Audioformat" value={settings.format} options={formats} onChange={(format) => update({ format })} />
+
+      <h2>{tr("settings.sound")}</h2>
+      <Setting title={tr("settings.quality")} hint={tr("settings.qualityHint")}>
+        <Segmented label={tr("settings.quality")} value={settings.maxBitRate} options={bitRates} onChange={(maxBitRate) => update({ maxBitRate })} />
+      </Setting>
+      <Setting title={tr("settings.format")} hint={tr("settings.formatHint")}>
+        <Segmented label={tr("settings.format")} value={settings.format} options={formats} onChange={(format) => update({ format })} />
       </Setting>
       <Setting
-        title="Lautstärke angleichen"
+        title={tr("settings.gain")}
         hint={
           replayGainSupported(server)
-            ? "Gleicht laute und leise Aufnahmen an. Wirkt nur bei Titeln, die ReplayGain-Werte in den Tags tragen."
+            ? tr("settings.gainHint")
             : capabilitiesReady
-              ? "Der Server meldet keine OpenSubsonic-Erweiterungen und liefert damit keine ReplayGain-Werte. Die Auswahl bleibt hier ohne Wirkung."
-              : "Es wird noch geprüft, ob der Server ReplayGain-Werte liefert."
+              ? tr("settings.gainUnsupported")
+              : tr("settings.gainChecking")
         }
       >
-        <Segmented label="Lautstärke angleichen" value={settings.replayGain} options={gains} disabled={!replayGainSupported(server)} onChange={(replayGain) => update({ replayGain })} />
+        <Segmented label={tr("settings.gain")} value={settings.replayGain} options={gainOptions} disabled={!replayGainSupported(server)} onChange={(replayGain) => update({ replayGain })} />
       </Setting>
 
-      <h2>Wiedergabe</h2>
-      <Setting title="Nahtlose Übergänge" hint="Lädt den nächsten Titel schon vor, damit zwischen zwei Titeln nichts stockt.">
-        <Switch label="Nahtlose Übergänge" checked={settings.gapless} onChange={(gapless) => update({ gapless })} />
+      <h2>{tr("settings.playback")}</h2>
+      <Setting title={tr("settings.gapless")} hint={tr("settings.gaplessHint")}>
+        <Switch label={tr("settings.gapless")} checked={settings.gapless} onChange={(gapless) => update({ gapless })} />
       </Setting>
-      <Setting title="Wiedergaben melden" hint="Navidrome zählt mit, was du hörst: ab 30 Sekunden und der halben Länge, spätestens nach vier Minuten.">
-        <Switch label="Wiedergaben melden" checked={settings.scrobble} onChange={(scrobble) => update({ scrobble })} />
+      <Setting title={tr("settings.scrobble")} hint={tr("settings.scrobbleHint")}>
+        <Switch label={tr("settings.scrobble")} checked={settings.scrobble} onChange={(scrobble) => update({ scrobble })} />
       </Setting>
-      <Setting title="Warteschlange merken" hint="Beim nächsten Start geht es mit Titel und Position weiter, wo du aufgehört hast.">
-        <Switch label="Warteschlange merken" checked={settings.rememberQueue} onChange={(rememberQueue) => update({ rememberQueue })} />
+      <Setting title={tr("settings.remember")} hint={tr("settings.rememberHint")}>
+        <Switch label={tr("settings.remember")} checked={settings.rememberQueue} onChange={(rememberQueue) => update({ rememberQueue })} />
       </Setting>
-      <Setting title="Tastenkürzel" hint="Leertaste hält die Wiedergabe an und setzt sie fort – außer in Eingabefeldern.">
-        <span className="muted">Leertaste</span>
+      <Setting title={tr("settings.shortcuts")} hint={tr("settings.shortcutsHint")}>
+        <span className="muted">{tr("settings.space")}</span>
       </Setting>
 
-      <h2>Windows</h2>
+      <h2>{tr("settings.windows")}</h2>
       {desktop ? (
         <>
-          <Setting title="Beim Schließen in den Tray" hint="Das Fenster verschwindet, die Wiedergabe läuft weiter. Linksklick auf das Tray-Symbol holt es zurück, „Beenden“ im Menü schließt die App. Windows 11 legt neue Symbole zuerst in den ausgeblendeten Bereich neben der Uhr.">
+          <Setting title={tr("settings.tray")} hint={tr("settings.trayHint")}>
             {windowPrefs ? (
-              <Switch label="Beim Schließen in den Tray" checked={windowPrefs.closeToTray} disabled={busy} onChange={(closeToTray) => void change(() => setCloseToTray(closeToTray))} />
+              <Switch label={tr("settings.tray")} checked={windowPrefs.closeToTray} disabled={busy} onChange={(closeToTray) => void change(() => setCloseToTray(closeToTray))} />
             ) : (
               <span className="muted">…</span>
             )}
           </Setting>
-          <Setting title="Medientasten abfangen" hint="Windows regelt die Medientasten normalerweise über die Media Session. Nur einschalten, wenn das nicht greift.">
+          <Setting title={tr("settings.mediaKeys")} hint={tr("settings.mediaKeysHint")}>
             {windowPrefs ? (
-              <Switch label="Medientasten abfangen" checked={windowPrefs.globalShortcuts} disabled={busy} onChange={(globalShortcuts) => void change(() => setGlobalShortcuts(globalShortcuts))} />
+              <Switch label={tr("settings.mediaKeys")} checked={windowPrefs.globalShortcuts} disabled={busy} onChange={(globalShortcuts) => void change(() => setGlobalShortcuts(globalShortcuts))} />
             ) : (
               <span className="muted">…</span>
             )}
           </Setting>
-          <Setting title="Updates" hint={updatePhase === "idle" ? describeUpdate(updateStatus) : describePhase(updatePhase, updateStatus?.version ?? null, updatePercent)}>
+          <Setting title={tr("settings.updates")} hint={updatePhase === "idle" ? describeUpdate(updateStatus) : describePhase(updatePhase, updateStatus?.version ?? null, updatePercent)}>
             {updateStatus?.state === "available" && updatePhase === "idle" ? (
-              <button type="button" onClick={() => void fetchUpdate()} disabled={busy}>Version {updateStatus.version} laden</button>
+              <button type="button" onClick={() => void fetchUpdate()} disabled={busy}>{tr("update.fetch", { version: updateStatus.version ?? "" })}</button>
             ) : updatePhase === "ready" || updatePhase === "installing" ? (
-              <button type="button" onClick={() => void applyUpdate()} disabled={busy}>Installieren und neu starten</button>
+              <button type="button" onClick={() => void applyUpdate()} disabled={busy}>{tr("update.apply")}</button>
             ) : (
-              <button type="button" className="ghost" onClick={() => void searchUpdate()} disabled={busy}>Nach Updates suchen</button>
+              <button type="button" className="ghost" onClick={() => void searchUpdate()} disabled={busy}>{tr("update.search")}</button>
             )}
           </Setting>
-          {!hasTray && <p className="settings-note muted">Das Tray-Symbol konnte nicht angelegt werden. Schließen beendet die App dann normal, damit sie nicht unsichtbar weiterläuft.</p>}
+          {!hasTray && <p className="settings-note muted">{tr("settings.noTray")}</p>}
           {problem && <p className="form-error" role="alert"><CircleAlert size={18} /> {problem}</p>}
         </>
       ) : (
-        <p className="muted">Tray-Symbol, Medientasten und Update-Prüfung gibt es nur in der installierten App.</p>
+        <p className="muted">{tr("settings.desktopOnly")}</p>
       )}
 
-      <h2>Offline</h2>
+      <h2>{tr("nav.offline")}</h2>
       {offlineSupported() ? (
         <>
           <Setting
-            title="Offline-Ablage"
-            hint={`${offlineCount} Titel, ${formatBytes(usage ?? 0)}${offlineReady ? "" : " werden gemessen"}${settings.offlineLimitGb > 0 ? ` von ${settings.offlineLimitGb} GB` : ""}. Heruntergeladene Titel spielen ohne Serververbindung.`}
+            title={tr("settings.storage")}
+            hint={`${tr("settings.storageUsed", { tracks: tr("count.tracks", { count: offlineCount }), size: formatBytes(usage ?? 0), measuring: offlineReady ? "" : tr("settings.measuring") })}${settings.offlineLimitGb > 0 ? tr("offline.ofLimit", { limit: settings.offlineLimitGb }) : ""}. ${tr("settings.storageHint")}`}
           >
             <button
               type="button"
               className="ghost"
               disabled={!offlineCount}
-              onClick={() => { if (confirm("Die komplette Offline-Ablage löschen? Heruntergeladene Titel werden entfernt.")) void clearAll(); }}
+              onClick={() => { if (confirm(tr("settings.clearConfirm"))) void clearAll(); }}
             >
-              Alles entfernen
+              {tr("settings.clearAll")}
             </button>
           </Setting>
-          <Setting title="Speicherlimit" hint="Neue Downloads halten an, wenn die Ablage das Limit erreicht. Bereits heruntergeladene Titel bleiben.">
-            <Segmented label="Speicherlimit" value={settings.offlineLimitGb} options={limits} onChange={(offlineLimitGb) => update({ offlineLimitGb })} />
+          <Setting title={tr("settings.limit")} hint={tr("settings.limitHint")}>
+            <Segmented label={tr("settings.limit")} value={settings.offlineLimitGb} options={limits} onChange={(offlineLimitGb) => update({ offlineLimitGb })} />
           </Setting>
         </>
       ) : (
-        <p className="muted">Downloads und Offline-Wiedergabe gibt es nur in der installierten App.</p>
+        <p className="muted">{tr("settings.offlineAppOnly")}</p>
       )}
 
-      <h2>Konto</h2>
-      <Setting title={creds?.username ?? "Nicht angemeldet"} hint={creds ? `${creds.serverUrl}. Dein Passwort wird nicht gespeichert, die Anmeldung läuft über einen Token. Abmelden beendet nur die Sitzung; das Profil bleibt gemerkt. Zum Vergessen entfernst du es unter „Server-Profile“.` : "Melde dich an, um deine Musik zu hören."}>
-        {creds && <button type="button" className="ghost" onClick={logout}><LogOut size={18} /> Abmelden</button>}
+      <h2>{tr("settings.account")}</h2>
+      <Setting title={creds?.username ?? tr("diag.notSignedIn")} hint={creds ? tr("settings.accountHint", { server: creds.serverUrl }) : tr("settings.signInPrompt")}>
+        {creds && <button type="button" className="ghost" onClick={logout}><LogOut size={18} /> {tr("nav.logout")}</button>}
       </Setting>
       <Setting
-        title="Zugangsdaten"
+        title={tr("settings.credentials")}
         hint={
           keychain === null
-            ? "Der Schlüsselbund wird geprüft …"
+            ? tr("settings.keychainChecking")
             : keychain
-              ? "Token und Salt liegen im Schlüsselbund von Windows, nicht in der Datei der App. Passwörter werden nie gespeichert."
-              : "Kein Schlüsselbund verfügbar. In der App gilt die Anmeldung dann nur für diese Sitzung; in der Entwicklung im Browser liegt sie in der lokalen Ablage."
+              ? tr("settings.keychainOk")
+              : tr("settings.keychainNone")
         }
       >
-        <Link className="button-link ghost" to="/diagnostics"><Stethoscope size={18} /> Diagnose öffnen</Link>
+        <Link className="button-link ghost" to="/diagnostics"><Stethoscope size={18} /> {tr("settings.openDiagnostics")}</Link>
       </Setting>
 
-      <h2>Server-Profile</h2>
+      <h2>{tr("settings.profiles")}</h2>
       {profileProblem && <p className="form-error" role="alert"><CircleAlert size={18} /> {profileProblem}</p>}
       {profiles.length ? (
         <ul className="profile-list">
@@ -317,27 +327,27 @@ export default function Settings() {
                   <strong>{profile.username}</strong>
                   <span className="muted">{profile.serverUrl}</span>
                 </div>
-                {active && <span className="badge">Aktiv</span>}
+                {active && <span className="badge">{tr("settings.active")}</span>}
                 {!active && (
-                  <button type="button" className="ghost" disabled={profileBusy} onClick={() => void switchProfile(profile)} aria-label={`Zu ${profile.username} auf ${profile.serverUrl} wechseln`}>
-                    Wechseln
+                  <button type="button" className="ghost" disabled={profileBusy} onClick={() => void switchProfile(profile)} aria-label={tr("settings.switchTo", { user: profile.username, server: profile.serverUrl })}>
+                    {tr("settings.switch")}
                   </button>
                 )}
                 <button
                   type="button"
                   className="ghost"
                   disabled={profileBusy}
-                  onClick={() => { if (confirm(`Profil ${profile.username} entfernen? Die Zugangsdaten werden aus dem Schlüsselbund gelöscht${active ? " und du wirst abgemeldet" : ""}.`)) void removeProfile(profile); }}
-                  aria-label={`Profil ${profile.username} auf ${profile.serverUrl} entfernen`}
+                  onClick={() => { if (confirm(tr(active ? "settings.removeConfirmActive" : "settings.removeConfirm", { user: profile.username }))) void removeProfile(profile); }}
+                  aria-label={tr("settings.removeProfile", { user: profile.username, server: profile.serverUrl })}
                 >
-                  Entfernen
+                  {tr("queue.remove")}
                 </button>
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="muted">Noch kein Server gemerkt. Nach der ersten Anmeldung erscheint er hier zum Umschalten.</p>
+        <p className="muted">{tr("settings.noProfiles")}</p>
       )}
     </section>
   );

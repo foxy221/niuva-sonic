@@ -21,7 +21,7 @@ export function usePlayerCommands() {
       if (cancelled) unlisten();
       else stop = unlisten;
     }).catch((error: unknown) => {
-      if (!cancelled) console.error("Desktop-Steuerung konnte nicht verbunden werden.", error);
+      if (!cancelled) console.error("Could not connect the desktop controls.", error);
     });
 
     return () => {

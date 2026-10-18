@@ -4,6 +4,7 @@ import type { Album } from "../api/types";
 import { keys } from "../hooks/keys";
 import { useClient } from "../hooks/useClient";
 import { useRowScroll } from "../hooks/useRowScroll";
+import { useT } from "../i18n";
 import { usePlayer } from "../state/player";
 import CoverTile from "./CoverTile";
 
@@ -17,6 +18,7 @@ interface AlbumGridProps {
 
 /** Cover-Raster für Alben; der Abspielen-Knopf lädt die Titel erst beim Klick. */
 export default function AlbumGrid({ albums, showArtist = true, row = false }: AlbumGridProps) {
+  const t = useT();
   const client = useClient();
   const queryClient = useQueryClient();
   const playQueue = usePlayer((s) => s.playQueue);
@@ -47,12 +49,12 @@ export default function AlbumGrid({ albums, showArtist = true, row = false }: Al
         {tiles}
       </ul>
       {scroller.canScrollLeft && (
-        <button type="button" className="row-arrow left" onClick={() => scroller.scrollBySteps(-1)} aria-label="Nach links blättern" title="Nach links">
+        <button type="button" className="row-arrow left" onClick={() => scroller.scrollBySteps(-1)} aria-label={t("grid.scrollLeft")} title={t("grid.left")}>
           <ChevronLeft size={22} />
         </button>
       )}
       {scroller.canScrollRight && (
-        <button type="button" className="row-arrow right" onClick={() => scroller.scrollBySteps(1)} aria-label="Nach rechts blättern" title="Nach rechts">
+        <button type="button" className="row-arrow right" onClick={() => scroller.scrollBySteps(1)} aria-label={t("grid.scrollRight")} title={t("grid.right")}>
           <ChevronRight size={22} />
         </button>
       )}

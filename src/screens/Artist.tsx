@@ -8,9 +8,11 @@ import { usePageAccent } from "../design/useAccent";
 import { plainText } from "../format";
 import { useArtist, useArtistInfo } from "../hooks/library";
 import { useClient } from "../hooks/useClient";
+import { useT } from "../i18n";
 
 /** Künstlerseite: Diskografie, Biografie und ähnliche Künstler. */
 export default function Artist() {
+  const t = useT();
   const { id = "" } = useParams();
   const client = useClient();
   const artist = useArtist(id);
@@ -24,33 +26,33 @@ export default function Artist() {
 
   return (
     <section>
-      <Link to="/artists" className="back"><ChevronLeft size={18} /> Künstler</Link>
-      <QueryStates pending={artist.isPending} error={artist.error} isEmpty={!data} empty="Künstler nicht gefunden.">
+      <Link to="/artists" className="back"><ChevronLeft size={18} /> {t("nav.artists")}</Link>
+      <QueryStates pending={artist.isPending} error={artist.error} isEmpty={!data} empty={t("artist.notFound")}>
         {data && (
           <>
             <div className="album-head round">
               {bild ? <img src={bild} alt="" /> : <div className="cover-empty"><User size={56} /></div>}
               <div>
                 <h1>{data.name}</h1>
-                <p className="muted">{albums.length} Alben</p>
-                <FavoriteButton starred={Boolean(data.starred)} artistId={data.id} label="Künstler" />
+                <p className="muted">{t("count.albums", { count: albums.length })}</p>
+                <FavoriteButton starred={Boolean(data.starred)} artistId={data.id} label={t("favorite.artist")} />
               </div>
             </div>
 
-            <h2>Alben</h2>
-            {albums.length ? <AlbumGrid albums={albums} showArtist={false} /> : <p className="muted">Keine Alben hinterlegt.</p>}
+            <h2>{t("nav.albums")}</h2>
+            {albums.length ? <AlbumGrid albums={albums} showArtist={false} /> : <p className="muted">{t("artist.noAlbums")}</p>}
 
             {info.isError && <p className="form-error">{info.error.message}</p>}
             {bio && (
               <section>
-                <h2>Über {data.name}</h2>
+                <h2>{t("artist.about", { name: data.name })}</h2>
                 <p className="bio">{bio}</p>
               </section>
             )}
 
             {similar.length > 0 && (
               <section>
-                <h2>Ähnliche Künstler</h2>
+                <h2>{t("artist.similar")}</h2>
                 <ArtistGrid artists={similar} />
               </section>
             )}

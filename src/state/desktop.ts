@@ -19,6 +19,12 @@ export interface UpdateStatus {
   message: string | null;
 }
 
+/** Sprache der Oberfläche an die Hülle melden, damit das Tray-Menü mitzieht. */
+export async function setAppLanguage(language: string): Promise<void> {
+  if (!isDesktopApp()) return;
+  await invoke("set_language", { language });
+}
+
 /** Befehle, die Tray-Menü und Medientasten auslösen. */
 export type PlayerCommand = "toggle" | "next" | "previous";
 

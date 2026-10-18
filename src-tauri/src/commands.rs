@@ -53,6 +53,20 @@ pub fn tray_ready(app: AppHandle) -> bool {
     }
 }
 
+/// Die Oberflaeche hat die Sprache gewechselt: Tray-Menue nachziehen.
+#[tauri::command]
+pub fn set_language(app: AppHandle, language: String) -> Result<(), String> {
+    #[cfg(not(desktop))]
+    {
+        let _ = (&app, &language);
+        Ok(())
+    }
+    #[cfg(desktop)]
+    {
+        crate::desktop::apply_language(&app, &language)
+    }
+}
+
 /// Schliessen legt das Fenster in den Tray oder beendet die App.
 #[tauri::command]
 pub fn set_close_to_tray(
@@ -81,7 +95,7 @@ pub fn set_global_shortcuts(
     #[cfg(not(desktop))]
     {
         let _ = (&app, &state, enabled);
-        Err("Medientasten gibt es nur in der Desktop-App.".to_string())
+        Err("Media keys are only available in the desktop app.".to_string())
     }
     #[cfg(desktop)]
     {
@@ -125,7 +139,7 @@ pub async fn download_update(app: AppHandle) -> Result<String, String> {
     #[cfg(not(desktop))]
     {
         let _ = &app;
-        Err("Updates gibt es nur in der Desktop-App.".to_string())
+        Err("Updates are only available in the desktop app.".to_string())
     }
     #[cfg(desktop)]
     {
@@ -139,7 +153,7 @@ pub fn install_update(app: AppHandle) -> Result<(), String> {
     #[cfg(not(desktop))]
     {
         let _ = &app;
-        Err("Updates gibt es nur in der Desktop-App.".to_string())
+        Err("Updates are only available in the desktop app.".to_string())
     }
     #[cfg(desktop)]
     {

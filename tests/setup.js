@@ -1,5 +1,6 @@
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { useLanguage } from "../src/i18n";
 
 // Audio bleibt simuliert; getestet werden die echten Stores und ihre Events.
 class TestAudio extends EventTarget {
@@ -44,7 +45,11 @@ Object.defineProperty(navigator, "mediaSession", {
   value: { metadata: null, playbackState: "none", setActionHandler: vi.fn() },
 });
 
+// Die Tests prüfen deutsche Texte; die App selbst startet mit Englisch.
+useLanguage.setState({ language: "de", ready: true });
+
 afterEach(() => {
+  useLanguage.setState({ language: "de", ready: true });
   cleanup();
   vi.restoreAllMocks();
 });

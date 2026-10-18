@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { isDesktopApp } from "./desktop";
@@ -61,7 +62,7 @@ export const useLog = create<LogState>((set, get) => ({
       const tail = await invoke<LogTail>("read_log", { maxLines });
       set({ ready: true, path: tail.path, lines: tail.lines, error: null });
     } catch (error) {
-      set({ ready: true, error: `Das Protokoll ist nicht lesbar: ${describe(error)}` });
+      set({ ready: true, error: t("diag.logUnreadable", { error: describe(error) }) });
     }
   },
 
@@ -71,7 +72,7 @@ export const useLog = create<LogState>((set, get) => ({
       await invoke("clear_log");
       await get().refresh();
     } catch (error) {
-      set({ error: `Das Protokoll lässt sich nicht leeren: ${describe(error)}` });
+      set({ error: t("diag.clearFailed", { error: describe(error) }) });
     }
   },
 }));

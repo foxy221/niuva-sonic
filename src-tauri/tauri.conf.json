@@ -34,8 +34,8 @@
     "publisher": "foxy221",
     "copyright": "© 2026 foxy221",
     "category": "Music",
-    "shortDescription": "Musik vom eigenen Navidrome-Server",
-    "longDescription": "Niuva Sonic spielt die eigene Musiksammlung von einem Subsonic- oder Navidrome-Server ab: Bibliothek durchsuchen, Warteschlange verwalten, Favoriten und Playlists pflegen.",
+    "shortDescription": "Music from your own Navidrome server",
+    "longDescription": "Niuva Sonic plays your own music collection from a Subsonic or Navidrome server: browse the library, manage the queue, keep favorites and playlists.",
     "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
@@ -47,7 +47,7 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["German", "English"],
+        "languages": ["English", "German"],
         "displayLanguageSelector": false
       }
     }

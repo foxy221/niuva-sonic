@@ -1,6 +1,7 @@
 import { User } from "lucide-react";
 import type { Artist } from "../api/types";
 import { useClient } from "../hooks/useClient";
+import { useT } from "../i18n";
 import CoverTile from "./CoverTile";
 import FavoriteButton from "./FavoriteButton";
 
@@ -12,6 +13,7 @@ interface ArtistGridProps {
 
 /** Runde Künstler-Kacheln. */
 export default function ArtistGrid({ artists, withFavorite = false }: ArtistGridProps) {
+  const t = useT();
   const client = useClient();
 
   return (
@@ -22,10 +24,10 @@ export default function ArtistGrid({ artists, withFavorite = false }: ArtistGrid
           to={`/artist/${artist.id}`}
           image={artist.coverArt ? client.coverArtUrl(artist.coverArt, 300) : undefined}
           title={artist.name}
-          subtitle={`${artist.albumCount ?? 0} Alben`}
+          subtitle={t("count.albums", { count: artist.albumCount ?? 0 })}
           round
           fallback={<User size={40} />}
-          extra={withFavorite && <FavoriteButton starred={Boolean(artist.starred)} artistId={artist.id} label="Künstler" />}
+          extra={withFavorite && <FavoriteButton starred={Boolean(artist.starred)} artistId={artist.id} label={t("favorite.artist")} />}
         />
       ))}
     </ul>

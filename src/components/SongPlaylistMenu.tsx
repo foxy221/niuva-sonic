@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ListMusic } from "lucide-react";
 import { useAddToPlaylist, usePlaylists } from "../hooks/playlists";
+import { useT } from "../i18n";
 
 /** Liste der beschreibbaren Playlists; lädt sie erst, wenn das Menü offen ist. */
 function PlaylistChoices({ songId, onDone }: { songId: string; onDone: () => void }) {
+  const t = useT();
   const playlists = usePlaylists();
   const add = useAddToPlaylist();
   const [added, setAdded] = useState<string | null>(null);
@@ -18,9 +20,9 @@ function PlaylistChoices({ songId, onDone }: { songId: string; onDone: () => voi
     });
   }
 
-  if (playlists.isPending) return <p className="menu-note muted">Lade Playlists …</p>;
+  if (playlists.isPending) return <p className="menu-note muted">{t("playlistMenu.loading")}</p>;
   if (playlists.isError) return <p className="menu-note form-error">{(playlists.error as Error).message}</p>;
-  if (!writable.length) return <p className="menu-note muted">Noch keine eigene Playlist. Lege unter „Playlists“ eine an.</p>;
+  if (!writable.length) return <p className="menu-note muted">{t("playlistMenu.none")}</p>;
 
   return (
     <>
@@ -29,7 +31,7 @@ function PlaylistChoices({ songId, onDone }: { songId: string; onDone: () => voi
           <li key={playlist.id}>
             <button type="button" role="menuitem" className="menu-item" disabled={add.isPending} onClick={() => choose(playlist.id)}>
               <span>{playlist.name}</span>
-              {added === playlist.id && <Check size={16} aria-label="Hinzugefügt" />}
+              {added === playlist.id && <Check size={16} aria-label={t("playlistMenu.added")} />}
             </button>
           </li>
         ))}
@@ -41,6 +43,7 @@ function PlaylistChoices({ songId, onDone }: { songId: string; onDone: () => voi
 
 /** Einzelnen Titel an eine Playlist hängen: Knopf in der Zeile, Menü mit den Playlists. */
 export default function SongPlaylistMenu({ songId }: { songId: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLSpanElement>(null);
 
@@ -70,14 +73,14 @@ export default function SongPlaylistMenu({ songId }: { songId: string }) {
         className="icon row-action"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Zu Playlist hinzufügen"
-        title="Zu Playlist hinzufügen"
+        aria-label={t("playlistMenu.add")}
+        title={t("playlistMenu.add")}
         onClick={() => setOpen((value) => !value)}
       >
         <ListMusic size={18} />
       </button>
       {open && (
-        <div className="menu" role="menu" aria-label="Playlist wählen">
+        <div className="menu" role="menu" aria-label={t("playlistMenu.choose")}>
           <PlaylistChoices songId={songId} onDone={() => setOpen(false)} />
         </div>
       )}

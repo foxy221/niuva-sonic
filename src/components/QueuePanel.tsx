@@ -6,6 +6,7 @@ import { formatTime } from "../format";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
 import { useCoverUrl } from "../hooks/useCoverUrl";
+import { useT } from "../i18n";
 import type { Song } from "../api/types";
 import { SortableList, SortableRow } from "./Sortable";
 
@@ -20,6 +21,7 @@ function QueueCover({ song }: { song: Song }) {
  * Springen, Umsortieren, Entfernen und Leeren liegen im Player-Store.
  */
 export default function QueuePanel() {
+  const t = useT();
   const { queueOpen, setQueue } = useUi();
   const queue = usePlayer((s) => s.queue);
   const index = usePlayer((s) => s.index);
@@ -46,10 +48,10 @@ export default function QueuePanel() {
             <strong>{song.title}</strong>
             <span className="muted">{song.artist}</span>
           </span>
-          {current && playing ? <span className="eq" aria-label="Läuft"><i /><i /><i /></span> : <span className="track-time">{formatTime(song.duration ?? 0)}</span>}
+          {current && playing ? <span className="eq" aria-label={t("queue.playing")}><i /><i /><i /></span> : <span className="track-time">{formatTime(song.duration ?? 0)}</span>}
         </button>
         <span className="queue-actions">
-          <button type="button" className="icon" onClick={() => removeFromQueue(i)} aria-label="Aus der Warteschlange entfernen" title="Entfernen"><X size={16} /></button>
+          <button type="button" className="icon" onClick={() => removeFromQueue(i)} aria-label={t("queue.removeLong")} title={t("queue.remove")}><X size={16} /></button>
         </span>
       </>
     );
@@ -68,24 +70,24 @@ export default function QueuePanel() {
   const played = queue.slice(0, index).map((_, i) => plainRow(i));
 
   return (
-    <aside className="queue" aria-label="Warteschlange">
+    <aside className="queue" aria-label={t("player.queue")}>
       <header>
-        <h2><ListMusic size={20} /> Warteschlange</h2>
-        <button className="icon" onClick={clearQueue} aria-label="Warteschlange leeren" title="Warteschlange leeren"><ListX size={20} /></button>
-        <button className="icon" onClick={() => setQueue(false)} aria-label="Schließen"><X size={20} /></button>
+        <h2><ListMusic size={20} /> {t("player.queue")}</h2>
+        <button className="icon" onClick={clearQueue} aria-label={t("queue.clear")} title={t("queue.clear")}><ListX size={20} /></button>
+        <button className="icon" onClick={() => setQueue(false)} aria-label={t("common.close")}><X size={20} /></button>
       </header>
       <div className="queue-scroll">
-        <h3>Läuft jetzt</h3>
+        <h3>{t("queue.nowPlaying")}</h3>
         <ol>{plainRow(index)}</ol>
-        <h3>Als Nächstes</h3>
+        <h3>{t("queue.upNext")}</h3>
         {upcomingIndexes.length ? (
           <SortableList indexes={upcomingIndexes} onMove={moveInQueue}>
             <ol>{upcomingIndexes.map((i) => <SortableRow key={i} index={i} className="queue-item">{(handle) => rowBody(i, handle)}</SortableRow>)}</ol>
           </SortableList>
-        ) : <p className="muted">Danach ist Schluss. Starte ein Album oder eine Playlist, um die Warteschlange zu füllen.</p>}
+        ) : <p className="muted">{t("queue.empty")}</p>}
         {played.length > 0 && (
           <>
-            <h3>Bereits gespielt</h3>
+            <h3>{t("queue.played")}</h3>
             <ol>{played}</ol>
           </>
         )}

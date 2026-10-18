@@ -20,17 +20,33 @@ import Diagnostics from "./screens/Diagnostics";
 import Layout from "./components/Layout";
 import { useDesktopExit } from "./hooks/useDesktopExit";
 import { useErrorLog } from "./hooks/useErrorLog";
+import { useLanguage } from "./i18n";
+import { setAppLanguage } from "./state/desktop";
 
 export default function App() {
   useDesktopExit();
   useErrorLog();
   const { ready, client, restore } = useSession();
+  const language = useLanguage((s) => s.language);
+  const languageReady = useLanguage((s) => s.ready);
+  const restoreLanguage = useLanguage((s) => s.restore);
 
   useEffect(() => {
+    void restoreLanguage();
     restore();
-  }, [restore]);
+  }, [restore, restoreLanguage]);
 
-  if (!ready) return null;
+  // Sprache für Vorlesehilfe und Silbentrennung des Fensters.
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  // Auch das Tray-Menü der Hülle spricht die gewählte Sprache.
+  useEffect(() => {
+    if (languageReady) void setAppLanguage(language).catch(() => {});
+  }, [language, languageReady]);
+
+  if (!ready || !languageReady) return null;
   if (!client) return <Login />;
 
   return (

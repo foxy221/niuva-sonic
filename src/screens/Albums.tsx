@@ -4,23 +4,25 @@ import AlbumGrid from "../components/AlbumGrid";
 import Pager from "../components/Pager";
 import QueryStates from "../components/QueryStates";
 import { useAlbumList } from "../hooks/library";
+import { useT, type MessageKey } from "../i18n";
 
 const PAGE_SIZE = 40;
 
-const SORTS: { value: AlbumListType; label: string }[] = [
-  { value: "alphabeticalByName", label: "Titel A–Z" },
-  { value: "alphabeticalByArtist", label: "Künstler A–Z" },
-  { value: "newest", label: "Neu hinzugefügt" },
-  { value: "recent", label: "Zuletzt gespielt" },
-  { value: "frequent", label: "Meistgespielt" },
-  { value: "random", label: "Zufällig" },
-  { value: "starred", label: "Favoriten" },
-  { value: "byYear", label: "Nach Jahr" },
-  { value: "byGenre", label: "Nach Genre" },
+const SORTS: { value: AlbumListType; label: MessageKey }[] = [
+  { value: "alphabeticalByName", label: "albums.sort.title" },
+  { value: "alphabeticalByArtist", label: "albums.sort.artist" },
+  { value: "newest", label: "albums.sort.newest" },
+  { value: "recent", label: "albums.sort.recent" },
+  { value: "frequent", label: "albums.sort.frequent" },
+  { value: "random", label: "albums.sort.random" },
+  { value: "starred", label: "albums.sort.starred" },
+  { value: "byYear", label: "albums.sort.byYear" },
+  { value: "byGenre", label: "albums.sort.byGenre" },
 ];
 
 /** Albumliste mit Sortierung und Seiten (`getAlbumList2` mit `offset`). */
 export default function Albums() {
+  const t = useT();
   const [type, setType] = useState<AlbumListType>("alphabeticalByName");
   const [page, setPage] = useState(0);
   const [fromYear, setFromYear] = useState(1990);
@@ -38,14 +40,14 @@ export default function Albums() {
 
   return (
     <>
-      <h1>Alben</h1>
+      <h1>{t("nav.albums")}</h1>
       <p className="filters">
         <label>
-          Sortierung
+          {t("albums.sortBy")}
           <select value={type} onChange={(e) => changeType(e.target.value as AlbumListType)}>
             {SORTS.map((sort) => (
               <option key={sort.value} value={sort.value}>
-                {sort.label}
+                {t(sort.label)}
               </option>
             ))}
           </select>
@@ -53,7 +55,7 @@ export default function Albums() {
         {type === "byYear" && (
           <>
             <label>
-              Von
+              {t("albums.from")}
               <input
                 type="number"
                 min={1900}
@@ -66,7 +68,7 @@ export default function Albums() {
               />
             </label>
             <label>
-              Bis
+              {t("albums.to")}
               <input
                 type="number"
                 min={fromYear}
@@ -82,7 +84,7 @@ export default function Albums() {
         )}
         {type === "byGenre" && (
           <label>
-            Genre
+            {t("albums.genre")}
             <input
               type="text"
               placeholder="Rock"
@@ -96,7 +98,7 @@ export default function Albums() {
         )}
       </p>
 
-      <QueryStates pending={albums.isPending} error={albums.error} isEmpty={!data.length} empty="Keine Alben in dieser Auswahl.">
+      <QueryStates pending={albums.isPending} error={albums.error} isEmpty={!data.length} empty={t("albums.empty")}>
         <AlbumGrid albums={data} />
       </QueryStates>
 

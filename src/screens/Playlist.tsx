@@ -7,11 +7,13 @@ import SongList from "../components/SongList";
 import { formatTime } from "../format";
 import { useClient } from "../hooks/useClient";
 import { useDeletePlaylist, usePlaylist, useReorderPlaylist, useUpdatePlaylist } from "../hooks/playlists";
+import { useT } from "../i18n";
 import { usePlayer } from "../state/player";
 import { moveItem } from "../state/player.logic";
 
 /** Playlist-Detail: abspielen, umbenennen, Titel entfernen, löschen. */
 export default function Playlist() {
+  const t = useT();
   const { id = "" } = useParams();
   const client = useClient();
   const navigate = useNavigate();
@@ -70,8 +72,8 @@ export default function Playlist() {
 
   return (
     <section className="album">
-      <Link to="/playlists" className="back"><ChevronLeft size={18} /> Playlists</Link>
-      <QueryStates pending={playlist.isPending} error={playlist.error} isEmpty={!data} empty="Playlist nicht gefunden.">
+      <Link to="/playlists" className="back"><ChevronLeft size={18} /> {t("nav.playlists")}</Link>
+      <QueryStates pending={playlist.isPending} error={playlist.error} isEmpty={!data} empty={t("playlist.notFound")}>
         {data && (
           <>
             <div className="album-head">
@@ -79,37 +81,37 @@ export default function Playlist() {
               <div>
                 <h1>{data.name}</h1>
                 <p className="muted">
-                  {songs.length} Titel
+                  {t("count.tracks", { count: songs.length })}
                   {data.duration ? ` · ${formatTime(data.duration)}` : ""}
                   {data.owner ? ` · ${data.owner}` : ""}
-                  {readonly ? " · vom Server erzeugt" : ""}
+                  {readonly ? ` · ${t("playlist.generated")}` : ""}
                 </p>
                 <p className="song-actions">
                   <button type="button" onClick={() => playQueue(songs, 0)} disabled={!songs.length}>
-                    <Play size={20} fill="currentColor" /> Abspielen
+                    <Play size={20} fill="currentColor" /> {t("common.play")}
                   </button>
                 </p>
               </div>
             </div>
 
             {readonly ? (
-              <p className="muted">Diese Playlist wird vom Server verwaltet und lässt sich hier nicht ändern.</p>
+              <p className="muted">{t("playlist.readonlyNote")}</p>
             ) : (
               <form className="playlist-edit" onSubmit={save}>
                 <label className="field">
-                  Name
+                  {t("playlist.name")}
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
                 </label>
                 <label className="field">
-                  Kommentar
+                  {t("playlist.comment")}
                   <input type="text" value={comment} onChange={(e) => setComment(e.target.value)} />
                 </label>
                 <div className="public">
-                  <Switch label="Öffentlich" checked={isPublic} onChange={setIsPublic} disabled={editingDisabled} />
-                  <span aria-hidden="true">Öffentlich</span>
+                  <Switch label={t("playlist.public")} checked={isPublic} onChange={setIsPublic} disabled={editingDisabled} />
+                  <span aria-hidden="true">{t("playlist.public")}</span>
                 </div>
                 <button type="submit" disabled={editingDisabled}>
-                  <Save size={18} /> {update.isPending ? "Speichere …" : "Speichern"}
+                  <Save size={18} /> {update.isPending ? t("playlist.saving") : t("playlist.save")}
                 </button>
               </form>
             )}
@@ -120,11 +122,11 @@ export default function Playlist() {
                 songs={songs}
                 onPlay={(i) => playQueue(songs, i)}
                 showAlbum
-                action={readonly ? undefined : { label: "Entfernen", onClick: removeSong, disabled: editingDisabled }}
+                action={readonly ? undefined : { label: t("playlist.removeTrack"), onClick: removeSong, disabled: editingDisabled }}
                 onMove={readonly ? undefined : moveSong}
               />
             ) : (
-              <p className="muted">Noch keine Titel. Das Playlist-Symbol an einem Titel oder „Album anhängen“ auf einer Album-Seite fügt welche hinzu.</p>
+              <p className="muted">{t("playlist.noTracks")}</p>
             )}
 
             {!readonly && (
@@ -132,15 +134,15 @@ export default function Playlist() {
                 {confirming ? (
                   <>
                     <button type="button" className="ghost" onClick={deletePlaylist} disabled={editingDisabled}>
-                      Wirklich löschen
+                      {t("playlist.confirmDelete")}
                     </button>
                     <button type="button" className="ghost" onClick={() => setConfirming(false)}>
-                      Abbrechen
+                      {t("common.cancel")}
                     </button>
                   </>
                 ) : (
                   <button type="button" className="ghost" onClick={() => setConfirming(true)} disabled={editingDisabled}>
-                    <Trash2 size={18} /> Playlist löschen
+                    <Trash2 size={18} /> {t("playlist.delete")}
                   </button>
                 )}
               </p>

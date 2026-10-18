@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowDownToLine, CheckCircle2, ListPlus, ListStart, Play, X } from "lucide-react";
 import type { Song } from "../api/types";
 import { formatTime } from "../format";
+import { useT } from "../i18n";
 import { usePlayer } from "../state/player";
 import { offlineSupported, useOffline } from "../state/offline";
 import FavoriteButton from "./FavoriteButton";
@@ -30,6 +31,7 @@ interface SongListProps {
 
 /** Herunterladen oder aus der Offline-Ablage entfernen, je Zeile. */
 function SongDownloadAction({ song }: { song: Song }) {
+  const t = useT();
   const stored = useOffline((s) => Boolean(s.songs[song.id]));
   const running = useOffline((s) => s.jobs.some((job) => job.state === "running" && job.songIds.includes(song.id)));
   const download = useOffline((s) => s.download);
@@ -37,13 +39,13 @@ function SongDownloadAction({ song }: { song: Song }) {
   if (!offlineSupported()) return null;
   if (stored) {
     return (
-      <button type="button" className="icon row-action" onClick={() => void removeSong(song.id)} aria-label="Offline entfernen" title="Offline verfügbar – entfernen">
+      <button type="button" className="icon row-action" onClick={() => void removeSong(song.id)} aria-label={t("song.removeOffline")} title={t("song.removeOfflineTitle")}>
         <CheckCircle2 size={18} />
       </button>
     );
   }
   return (
-    <button type="button" className="icon row-action" onClick={() => download([song])} disabled={running} aria-label="Für offline verfügbar machen" title="Herunterladen">
+    <button type="button" className="icon row-action" onClick={() => download([song])} disabled={running} aria-label={t("song.makeOffline")} title={t("song.download")}>
       <ArrowDownToLine size={18} />
     </button>
   );
@@ -51,6 +53,7 @@ function SongDownloadAction({ song }: { song: Song }) {
 
 /** Titelliste mit Wiedergabe, Herz, Warteschlangen-Aktionen und optionaler Zusatzaktion. */
 export default function SongList({ songs, onPlay, numbers = "index", showAlbum = false, action, queueActions = true, playlistMenu = true, downloads = true, onMove }: SongListProps) {
+  const t = useT();
   // Nur die Felder abonnieren, die sich auf die Zeilen auswirken; sonst
   // zeichnet die Liste bei jedem Fortschrittswechsel neu.
   const currentId = usePlayer((s) => s.queue[s.index]?.id);
@@ -63,7 +66,7 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
       <button type="button" className="track" onClick={() => onPlay(i)}>
         <span className="track-no">
           {isCurrent && playing ? (
-            <span className="eq" aria-label="Läuft"><i /><i /><i /></span>
+            <span className="eq" aria-label={t("queue.playing")}><i /><i /><i /></span>
           ) : (
             <>
               <span className="num">{numbers === "track" ? song.track ?? i + 1 : i + 1}</span>
@@ -80,11 +83,11 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
       <span className="song-actions row-actions">
         {queueActions && (
           <>
-            <button type="button" className="icon row-action queue-action" onClick={() => playNext([song])} aria-label="Als Nächstes abspielen" title="Als Nächstes"><ListStart size={18} /></button>
-            <button type="button" className="icon row-action queue-action" onClick={() => appendToQueue([song])} aria-label="An die Warteschlange anhängen" title="Anhängen"><ListPlus size={18} /></button>
+            <button type="button" className="icon row-action queue-action" onClick={() => playNext([song])} aria-label={t("song.playNext")} title={t("song.playNextTitle")}><ListStart size={18} /></button>
+            <button type="button" className="icon row-action queue-action" onClick={() => appendToQueue([song])} aria-label={t("song.append")} title={t("song.appendTitle")}><ListPlus size={18} /></button>
           </>
         )}
-        <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label="Titel" />
+        <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />
         {playlistMenu && <SongPlaylistMenu songId={song.id} />}
         {downloads && <SongDownloadAction song={song} />}
         {action && (

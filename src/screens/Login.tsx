@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CircleAlert, LoaderCircle, LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { profileId, useProfiles } from "../state/profiles";
+import { useT } from "../i18n";
 import { describeLoginError, useSession } from "../state/session";
 
 export default function Login() {
+  const t = useT();
   const login = useSession((s) => s.login);
   const profiles = useProfiles((s) => s.list);
   const profilesReady = useProfiles((s) => s.ready);
@@ -45,10 +47,10 @@ export default function Login() {
   return (
     <main className="login">
       <img className="login-logo" src="/logo.png" alt="Niuva Sonic" />
-      <p className="login-tagline">Deine Musik. Dein Server.</p>
+      <p className="login-tagline">{t("login.tagline")}</p>
       {profilesReady && profiles.length > 0 && (
         <section className="login-profiles" aria-labelledby="login-profiles-title">
-          <h2 id="login-profiles-title">Gemerkte Server</h2>
+          <h2 id="login-profiles-title">{t("login.saved")}</h2>
           <ul>
             {profiles.map((profile) => (
               <li key={profileId(profile)}>
@@ -60,17 +62,17 @@ export default function Login() {
               </li>
             ))}
           </ul>
-          <p className="muted"><ShieldCheck size={16} /> Die Zugangsdaten liegen im Schlüsselbund von Windows.</p>
+          <p className="muted"><ShieldCheck size={16} /> {t("login.keychain")}</p>
         </section>
       )}
       {profileError && <p className="form-error login-error" role="alert"><CircleAlert size={18} /> {profileError}</p>}
       <form className="login-form" onSubmit={submit}>
-        <label>Navidrome-Server<input type="url" inputMode="url" placeholder="https://musik.example.de" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} required autoFocus /></label>
-        <label>Benutzername<input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
-        <label>Passwort<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+        <label>{t("login.server")}<input type="url" inputMode="url" placeholder="https://musik.example.de" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} required autoFocus /></label>
+        <label>{t("login.username")}<input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
+        <label>{t("login.password")}<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
         {error && <p className="form-error" role="alert"><CircleAlert size={18} /> {error}</p>}
         <button type="submit" disabled={busy}>
-          {busy ? <><LoaderCircle size={20} className="spin" /> Verbinde …</> : <><LogIn size={20} /> Anmelden</>}
+          {busy ? <><LoaderCircle size={20} className="spin" /> {t("login.connecting")}</> : <><LogIn size={20} /> {t("login.submit")}</>}
         </button>
       </form>
     </main>

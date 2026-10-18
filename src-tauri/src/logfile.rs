@@ -39,7 +39,7 @@ pub fn validate_level(level: &str) -> Result<&str, String> {
         "error" => Ok("ERROR"),
         "warn" => Ok("WARN "),
         "info" => Ok("INFO "),
-        other => Err(format!("Unbekannte Protokollstufe: {other}")),
+        other => Err(format!("Unknown log level: {other}")),
     }
 }
 
@@ -98,9 +98,9 @@ pub fn log_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
     let dir = app
         .path()
         .app_log_dir()
-        .map_err(|error| format!("Der Protokollordner ist nicht ermittelbar: {error}"))?;
+        .map_err(|error| format!("The log folder cannot be determined: {error}"))?;
     std::fs::create_dir_all(&dir)
-        .map_err(|error| format!("Der Protokollordner liegt nicht an: {error}"))?;
+        .map_err(|error| format!("The log folder cannot be created: {error}"))?;
     Ok(dir)
 }
 
@@ -121,9 +121,9 @@ pub fn write<R: Runtime>(app: &AppHandle<R>, level: &str, message: &str) -> Resu
         .create(true)
         .append(true)
         .open(&path)
-        .map_err(|error| format!("Das Protokoll laesst sich nicht oeffnen: {error}"))?;
+        .map_err(|error| format!("The log cannot be opened: {error}"))?;
     file.write_all(format_line(level, message).as_bytes())
-        .map_err(|error| format!("Das Protokoll laesst sich nicht schreiben: {error}"))
+        .map_err(|error| format!("The log cannot be written: {error}"))
 }
 
 /// Eine zu grosse Datei wird zu `<Datei>.1`; die vorherige Sicherung faellt weg.
@@ -190,7 +190,7 @@ pub fn clear_log(app: AppHandle) -> Result<(), String> {
         match std::fs::remove_file(&target) {
             Ok(()) => {}
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => return Err(format!("Das Protokoll laesst sich nicht leeren: {error}")),
+            Err(error) => return Err(format!("The log cannot be cleared: {error}")),
         }
     }
     Ok(())

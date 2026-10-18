@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { create } from "zustand";
 import { credentialsFromSecret, useSession } from "./session";
 import { credentialsKey, deleteSecret, loadSecret } from "./secrets";
@@ -71,13 +72,13 @@ export const useProfiles = create<ProfilesState>((set, get) => ({
     try {
       const creds = credentialsFromSecret(await loadSecret(profileId(profile)));
       if (!creds) {
-        set({ error: `Für ${profile.username} liegen keine Zugangsdaten im Schlüsselbund. Bitte neu anmelden.` });
+        set({ error: t("profiles.noCredentials", { user: profile.username }) });
         return false;
       }
       await useSession.getState().adopt(creds);
       return true;
     } catch (error) {
-      logError(error, `Profilwechsel zu ${profile.username} fehlgeschlagen`);
+      logError(error, `Switching to profile ${profile.username} failed`);
       set({ error: describe(error) });
       return false;
     } finally {
@@ -90,7 +91,7 @@ export const useProfiles = create<ProfilesState>((set, get) => ({
     set({ list });
     await persist(list);
     await deleteSecret(profileId(profile));
-    logWrite("info", `Profil entfernt: ${profile.username}`);
+    logWrite("info", `Profile removed: ${profile.username}`);
     // Das aktive Profil ohne Zugangsdaten weiterlaufen zu lassen, hielte beim nächsten Start nur eine tote Anmeldung.
     const { creds, logout } = useSession.getState();
     if (creds && same(creds, profile)) await logout();

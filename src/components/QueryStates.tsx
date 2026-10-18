@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CircleAlert, Inbox } from "lucide-react";
+import { useT } from "../i18n";
 
 interface QueryStatesProps {
   /** Aus der Abfrage: `query.isPending`. */
@@ -14,10 +15,11 @@ interface QueryStatesProps {
 }
 
 /** Einheitlicher Lade-, Leer- und Fehlerzustand für alle Ansichten. */
-export default function QueryStates({ pending, error, isEmpty = false, empty = "Nichts gefunden.", children }: QueryStatesProps) {
+export default function QueryStates({ pending, error, isEmpty = false, empty, children }: QueryStatesProps) {
+  const t = useT();
   if (pending)
     return (
-      <div className="skeleton" role="status" aria-label="Lädt">
+      <div className="skeleton" role="status" aria-label={t("common.loading")}>
         {Array.from({ length: 8 }, (_, i) => (
           <span key={i} style={{ animationDelay: `${i * 90}ms` }} />
         ))}
@@ -32,7 +34,7 @@ export default function QueryStates({ pending, error, isEmpty = false, empty = "
   if (isEmpty)
     return (
       <p className="state">
-        <Inbox size={20} /> {empty}
+        <Inbox size={20} /> {empty ?? t("common.nothing")}
       </p>
     );
   return <>{children}</>;

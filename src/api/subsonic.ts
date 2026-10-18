@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { md5 } from "js-md5";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import type {
@@ -74,9 +75,9 @@ export class SubsonicClient {
 
   private async call<T>(endpoint: string, extra?: Params): Promise<T> {
     const res = await httpFetch(this.url(endpoint, extra));
-    if (!res.ok) throw new SubsonicError(res.status, `Server antwortet mit HTTP ${res.status}`);
+    if (!res.ok) throw new SubsonicError(res.status, t("api.http", { status: res.status }));
     const body = (await res.json())["subsonic-response"];
-    if (body?.status !== "ok") throw new SubsonicError(body?.error?.code ?? 0, body?.error?.message ?? "Unbekannter Fehler");
+    if (body?.status !== "ok") throw new SubsonicError(body?.error?.code ?? 0, body?.error?.message ?? t("api.unknown"));
     return body as T;
   }
 

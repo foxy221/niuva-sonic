@@ -62,15 +62,15 @@ export const useCapabilities = create<CapabilitiesState>((set, get) => ({
           extensions = versionMap(await client.getOpenSubsonicExtensions());
         } catch (error) {
           // Ein Server darf `openSubsonic` melden und den Aufruf trotzdem nicht kennen.
-          logError(error, "OpenSubsonic-Erweiterungen nicht abfragbar");
+          logError(error, "Could not query OpenSubsonic extensions");
         }
       }
       if (started !== revision) return;
       set({ ready: true, server, extensions, error: null });
-      logWrite("info", `Server erkannt: ${server.type ?? "unbekannt"} ${server.serverVersion ?? ""}${server.openSubsonic ? " (OpenSubsonic)" : ""}`.trim());
+      logWrite("info", `Server detected: ${server.type ?? "unknown"} ${server.serverVersion ?? ""}${server.openSubsonic ? " (OpenSubsonic)" : ""}`.trim());
     } catch (error) {
       if (started !== revision) return;
-      logError(error, "Serverkennung nicht abfragbar");
+      logError(error, "Could not query server identification");
       set({ ready: true, server: null, extensions: {}, error: describe(error) });
     }
   },

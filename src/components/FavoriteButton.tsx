@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import { useStar } from "../hooks/favorites";
+import { useT } from "../i18n";
 
 interface FavoriteButtonProps {
   /** true, wenn das Element bereits ein Favorit ist. */
@@ -12,7 +13,8 @@ interface FavoriteButtonProps {
 }
 
 /** Herz zum Setzen und Entfernen eines Favoriten. */
-export default function FavoriteButton({ starred, songId, albumId, artistId, label = "Favorit" }: FavoriteButtonProps) {
+export default function FavoriteButton({ starred, songId, albumId, artistId, label }: FavoriteButtonProps) {
+  const t = useT();
   const star = useStar();
 
   return (
@@ -20,8 +22,8 @@ export default function FavoriteButton({ starred, songId, albumId, artistId, lab
       type="button"
       className={`icon fav${starred ? " on" : ""}`}
       aria-pressed={starred}
-      aria-label={`${label} ${starred ? "aus Favoriten entfernen" : "zu Favoriten hinzufügen"}`}
-      title={starred ? "Favorit entfernen" : "Zu Favoriten"}
+      aria-label={t(starred ? "favorite.remove" : "favorite.add", { label: label ?? t("favorite.item") })}
+      title={starred ? t("favorite.removeTitle") : t("favorite.addTitle")}
       disabled={star.isPending}
       onClick={(e) => {
         e.preventDefault();

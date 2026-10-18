@@ -1,3 +1,4 @@
+import { t, type MessageKey } from "../i18n";
 /**
  * Zwei Audio-Elemente: eines spielt, das zweite lädt den nächsten Titel vor und
  * übernimmt ihn beim Titelwechsel. Damit fehlt nur die Umschaltzeit des Elements,
@@ -10,16 +11,16 @@ export interface MediaFailure {
   message: string;
 }
 
-const FAILURE_TEXT: Record<number, string> = {
-  1: "Wiedergabe abgebrochen.",
-  2: "Netzwerkfehler beim Laden des Titels.",
-  3: "Die Datei lässt sich nicht dekodieren.",
-  4: "Format nicht unterstützt oder Datei fehlt.",
+const FAILURE_TEXT: Record<number, MessageKey> = {
+  1: "playerError.aborted",
+  2: "playerError.network",
+  3: "playerError.decode",
+  4: "playerError.unsupported",
 };
 
 export function describeMediaError(error: MediaError | null): MediaFailure {
   const code = error?.code ?? 4;
-  return { code, message: FAILURE_TEXT[code] ?? "Unbekannter Wiedergabefehler." };
+  return { code, message: t(FAILURE_TEXT[code] ?? "playerError.unknown") };
 }
 
 export interface EngineHandlers {
@@ -114,7 +115,7 @@ export class AudioEngine {
       // Ein durch load/stop abgebrochener Start ist kein defekter Titel.
       if (error instanceof DOMException && error.name === "AbortError") return;
       if (el.error) return; // Das error-Ereignis liefert bereits die konkrete Meldung.
-      this.handlers.onError({ code: 0, message: "Wiedergabe konnte nicht gestartet werden. Bitte erneut versuchen." });
+      this.handlers.onError({ code: 0, message: t("playerError.start") });
     });
   }
 

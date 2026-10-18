@@ -30,6 +30,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::window_prefs,
             commands::tray_ready,
+            commands::set_language,
             commands::set_close_to_tray,
             commands::set_global_shortcuts,
             commands::check_for_update,
@@ -59,7 +60,7 @@ pub fn run() {
             if let Err(error) = logfile::write(
                 app.handle(),
                 "info",
-                &format!("Niuva Sonic {version} gestartet"),
+                &format!("Niuva Sonic {version} started"),
             ) {
                 eprintln!("{error}");
             }
@@ -76,11 +77,11 @@ pub fn run() {
                 let tray_ready = match desktop::setup_tray(app.handle()) {
                     Ok(()) => true,
                     Err(error) => {
-                        eprintln!("Tray-Symbol konnte nicht angelegt werden: {error}");
+                        eprintln!("Tray icon could not be created: {error}");
                         let _ = logfile::write(
                             app.handle(),
                             "error",
-                            &format!("Tray-Symbol konnte nicht angelegt werden: {error}"),
+                            &format!("Tray icon could not be created: {error}"),
                         );
                         false
                     }
@@ -91,11 +92,11 @@ pub fn run() {
                 if let Err(error) =
                     desktop::apply_global_shortcuts(app.handle(), prefs.global_shortcuts)
                 {
-                    eprintln!("Medientasten konnten nicht belegt werden: {error}");
+                    eprintln!("Media keys could not be registered: {error}");
                     let _ = logfile::write(
                         app.handle(),
                         "warn",
-                        &format!("Medientasten konnten nicht belegt werden: {error}"),
+                        &format!("Media keys could not be registered: {error}"),
                     );
                     let fallback = prefs::Prefs {
                         global_shortcuts: false,
@@ -104,7 +105,7 @@ pub fn run() {
                     app.state::<prefs::PrefsState>().set(fallback);
                     if let Err(error) = prefs::write(app.handle(), fallback) {
                         eprintln!(
-                            "Deaktivierte Medientasten konnten nicht gespeichert werden: {error}"
+                            "Disabled media keys could not be saved: {error}"
                         );
                     }
                 }
@@ -120,5 +121,5 @@ pub fn run() {
             let _ = (window, event);
         })
         .run(context)
-        .expect("Fehler beim Start der Anwendung");
+        .expect("Error while starting the application");
 }
