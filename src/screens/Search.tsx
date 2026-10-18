@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Search as SearchIcon } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import AlbumGrid from "../components/AlbumGrid";
 import ArtistGrid from "../components/ArtistGrid";
 import QueryStates from "../components/QueryStates";
@@ -9,7 +10,9 @@ import { usePlayer } from "../state/player";
 
 /** Suche über `search3`, entprellt, getrennt nach Künstlern, Alben und Titeln. */
 export default function Search() {
-  const [term, setTerm] = useState("");
+  const [params, setParams] = useSearchParams();
+  const term = params.get("q") ?? "";
+  const setTerm = (value: string) => setParams(value ? { q: value } : {}, { replace: true });
   const debounced = useDebouncedValue(term, 300);
   const results = useSearch(debounced);
   const playQueue = usePlayer((s) => s.playQueue);
@@ -22,11 +25,9 @@ export default function Search() {
   return (
     <>
       <h1>Suche</h1>
-      <form className="filters" role="search" onSubmit={(e) => e.preventDefault()}>
-        <label className="muted">
-          Suchbegriff
-          <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Künstler, Album oder Titel" autoFocus />
-        </label>
+      <form className="search-field" role="search" onSubmit={(e) => e.preventDefault()}>
+        <SearchIcon size={20} />
+        <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Künstler, Album oder Titel" aria-label="Suchbegriff" autoFocus />
       </form>
 
       {suchbegriff.length < 2 ? (

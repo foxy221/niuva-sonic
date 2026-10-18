@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Tag } from "lucide-react";
+import CoverTile from "../components/CoverTile";
 import QueryStates from "../components/QueryStates";
 import { useGenres } from "../hooks/library";
 
@@ -13,15 +14,13 @@ export default function Genres() {
       <QueryStates pending={genres.isPending} error={genres.error} isEmpty={!data.length} empty="Keine Genres gefunden.">
         <ul className="album-grid">
           {data.map((genre) => (
-            <li key={genre.value}>
-              <Link to={`/genre/${encodeURIComponent(genre.value)}`}>
-                <div className="cover-empty" />
-                <strong>{genre.value}</strong>
-                <span className="muted">
-                  {genre.songCount ?? 0} Titel · {genre.albumCount ?? 0} Alben
-                </span>
-              </Link>
-            </li>
+            <CoverTile
+              key={genre.value}
+              to={`/genre/${encodeURIComponent(genre.value)}`}
+              title={genre.value}
+              subtitle={`${genre.songCount ?? 0} Titel · ${genre.albumCount ?? 0} Alben`}
+              fallback={<Tag size={36} />}
+            />
           ))}
         </ul>
       </QueryStates>

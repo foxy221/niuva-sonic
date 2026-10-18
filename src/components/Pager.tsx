@@ -1,3 +1,5 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 interface PagerProps {
   /** Aktuelle Seite, nullbasiert. */
   page: number;
@@ -13,11 +15,11 @@ export default function Pager({ page, hasNext, onPage }: PagerProps) {
   return (
     <p className="pager">
       <button type="button" className="ghost" disabled={page === 0} onClick={() => onPage(page - 1)}>
-        ← Zurück
+        <ChevronLeft size={18} /> Zurück
       </button>
       <span className="muted">Seite {page + 1}</span>
       <button type="button" className="ghost" disabled={!hasNext} onClick={() => onPage(page + 1)}>
-        Weiter →
+        Weiter <ChevronRight size={18} />
       </button>
     </p>
   );

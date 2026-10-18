@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, ListMusic, Play, Save, Trash2 } from "lucide-react";
 import QueryStates from "../components/QueryStates";
 import SongList from "../components/SongList";
 import { formatTime } from "../format";
@@ -49,12 +50,12 @@ export default function Playlist() {
 
   return (
     <section className="album">
-      <Link to="/playlists" className="back">← Playlists</Link>
+      <Link to="/playlists" className="back"><ChevronLeft size={18} /> Playlists</Link>
       <QueryStates pending={playlist.isPending} error={playlist.error} isEmpty={!data} empty="Playlist nicht gefunden.">
         {data && (
           <>
             <div className="album-head">
-              {data.coverArt ? <img src={client.coverArtUrl(data.coverArt, 500)} alt="" /> : <div className="cover-empty" />}
+              {data.coverArt ? <img src={client.coverArtUrl(data.coverArt, 500)} alt="" /> : <div className="cover-empty"><ListMusic size={56} /></div>}
               <div>
                 <h1>{data.name}</h1>
                 <p className="muted">
@@ -65,7 +66,7 @@ export default function Playlist() {
                 </p>
                 <p className="song-actions">
                   <button type="button" onClick={() => playQueue(songs, 0)} disabled={!songs.length}>
-                    Abspielen
+                    <Play size={20} fill="currentColor" /> Abspielen
                   </button>
                 </p>
               </div>
@@ -75,19 +76,19 @@ export default function Playlist() {
               <p className="muted">Diese Playlist wird vom Server verwaltet und lässt sich hier nicht ändern.</p>
             ) : (
               <form className="playlist-edit" onSubmit={save}>
-                <label className="muted">
+                <label>
                   Name
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
                 </label>
-                <label className="muted">
+                <label>
                   Kommentar
                   <input type="text" value={comment} onChange={(e) => setComment(e.target.value)} />
                 </label>
-                <label className="muted">
+                <label>
                   <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} /> öffentlich
                 </label>
                 <button type="submit" disabled={update.isPending}>
-                  {update.isPending ? "Speichere …" : "Speichern"}
+                  <Save size={18} /> {update.isPending ? "Speichere …" : "Speichern"}
                 </button>
               </form>
             )}
@@ -117,7 +118,7 @@ export default function Playlist() {
                   </>
                 ) : (
                   <button type="button" className="ghost" onClick={() => setConfirming(true)}>
-                    Playlist löschen
+                    <Trash2 size={18} /> Playlist löschen
                   </button>
                 )}
               </p>

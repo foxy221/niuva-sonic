@@ -1,3 +1,4 @@
+import { Heart } from "lucide-react";
 import { useStar } from "../hooks/favorites";
 
 interface FavoriteButtonProps {
@@ -17,7 +18,7 @@ export default function FavoriteButton({ starred, songId, albumId, artistId, lab
   return (
     <button
       type="button"
-      className="icon"
+      className={`icon fav${starred ? " on" : ""}`}
       aria-pressed={starred}
       aria-label={`${label} ${starred ? "aus Favoriten entfernen" : "zu Favoriten hinzufügen"}`}
       title={starred ? "Favorit entfernen" : "Zu Favoriten"}
@@ -30,7 +31,7 @@ export default function FavoriteButton({ starred, songId, albumId, artistId, lab
         });
       }}
     >
-      {starred ? "♥" : "♡"}
+      <Heart size={20} />
     </button>
   );
 }

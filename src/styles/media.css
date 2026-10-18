@@ -1,0 +1,54 @@
+.album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 1.75rem 1.25rem; }
+.album-grid.row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 10.5rem; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: .75rem; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); }
+.album-grid.row > li { scroll-snap-align: start; }
+.album-grid.row { scrollbar-width: none; }
+.album-grid > li { min-width: 0; display: grid; align-content: start; }
+
+.cover { position: relative; aspect-ratio: 1; border-radius: var(--radius-cover); overflow: hidden; background: var(--raised); margin-bottom: .65rem; }
+.cover.round { border-radius: 50%; }
+.cover img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
+.album-grid > li:hover .cover img { transform: scale(1.06); }
+.cover-empty { display: grid; place-items: center; width: 100%; height: 100%; color: var(--muted); background: linear-gradient(135deg, var(--raised), var(--raised-hover)); border-radius: inherit; }
+.cover-link { position: absolute; inset: 0; }
+.cover .fab { position: absolute; right: .6rem; bottom: .6rem; width: 2.9rem; height: 2.9rem; padding: 0; border-radius: 50%; opacity: 0; translate: 0 .5rem; box-shadow: 0 .6rem 1.4rem -.4rem rgb(0 0 0 / .6); transition: opacity .2s, translate .25s var(--ease), filter .15s; }
+.album-grid > li:hover .fab, .fab:focus-visible { opacity: 1; translate: 0; }
+.tile-text { display: grid; min-width: 0; }
+.tile-text strong, .tile-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-text strong { font-weight: 600; }
+.album-grid > li:hover .tile-text strong { color: var(--accent); }
+.tile-extra { margin-top: .25rem; }
+
+.album-head { display: flex; gap: 2.25rem; align-items: flex-end; margin: 1.25rem 0 2.25rem; }
+.album-head > img, .album-head > .cover-empty { width: clamp(10rem, 22vw, 15rem); aspect-ratio: 1; flex: none; border-radius: var(--radius-cover); object-fit: cover; box-shadow: 0 2rem 3.5rem -1.5rem color-mix(in srgb, var(--page-accent) 80%, black); }
+.album-head.round > img, .album-head.round > .cover-empty { border-radius: 50%; }
+.album-head h1 { margin: 0 0 .7rem; font-size: clamp(1.8rem, 4.4vw, 3.8rem); font-weight: 700; }
+.album-head p { margin-bottom: 1.25rem; }
+.song-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.album-head .song-actions { margin-bottom: 1rem; }
+
+.tracklist { margin: 0 -.5rem; }
+.track-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: var(--radius); transition: background .12s; }
+.track-row:hover, .track-row:focus-within { background: var(--raised); }
+.track { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; width: 100%; text-align: left; background: none; padding: .65rem .75rem; font-weight: 400; color: var(--text); border-radius: var(--radius); }
+.track:hover:not(:disabled) { filter: none; box-shadow: none; }
+.track:active:not(:disabled) { transform: none; }
+.track-no { display: grid; place-items: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+.track-no .hover-play { display: none; }
+.track-row:not(.active) .track:hover .num { display: none; }
+.track-row:not(.active) .track:hover .hover-play { display: block; color: var(--text); }
+.track-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track-title .muted { font-size: .9rem; }
+.track-time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.track-row.active .track-title, .track-row.active .track-no { color: var(--accent); }
+.song-actions.row-actions { padding-right: .5rem; gap: .1rem; }
+@media (hover: hover) { .track-row:not(:hover):not(:focus-within) .fav:not(.on), .track-row:not(:hover):not(:focus-within) .row-action { opacity: 0; } }
+
+.bio { color: var(--muted); max-width: 70ch; white-space: pre-line; }
+.home-greeting { margin-bottom: .5rem; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+
+@media (max-width: 720px) {
+  .album-head { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+  .album-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem .9rem; }
+  .album-grid.row { grid-template-columns: none; grid-auto-columns: 8.5rem; }
+}

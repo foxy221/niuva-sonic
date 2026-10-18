@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
+import { User } from "lucide-react";
 import type { Artist } from "../api/types";
 import { useClient } from "../hooks/useClient";
+import CoverTile from "./CoverTile";
 import FavoriteButton from "./FavoriteButton";
 
 interface ArtistGridProps {
@@ -9,25 +10,23 @@ interface ArtistGridProps {
   withFavorite?: boolean;
 }
 
-/** Kachelraster für Künstler. Nutzt die bestehende Klasse `.album-grid`. */
+/** Runde Künstler-Kacheln. */
 export default function ArtistGrid({ artists, withFavorite = false }: ArtistGridProps) {
   const client = useClient();
 
   return (
     <ul className="album-grid">
       {artists.map((artist) => (
-        <li key={artist.id}>
-          <Link to={`/artist/${artist.id}`}>
-            {artist.coverArt ? (
-              <img src={client.coverArtUrl(artist.coverArt, 300)} alt="" loading="lazy" />
-            ) : (
-              <div className="cover-empty" />
-            )}
-            <strong>{artist.name}</strong>
-            <span className="muted">{artist.albumCount ?? 0} Alben</span>
-          </Link>
-          {withFavorite && <FavoriteButton starred={Boolean(artist.starred)} artistId={artist.id} label="Künstler" />}
-        </li>
+        <CoverTile
+          key={artist.id}
+          to={`/artist/${artist.id}`}
+          image={artist.coverArt ? client.coverArtUrl(artist.coverArt, 300) : undefined}
+          title={artist.name}
+          subtitle={`${artist.albumCount ?? 0} Alben`}
+          round
+          fallback={<User size={40} />}
+          extra={withFavorite && <FavoriteButton starred={Boolean(artist.starred)} artistId={artist.id} label="Künstler" />}
+        />
       ))}
     </ul>
   );

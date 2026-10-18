@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { CircleAlert, LoaderCircle, LogIn } from "lucide-react";
 import { describeLoginError, useSession } from "../state/session";
 
 export default function Login() {
@@ -25,12 +26,15 @@ export default function Login() {
   return (
     <main className="login">
       <img className="login-logo" src="/logo.png" alt="Niuva Sonic" />
+      <p className="login-tagline">Deine Musik. Dein Server.</p>
       <form className="login-form" onSubmit={submit}>
         <label>Navidrome-Server<input type="url" inputMode="url" placeholder="https://musik.example.de" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} required autoFocus /></label>
         <label>Benutzername<input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
         <label>Passwort<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <button type="submit" disabled={busy}>{busy ? "Verbinde …" : "Anmelden"}</button>
+        {error && <p className="form-error" role="alert"><CircleAlert size={18} /> {error}</p>}
+        <button type="submit" disabled={busy}>
+          {busy ? <><LoaderCircle size={20} className="spin" /> Verbinde …</> : <><LogIn size={20} /> Anmelden</>}
+        </button>
       </form>
     </main>
   );

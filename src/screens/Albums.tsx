@@ -40,7 +40,7 @@ export default function Albums() {
     <>
       <h1>Alben</h1>
       <p className="filters">
-        <label className="muted">
+        <label>
           Sortierung
           <select value={type} onChange={(e) => changeType(e.target.value as AlbumListType)}>
             {SORTS.map((sort) => (
@@ -52,7 +52,7 @@ export default function Albums() {
         </label>
         {type === "byYear" && (
           <>
-            <label className="muted">
+            <label>
               Von
               <input
                 type="number"
@@ -65,7 +65,7 @@ export default function Albums() {
                 }}
               />
             </label>
-            <label className="muted">
+            <label>
               Bis
               <input
                 type="number"
@@ -81,7 +81,7 @@ export default function Albums() {
           </>
         )}
         {type === "byGenre" && (
-          <label className="muted">
+          <label>
             Genre
             <input
               type="text"

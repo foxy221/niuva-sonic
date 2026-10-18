@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ChevronLeft, Play } from "lucide-react";
 import Pager from "../components/Pager";
 import QueryStates from "../components/QueryStates";
 import SongList from "../components/SongList";
@@ -19,11 +20,11 @@ export default function Genre() {
 
   return (
     <section>
-      <Link to="/genres" className="back">← Genres</Link>
+      <Link to="/genres" className="back"><ChevronLeft size={18} /> Genres</Link>
       <h1>{genre}</h1>
       <p className="song-actions">
         <button type="button" onClick={() => playQueue(data, 0)} disabled={!data.length}>
-          Abspielen
+          <Play size={20} fill="currentColor" /> Abspielen
         </button>
       </p>
       <QueryStates pending={songs.isPending} error={songs.error} isEmpty={!data.length} empty="Keine Titel in diesem Genre.">

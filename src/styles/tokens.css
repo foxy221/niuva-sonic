@@ -1,0 +1,8 @@
+/* Die Akzentfarben folgen dem Cover: --accent dem laufenden Titel, --page-accent der geöffneten Seite. */
+@property --accent { syntax: "<color>"; inherits: true; initial-value: #ff3d9a; }
+@property --page-accent { syntax: "<color>"; inherits: true; initial-value: #ff3d9a; }
+
+:root { color-scheme: dark; --ink: #0a0612; --panel: #110a1f; --raised: #1a1130; --raised-hover: #231742; --line: #2a1e45; --text: #f6f0ff; --muted: #a094bd; --violet: #8a3cff; --pink: #ff3d9a; --amber: #ffb347; --danger: #ff7a95; --brand: linear-gradient(100deg, var(--violet), var(--pink) 55%, var(--amber)); }
+:root { --accent: #ff3d9a; --page-accent: var(--accent); transition: --accent .9s ease, --page-accent .9s ease; }
+:root { --font-display: "Unbounded Variable", "Segoe UI", sans-serif; --font-body: "Hanken Grotesk Variable", "Segoe UI", sans-serif; }
+:root { --sidebar-w: 15.5rem; --radius: .75rem; --radius-cover: .9rem; --gutter: 2.25rem; --ease: cubic-bezier(.2, .7, .2, 1); }

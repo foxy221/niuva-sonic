@@ -20,7 +20,7 @@ export default function Artists() {
           ))}
         </nav>
         {data.map((index, i) => (
-          <section key={index.name} id={`buchstabe-${i}`}>
+          <section key={index.name} id={`buchstabe-${i}`} className="letter-section">
             <h2>{index.name}</h2>
             <ArtistGrid artists={index.artist} />
           </section>

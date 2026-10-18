@@ -1,71 +1,8 @@
-:root { color-scheme: dark; --bg: #0b0714; --surface: #160e26; --line: #2a1e44; --fg: #f4eefc; --muted: #9a8fb3; --violet: #7a2cf0; --pink: #ff2e93; --amber: #ffb02e; --brand: linear-gradient(100deg, var(--violet), var(--pink) 55%, var(--amber)); }
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
-body { background: var(--bg); color: var(--fg); font-family: system-ui, "Segoe UI", sans-serif; }
-h1 { font-size: 1.6rem; margin: 2rem 0 1.25rem; }
-button { font: inherit; cursor: pointer; border: 0; border-radius: 999px; padding: .75rem 1.5rem; color: #fff; background: var(--brand); font-weight: 600; }
-button:disabled { opacity: .6; cursor: progress; }
-button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: .4rem 1rem; }
-button.ghost:hover { color: var(--fg); border-color: var(--muted); }
-input { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: .5rem; padding: .75rem .9rem; width: 100%; }
-input:focus-visible { outline: 2px solid var(--pink); outline-offset: 1px; }
-.muted { color: var(--muted); }
-.form-error { color: #ff6b8a; margin: 0; }
-.login { min-height: 100%; display: grid; place-content: center; justify-items: center; gap: 2rem; padding: 2rem 1rem; }
-.login-logo { width: min(80vw, 420px); }
-.login-form { width: min(90vw, 380px); display: grid; gap: 1rem; }
-.login-form label { display: grid; gap: .35rem; color: var(--muted); font-size: .85rem; }
-.login-form button { margin-top: .5rem; }
-.app { height: 100%; display: flex; flex-direction: column; }
-.content { flex: 1; overflow-y: auto; padding: 0 2rem 2rem; }
-.topbar { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
-.topbar-logo { margin-right: auto; }
-.topbar img { height: 40px; display: block; }
-.topbar-user { color: var(--muted); }
-.album-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1.75rem 1.25rem; }
-.album-grid li { display: grid; gap: .2rem; align-content: start; min-width: 0; }
-.album-grid img, .cover-empty { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: .6rem; background: var(--surface); margin-bottom: .5rem; }
-.album-grid strong, .album-grid span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.album-grid a { display: grid; gap: .2rem; color: inherit; text-decoration: none; }
-.album-grid a:hover strong { color: var(--pink); }
-.back { display: inline-block; margin-top: 1.5rem; color: var(--muted); text-decoration: none; }
-.back:hover { color: var(--fg); }
-.album-head { display: flex; gap: 2rem; align-items: flex-end; margin: 1.5rem 0 2rem; }
-.album-head img { width: 220px; aspect-ratio: 1; border-radius: .6rem; object-fit: cover; }
-.album-head h1 { margin: 0 0 .5rem; font-size: 2.4rem; }
-.album-head p { margin: 0 0 1.25rem; }
-.tracklist { list-style: none; margin: 0; padding: 0; }
-.track { display: grid; grid-template-columns: 2.5rem 1fr auto; gap: .75rem; width: 100%; text-align: left; background: transparent; border-radius: .4rem; padding: .6rem .75rem; font-weight: 400; color: var(--fg); }
-.track:hover { background: var(--surface); }
-.track-no { color: var(--muted); text-align: right; }
-.tracklist .active .track-title, .tracklist .active .track-no { color: var(--pink); }
-.player { display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center; gap: 1rem; padding: .75rem 1.5rem; background: var(--surface); border-top: 1px solid var(--line); }
-.player-track { display: flex; align-items: center; gap: .9rem; min-width: 0; }
-.player-track img { width: 52px; height: 52px; border-radius: .35rem; object-fit: cover; }
-.player-track div { display: grid; min-width: 0; }
-.player-track strong, .player-track span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.player-center { display: grid; gap: .35rem; justify-items: center; }
-.player-buttons { display: flex; align-items: center; gap: 1rem; }
-button.icon { background: transparent; padding: .3rem .6rem; font-size: 1.1rem; color: var(--muted); }
-button.icon:hover { color: var(--fg); }
-button.play { width: 2.8rem; height: 2.8rem; padding: 0; display: grid; place-items: center; font-size: 1.1rem; }
-.player-seek { display: flex; align-items: center; gap: .75rem; width: 100%; font-size: .8rem; }
-.player-seek input, .player-volume input { padding: 0; border: 0; background: transparent; accent-color: var(--pink); }
-.player-seek input { flex: 1; }
-.player-volume { justify-self: end; width: 140px; }
-@media (max-width: 600px) { .content { padding: 0 1rem 1.5rem; } .album-grid { grid-template-columns: repeat(2, 1fr); } .album-head { flex-direction: column; align-items: flex-start; } .player { grid-template-columns: 1fr; } .player-volume { display: none; } }
-
-/* --- Technik-Glue (Phase 1) ---
-   Nur so viel Layout, dass die neuen Bausteine bedienbar sind. Das Design
-   ersetzt diesen Block beim Aufteilen von styles.css durch eigene Regeln. */
-.topbar-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-left: 1.5rem; }
-.filters, .pager, .letter-nav, .add-to-playlist, .playlist-edit, .playlist-danger { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 1.25rem; }
-.letter-nav { gap: .25rem; }
-.filters label, .add-to-playlist label, .playlist-edit label { display: grid; gap: .25rem; }
-.filters select, .filters input, .add-to-playlist select, .playlist-edit input[type="text"], .playlist-edit input:not([type]) { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: .5rem; padding: .5rem .6rem; }
-.filters input[type="number"] { width: 6rem; }
-.playlist-edit label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: .4rem; }
-.playlist-edit input[type="checkbox"] { width: auto; accent-color: var(--pink); }
-.track-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .25rem; }
-.song-actions { display: flex; align-items: center; gap: .25rem; }
-
+@import "@fontsource-variable/unbounded";
+@import "@fontsource-variable/hanken-grotesk";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/controls.css";
+@import "./styles/shell.css";
+@import "./styles/media.css";
+@import "./styles/screens.css";

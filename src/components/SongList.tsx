@@ -1,3 +1,4 @@
+import { Play, X } from "lucide-react";
 import type { Song } from "../api/types";
 import { formatTime } from "../format";
 import { usePlayer } from "../state/player";
@@ -29,18 +30,27 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
         return (
           <li key={`${song.id}-${i}`} className={`track-row${isCurrent ? " active" : ""}`}>
             <button type="button" className="track" onClick={() => onPlay(i)}>
-              <span className="track-no">{isCurrent && playing ? "♪" : numbers === "track" ? song.track ?? i + 1 : i + 1}</span>
+              <span className="track-no">
+                {isCurrent && playing ? (
+                  <span className="eq" aria-label="Läuft"><i /><i /><i /></span>
+                ) : (
+                  <>
+                    <span className="num">{numbers === "track" ? song.track ?? i + 1 : i + 1}</span>
+                    <Play className="hover-play" size={16} fill="currentColor" />
+                  </>
+                )}
+              </span>
               <span className="track-title">
                 {song.title}
-                {showAlbum && song.album && <span className="muted"> · {song.album}</span>}
+                {showAlbum && (song.artist || song.album) && <span className="muted"> · {[song.artist, song.album].filter(Boolean).join(" – ")}</span>}
               </span>
-              <span className="muted">{formatTime(song.duration ?? 0)}</span>
+              <span className="track-time">{formatTime(song.duration ?? 0)}</span>
             </button>
-            <span className="song-actions">
+            <span className="song-actions row-actions">
               <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label="Titel" />
               {action && (
-                <button type="button" className="icon" onClick={() => action.onClick(i)}>
-                  {action.label}
+                <button type="button" className="icon row-action" onClick={() => action.onClick(i)} aria-label={action.label} title={action.label}>
+                  <X size={18} />
                 </button>
               )}
             </span>

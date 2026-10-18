@@ -1,8 +1,10 @@
 import { Link, useParams } from "react-router-dom";
+import { ChevronLeft, Disc3, Play } from "lucide-react";
 import AddToPlaylist from "../components/AddToPlaylist";
 import FavoriteButton from "../components/FavoriteButton";
 import QueryStates from "../components/QueryStates";
 import SongList from "../components/SongList";
+import { usePageAccent } from "../design/useAccent";
 import { useAlbum } from "../hooks/library";
 import { useClient } from "../hooks/useClient";
 import { usePlayer } from "../state/player";
@@ -14,15 +16,16 @@ export default function Album() {
   const playQueue = usePlayer((s) => s.playQueue);
   const data = album.data;
   const songs = data?.song ?? [];
+  usePageAccent(data?.coverArt ? client.coverArtUrl(data.coverArt, 64) : undefined);
 
   return (
     <section className="album">
-      <Link to="/albums" className="back">← Alben</Link>
+      <Link to="/albums" className="back"><ChevronLeft size={18} /> Alben</Link>
       <QueryStates pending={album.isPending} error={album.error} isEmpty={!data} empty="Album nicht gefunden.">
         {data && (
           <>
             <div className="album-head">
-              {data.coverArt ? <img src={client.coverArtUrl(data.coverArt, 500)} alt="" /> : <div className="cover-empty" />}
+              {data.coverArt ? <img src={client.coverArtUrl(data.coverArt, 500)} alt="" /> : <div className="cover-empty"><Disc3 size={56} /></div>}
               <div>
                 <h1>{data.name}</h1>
                 <p className="muted">
@@ -31,7 +34,7 @@ export default function Album() {
                   {data.genre ? ` · ${data.genre}` : ""}
                 </p>
                 <div className="song-actions">
-                  <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}>Abspielen</button>
+                  <button onClick={() => playQueue(songs, 0)} disabled={!songs.length}><Play size={20} fill="currentColor" /> Abspielen</button>
                   <FavoriteButton starred={Boolean(data.starred)} albumId={data.id} label="Album" />
                 </div>
                 <AddToPlaylist songIds={songs.map((s) => s.id)} label="Album anhängen" />

@@ -1,0 +1,17 @@
+.login { position: relative; min-height: 100%; display: grid; place-content: center; justify-items: center; gap: 2.5rem; padding: 2rem 1rem; overflow: hidden; background: radial-gradient(50rem 32rem at 12% 8%, color-mix(in srgb, var(--violet) 38%, transparent), transparent), radial-gradient(46rem 30rem at 92% 96%, color-mix(in srgb, var(--amber) 22%, transparent), transparent), radial-gradient(40rem 26rem at 70% 30%, color-mix(in srgb, var(--pink) 16%, transparent), transparent), var(--ink); }
+.login-logo { width: min(82vw, 30rem); }
+.login-tagline { color: var(--muted); margin-top: -1.5rem; font-size: 1.05rem; }
+.login-form { width: min(90vw, 24rem); display: grid; gap: 1.1rem; }
+.login-form label { display: grid; gap: .4rem; color: var(--muted); font-size: .88rem; }
+.login-form input { padding: .85rem 1rem; }
+.login-form button { margin-top: .6rem; padding: .95rem; font-size: 1rem; }
+
+.playlist-danger { align-items: center; margin-top: 2rem; }
+.playlist-edit { padding: 1.25rem 0; margin-bottom: 1.5rem; }
+.letter-section h2 { margin-top: 1.6rem; color: var(--accent); }
+.artist-list { display: grid; }
+
+@media (max-width: 720px) {
+  .login-logo { width: 88vw; }
+  .letter-nav { top: 3rem; }
+}
