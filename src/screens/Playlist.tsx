@@ -5,8 +5,9 @@ import QueryStates from "../components/QueryStates";
 import SongList from "../components/SongList";
 import { formatTime } from "../format";
 import { useClient } from "../hooks/useClient";
-import { useDeletePlaylist, usePlaylist, useUpdatePlaylist } from "../hooks/playlists";
+import { useDeletePlaylist, usePlaylist, useReorderPlaylist, useUpdatePlaylist } from "../hooks/playlists";
 import { usePlayer } from "../state/player";
+import { moveItem } from "../state/player.logic";
 
 /** Playlist-Detail: abspielen, umbenennen, Titel entfernen, löschen. */
 export default function Playlist() {
@@ -15,6 +16,7 @@ export default function Playlist() {
   const navigate = useNavigate();
   const playlist = usePlaylist(id);
   const update = useUpdatePlaylist(id);
+  const reorder = useReorderPlaylist(id);
   const remove = useDeletePlaylist();
   const playQueue = usePlayer((s) => s.playQueue);
   const data = playlist.data;
@@ -26,7 +28,7 @@ export default function Playlist() {
   const [isPublic, setIsPublic] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const updateInFlight = useRef(false);
-  const editingDisabled = update.isPending || remove.isPending || playlist.isFetching;
+  const editingDisabled = update.isPending || reorder.isPending || remove.isPending || playlist.isFetching;
 
   // Felder füllen, sobald die Playlist geladen ist; beim Wechsel der ID neu.
   const loadedId = data?.id;
@@ -47,6 +49,13 @@ export default function Playlist() {
     if (readonly || editingDisabled || updateInFlight.current) return;
     updateInFlight.current = true;
     update.mutate(input, { onSettled: () => { updateInFlight.current = false; } });
+  }
+
+  /** Titel per Ziehen umsortieren; wie jede Änderung nur, wenn gerade keine andere läuft. */
+  function moveSong(from: number, to: number) {
+    if (readonly || !data || editingDisabled || updateInFlight.current) return;
+    updateInFlight.current = true;
+    reorder.mutate({ name: data.name, songs: moveItem(songs, from, to) }, { onSettled: () => { updateInFlight.current = false; } });
   }
 
   function removeSong(index: number) {
@@ -110,6 +119,7 @@ export default function Playlist() {
                 onPlay={(i) => playQueue(songs, i)}
                 showAlbum
                 action={readonly ? undefined : { label: "Entfernen", onClick: removeSong, disabled: editingDisabled }}
+                onMove={readonly ? undefined : moveSong}
               />
             ) : (
               <p className="muted">Noch keine Titel. Auf einer Album-Seite hängt „Album anhängen“ Titel hier an.</p>

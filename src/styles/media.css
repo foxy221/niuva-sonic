@@ -29,6 +29,7 @@
 .tracklist { margin: 0 -.5rem; }
 .track-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: var(--radius); transition: background .12s; }
 .track-row:hover, .track-row:focus-within { background: var(--raised); }
+.track-row.sortable { grid-template-columns: 2rem minmax(0, 1fr) auto; }
 .track { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; width: 100%; text-align: left; background: none; padding: .65rem .75rem; font-weight: 400; color: var(--text); border-radius: var(--radius); }
 .track:hover:not(:disabled) { filter: none; box-shadow: none; }
 .track:active:not(:disabled) { transform: none; }
@@ -47,6 +48,11 @@
 .bio { color: var(--muted); max-width: 70ch; white-space: pre-line; }
 .home-greeting { margin-bottom: .5rem; }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+
+.drag-handle { color: var(--muted); cursor: grab; touch-action: none; padding: .3rem; }
+.drag-handle:active { cursor: grabbing; }
+.is-dragging { position: relative; z-index: 6; background: var(--raised-hover) !important; border-radius: var(--radius); box-shadow: 0 .9rem 2.2rem -.7rem rgb(0 0 0 / .75); }
+@media (hover: hover) { .track-row .drag-handle { opacity: 0; } .track-row:hover .drag-handle, .track-row:focus-within .drag-handle, .track-row.is-dragging .drag-handle { opacity: 1; } }
 
 @media (max-width: 720px) {
   .album-head { flex-direction: column; align-items: flex-start; gap: 1.25rem; }

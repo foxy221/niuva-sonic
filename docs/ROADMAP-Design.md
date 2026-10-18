@@ -30,7 +30,7 @@ Spotify-nah in der Bedienung, aber eigenständiger und ausdrucksstärker: dunkel
 - [x] **Start:** Begrüßung, Schnellzugriff-Kacheln, Reihen (Neu, Zuletzt, Zufällig) mit horizontalem Scrollen
 - [x] **Album:** großes Cover, Verlauf aus Coverfarbe, Trackliste mit Hover-Play, Format-/Bitrate-Badge
 - [x] **Künstler:** Hero-Bild, Beliebteste Titel, Diskografie, Ähnliche Künstler
-- [ ] **Playlist:** Kopf mit Mosaik-Cover, Sortierung, Drag-and-drop
+- [~] **Playlist:** Kopf mit Mosaik-Cover, Sortierung, Drag-and-drop (Ziehen fertig, Mosaik-Cover offen)
 - [x] **Suche:** Ergebnisse nach Typ gruppiert, Sofortvorschläge
 - [x] **Queue:** Ausklappbares Panel mit „Als Nächstes“ und Verlauf
 - [~] **Vollbild-Player:** großes Cover, Songtexte synchron, Visualisierung (Wellenform aus dem Logo-Motiv)

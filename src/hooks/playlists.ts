@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SubsonicClient } from "../api/subsonic";
+import type { PlaylistWithSongs, Song } from "../api/types";
 import { keys, libraryPrefixes } from "./keys";
 import { useClient } from "./useClient";
 
@@ -50,5 +51,30 @@ export function useDeletePlaylist() {
   return useMutation({
     mutationFn: (id: string) => client.deletePlaylist(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: libraryPrefixes.playlists }),
+  });
+}
+
+/**
+ * Reihenfolge ändern. Die API kennt kein „Verschieben“: `createPlaylist` mit
+ * vorhandener ID ersetzt die Titel und lässt Kommentar und Sichtbarkeit stehen
+ * (am Testserver geprüft). Die Liste springt sofort um und fällt bei einem
+ * Fehler auf den alten Stand zurück.
+ */
+export function useReorderPlaylist(playlistId: string) {
+  const client = useClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; songs: Song[] }) =>
+      client.createPlaylist({ name: input.name, playlistId, songIds: input.songs.map((song) => song.id) }),
+    onMutate: async ({ songs }) => {
+      await queryClient.cancelQueries({ queryKey: keys.playlist(playlistId) });
+      const previous = queryClient.getQueryData<PlaylistWithSongs>(keys.playlist(playlistId));
+      if (previous) queryClient.setQueryData<PlaylistWithSongs>(keys.playlist(playlistId), { ...previous, entry: songs });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) queryClient.setQueryData(keys.playlist(playlistId), context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.playlist(playlistId) }),
   });
 }

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
-import { ArrowDown, ArrowUp, ListMusic, ListX, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { ListMusic, ListX, X } from "lucide-react";
 import { useUi } from "../design/ui";
 import { formatTime } from "../format";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
+import { SortableList, SortableRow } from "./Sortable";
 
 /**
  * Warteschlange als Seitenpanel: laufender Titel, was als Nächstes kommt, was schon lief.
@@ -24,11 +26,12 @@ export default function QueuePanel() {
 
   if (!queueOpen || !client || index < 0) return null;
 
-  const row = (i: number) => {
+  const rowBody = (i: number, handle?: ReactNode) => {
     const song = queue[i];
     const current = i === index;
     return (
-      <li key={`${song.id}-${i}`} ref={current ? currentRef : undefined} className={`queue-item${current ? " active" : ""}${i < index ? " played" : ""}`}>
+      <>
+        {handle}
         <button type="button" className="queue-jump" onClick={() => jumpTo(i)}>
           {song.coverArt ? <img src={client.coverArtUrl(song.coverArt, 80)} alt="" loading="lazy" /> : <div className="cover-empty" />}
           <span className="queue-text">
@@ -38,16 +41,23 @@ export default function QueuePanel() {
           {current && playing ? <span className="eq" aria-label="Läuft"><i /><i /><i /></span> : <span className="track-time">{formatTime(song.duration ?? 0)}</span>}
         </button>
         <span className="queue-actions">
-          <button type="button" className="icon" onClick={() => moveInQueue(i, i - 1)} disabled={i === 0} aria-label="Nach oben" title="Nach oben"><ArrowUp size={16} /></button>
-          <button type="button" className="icon" onClick={() => moveInQueue(i, i + 1)} disabled={i === queue.length - 1} aria-label="Nach unten" title="Nach unten"><ArrowDown size={16} /></button>
           <button type="button" className="icon" onClick={() => removeFromQueue(i)} aria-label="Aus der Warteschlange entfernen" title="Entfernen"><X size={16} /></button>
         </span>
+      </>
+    );
+  };
+
+  const plainRow = (i: number) => {
+    const current = i === index;
+    return (
+      <li key={`${queue[i].id}-${i}`} ref={current ? currentRef : undefined} className={`queue-item${current ? " active" : ""}${i < index ? " played" : ""}`}>
+        {rowBody(i)}
       </li>
     );
   };
 
-  const upcoming = queue.slice(index + 1).map((_, k) => row(index + 1 + k));
-  const played = queue.slice(0, index).map((_, i) => row(i));
+  const upcomingIndexes = queue.slice(index + 1).map((_, k) => index + 1 + k);
+  const played = queue.slice(0, index).map((_, i) => plainRow(i));
 
   return (
     <aside className="queue" aria-label="Warteschlange">
@@ -58,9 +68,13 @@ export default function QueuePanel() {
       </header>
       <div className="queue-scroll">
         <h3>Läuft jetzt</h3>
-        <ol>{row(index)}</ol>
+        <ol>{plainRow(index)}</ol>
         <h3>Als Nächstes</h3>
-        {upcoming.length ? <ol>{upcoming}</ol> : <p className="muted">Danach ist Schluss. Starte ein Album oder eine Playlist, um die Warteschlange zu füllen.</p>}
+        {upcomingIndexes.length ? (
+          <SortableList indexes={upcomingIndexes} onMove={moveInQueue}>
+            <ol>{upcomingIndexes.map((i) => <SortableRow key={i} index={i} className="queue-item">{(handle) => rowBody(i, handle)}</SortableRow>)}</ol>
+          </SortableList>
+        ) : <p className="muted">Danach ist Schluss. Starte ein Album oder eine Playlist, um die Warteschlange zu füllen.</p>}
         {played.length > 0 && (
           <>
             <h3>Bereits gespielt</h3>
