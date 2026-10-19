@@ -70,17 +70,19 @@ export default function FullPlayer() {
           <div className="full-title">
             <div>
               <h1>{song.title}</h1>
-              <p>
-                {song.artistId ? <Link to={`/artist/${song.artistId}`} onClick={close}>{song.artist}</Link> : onAir ?? song.artist}
-                {song.album && <span className="muted"> · {song.albumId ? <Link to={`/album/${song.albumId}`} onClick={close}>{song.album}</Link> : song.album}</span>}
-              </p>
+              <p>{song.artistId ? <Link to={`/artist/${song.artistId}`} onClick={close}>{song.artist}</Link> : onAir ?? song.artist}</p>
+              {song.album && <p className="muted">{song.albumId ? <Link to={`/album/${song.albumId}`} onClick={close}>{song.album}</Link> : song.album}</p>}
               {song.radioHome && <button type="button" className="ghost" onClick={() => void openHomePage(song.radioHome!).catch(() => {})}>{t("radio.homepage")}</button>}
             </div>
             {!radio && <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />}
           </div>
-          <SeekBar />
-          <Transport size={28} />
-          <VolumeControl />
+          <div className="full-deck">
+            <SeekBar />
+            <div className="full-deck-row">
+              <Transport size={28} />
+              <VolumeControl />
+            </div>
+          </div>
         </div>
       </div>
       <QueuePanel />

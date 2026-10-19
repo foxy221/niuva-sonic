@@ -30,9 +30,12 @@
 .full-viz { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .cloud { position: absolute; left: 0; top: 0; border-radius: 50%; opacity: 0; mix-blend-mode: screen; will-change: transform, opacity; background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 80%, white) 0%, color-mix(in srgb, var(--tone) 70%, transparent) 22%, color-mix(in srgb, var(--tone) 24%, transparent) 52%, color-mix(in srgb, var(--tone) 5%, transparent) 80%, transparent 100%); }
 .full-top { position: relative; display: flex; justify-content: space-between; padding: 1rem 1.25rem; }
-.full-body { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 4rem; padding: 0 clamp(2rem, 7vw, 7rem) 3rem; }
+/* Cover und Infospalte sind eine Einheit: gleiche Höhe, Titel bündig mit der Oberkante, Bedienung mit der Unterkante. */
+.full-body { --cover: min(56vh, 36vw); position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: var(--cover) minmax(0, 32rem); justify-content: center; align-items: center; gap: clamp(2rem, 5vw, 5rem); padding: 0 clamp(2rem, 7vw, 7rem) 3rem; }
+/* Mit Songtext bekommt der Text die breite Spalte, das Cover tritt zurück. */
+.full-body:has(.full-left.with-lyrics) { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); }
 .full-top-actions { display: flex; gap: .5rem; }
-.full-left { position: relative; display: flex; justify-content: flex-end; align-items: center; }
+.full-left { position: relative; display: flex; justify-content: flex-start; align-items: center; }
 .full-left.with-lyrics { align-self: stretch; }
 .full-cover { transition: opacity .55s var(--ease), scale .7s var(--ease), filter .7s var(--ease); }
 .full-left.with-lyrics .full-cover { opacity: 0; scale: .9; filter: blur(18px); }
@@ -62,16 +65,21 @@ button.lyric:hover:not(:disabled), button.lyric:active:not(:disabled) { filter: 
 @keyframes breathe { 50% { scale: 1.5; opacity: .5; } }
 .lyrics-state { align-self: center; padding: 1.5rem; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .lyrics.synced .lyric, .full-lyrics, .full-cover { transition: none; } .full-lyrics.open .lyrics.synced .lyric { animation: none; } .lyric.on span { animation: none; color: #fff; background: none; } .lyric.gap.on span { animation: none; } }
-.full-cover { justify-self: end; width: min(100%, 52vh); aspect-ratio: 1; object-fit: cover; border-radius: 1.2rem; box-shadow: 0 3rem 6rem -2rem color-mix(in srgb, var(--accent) 70%, black); }
+.full-cover { justify-self: start; width: min(100%, var(--cover)); aspect-ratio: 1; object-fit: cover; border-radius: 1.2rem; box-shadow: 0 3rem 6rem -2rem color-mix(in srgb, var(--accent) 70%, black); }
 .full-info svg { filter: drop-shadow(0 0 6px rgb(8 4 16 / .8)); }
 .full .muted { color: rgb(255 255 255 / .78); }
-.full-info { text-shadow: 0 0 14px rgb(8 4 16 / .85); display: grid; gap: 1.6rem; max-width: 32rem; }
-.full-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.full-title h1 { margin: 0 0 .5rem; font-size: clamp(1.6rem, 3.4vw, 2.8rem); }
-.full-title p { font-size: 1.1rem; }
+.full-info { text-shadow: 0 0 14px rgb(8 4 16 / .85); display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; min-height: var(--cover); }
+.full-title { display: flex; align-items: flex-start; justify-content: flex-start; gap: 1rem; }
+.full-title > div { min-width: 0; }
+.full-title h1 { margin: 0 0 .9rem; font-size: clamp(1.9rem, 3.8vw, 3.4rem); line-height: 1.08; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.full-title p { margin: 0; font-size: 1.25rem; font-weight: 600; color: #fff; }
+.full-title p + p { margin-top: .2rem; font-size: 1rem; font-weight: 400; }
+.full-title .ghost { margin-top: 1rem; }
+.full-deck { display: grid; gap: 1.1rem; }
+.full-deck-row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
 .full .player-buttons { justify-content: flex-start; gap: 1.2rem; }
-.full .play { width: 4.2rem; height: 4.2rem; }
-.full .player-volume { width: 100%; max-width: 14rem; }
+.full .play { width: 4.6rem; height: 4.6rem; }
+.full .player-volume { width: 9rem; flex: none; }
 @keyframes rise { from { translate: 0 3rem; opacity: 0; } }
 /* Warteschlange im Vollbild: Seitenpanel über dem unscharfen Cover; der Inhalt rückt nach links. */
 /* Warteschlange im Vollbild: schwebende Glasfläche, bündig mit der oberen Leiste (rechter Rand, Unterkante) und mit den Rundungen des Covers. */
@@ -89,9 +97,9 @@ button.lyric:hover:not(:disabled), button.lyric:active:not(:disabled) { filter: 
 .full > .queue h3 { color: rgb(255 255 255 / .8); }
 .full.queue-open .full-body { padding-right: calc(21rem + 1.25rem + 2.5rem); }
 @media (min-width: 1600px) {
-  .full-info { max-width: 38rem; }
-  .full-title h1 { font-size: 3.2rem; }
-  .full-title p { font-size: 1.25rem; }
+  .full-body:not(:has(.full-left.with-lyrics)) { grid-template-columns: var(--cover) minmax(0, 38rem); }
+  .full-title h1 { font-size: 4rem; }
+  .full-title p { font-size: 1.45rem; }
 }
 /* Schmales Fenster: Die Warteschlange legt sich über die ganze Fläche, die Leiste mit Schließen und Warteschlange bleibt oben. */
 @media (max-width: 1100px) {
@@ -106,8 +114,11 @@ button.lyric:hover:not(:disabled), button.lyric:active:not(:disabled) { filter: 
 
 @media (max-width: 720px) {
   .queue, .app > .queue { position: fixed; inset: 0; z-index: 15; width: auto; border-left: 0; grid-column: auto; grid-row: auto; }
-  .full-body { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 2rem; padding: 0 1.5rem 2rem; }
+  .full-body, .full-body:has(.full-left.with-lyrics) { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 2rem; padding: 0 1.5rem 2rem; }
+  .full-info { min-height: 0; }
+  .full-deck-row { flex-direction: column; gap: 1rem; }
   .full-cover { justify-self: center; width: min(100%, 42vh); }
+  .full-left { justify-content: center; }
   .full .player-buttons { justify-content: center; }
   .full .player-volume { display: none; }
 }
