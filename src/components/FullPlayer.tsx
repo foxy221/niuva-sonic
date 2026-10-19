@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ListMusic, MicVocal } from "lucide-react";
 import { useUi } from "../design/ui";
-import { isRadio } from "../radio";
+import { isRadio, openHomePage } from "../radio";
 import { useOnAir } from "../state/onAir";
 import { usePlayer } from "../state/player";
 import { useCapabilities } from "../state/capabilities";
@@ -74,6 +74,7 @@ export default function FullPlayer() {
                 {song.artistId ? <Link to={`/artist/${song.artistId}`} onClick={close}>{song.artist}</Link> : onAir ?? song.artist}
                 {song.album && <span className="muted"> · {song.albumId ? <Link to={`/album/${song.albumId}`} onClick={close}>{song.album}</Link> : song.album}</span>}
               </p>
+              {song.radioHome && <button type="button" className="ghost" onClick={() => void openHomePage(song.radioHome!).catch(() => {})}>{t("radio.homepage")}</button>}
             </div>
             {!radio && <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />}
           </div>

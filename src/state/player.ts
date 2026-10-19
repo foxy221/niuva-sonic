@@ -305,7 +305,7 @@ function load(index: number, options: { autoplay?: boolean; position?: number; p
   if (!(autoplay && position === 0 && playback().gapless && engine.takePreloaded(url))) engine.load(url, { autoplay, position });
   if (!autoplay) setPlaybackState("paused");
   // Cover zuerst lokal: offline startet die App sonst ohne Bild im Overlay.
-  const artwork = song.radioUrl ? undefined : useOffline.getState().coverSource(song.coverArt ?? song.id) ?? session.coverArtUrl(song.coverArt ?? song.id, 512);
+  const artwork = song.radioUrl && !song.coverArt ? undefined : useOffline.getState().coverSource(song.coverArt ?? song.id) ?? session.coverArtUrl(song.coverArt ?? song.id, 512);
   updateMediaSession(song, artwork);
   preloadNext();
   scheduleSave();

@@ -95,6 +95,8 @@ export interface Song {
   replayGain?: ReplayGain;
   /** Nur bei Radiosendern: Adresse des Live-Streams. Solche Einträge liegen nicht auf dem Server. */
   radioUrl?: string;
+  /** Nur bei Radiosendern: Webseite des Senders. */
+  radioHome?: string;
 }
 
 /** Obergrenze und Zielformat für `stream`; leer heißt Originaldatei. */
@@ -128,6 +130,8 @@ export interface InternetRadioStation {
   name: string;
   streamUrl: string;
   homePageUrl?: string;
+  /** Bild des Senders (`getCoverArt`); Navidrome liefert einen leeren Text, solange keins hochgeladen ist. */
+  coverArt?: string;
 }
 
 export interface Genre {
