@@ -22,6 +22,8 @@ export default function FullPlayer() {
   const song = usePlayer((s) => s.queue[s.index]);
   const client = useSession((s) => s.client);
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  // Der Text bleibt nach dem Ausschalten kurz eingehängt, damit er ausblenden kann.
+  const [lyricsMounted, setLyricsMounted] = useState(false);
   const lyricsSupported = useCapabilities((s) => s.supports("songLyrics"));
   const coverRef = useRef<HTMLElement | null>(null);
   const backdrop = useCoverUrl(song?.coverArt, song?.albumId, 64);
@@ -33,6 +35,12 @@ export default function FullPlayer() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [fullOpen, setFull]);
+
+  useEffect(() => {
+    if (lyricsOpen) { setLyricsMounted(true); return; }
+    const id = window.setTimeout(() => setLyricsMounted(false), 700);
+    return () => window.clearTimeout(id);
+  }, [lyricsOpen]);
 
   if (!fullOpen || !song || !client) return null;
   const close = () => setFull(false);
@@ -49,9 +57,9 @@ export default function FullPlayer() {
         </div>
       </header>
       <div className="full-body">
-        <div className="full-left">
+        <div className={`full-left${lyricsOpen ? " with-lyrics" : ""}`}>
           {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
-          {lyricsOpen && <div className="full-lyrics"><Lyrics song={song} /></div>}
+          {lyricsMounted && <div className={`full-lyrics${lyricsOpen ? " open" : ""}`} inert={!lyricsOpen}><Lyrics song={song} /></div>}
         </div>
         <div className="full-info">
           <div className="full-title">

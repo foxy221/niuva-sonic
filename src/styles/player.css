@@ -33,12 +33,35 @@
 .full-body { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 4rem; padding: 0 clamp(2rem, 7vw, 7rem) 3rem; }
 .full-top-actions { display: flex; gap: .5rem; }
 .full-left { position: relative; display: flex; justify-content: flex-end; align-items: center; }
-.full-lyrics { position: absolute; right: 0; top: 50%; translate: 0 -50%; width: min(100%, 52vh); aspect-ratio: 1; border-radius: 1.2rem; background: rgb(17 10 31 / .66); backdrop-filter: blur(22px) saturate(1.3); border: 1px solid rgb(255 255 255 / .1); overflow: hidden; display: flex; }
-.lyrics { flex: 1; overflow-y: auto; padding: 38% 1.6rem; scrollbar-width: none; }
-.lyric { margin: 0 0 .9rem; font-size: 1.35rem; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / .5); transition: color .3s var(--ease), scale .3s var(--ease); transform-origin: left center; }
-.lyric.on { color: #fff; scale: 1.04; }
+.full-left.with-lyrics { align-self: stretch; }
+.full-cover { transition: opacity .55s var(--ease), scale .7s var(--ease), filter .7s var(--ease); }
+.full-left.with-lyrics .full-cover { opacity: 0; scale: .9; filter: blur(18px); }
+/* Der Text steht frei auf dem Hintergrund; oben und unten läuft er in Transparenz aus. */
+.full-lyrics { position: absolute; inset: -1rem 0 -2rem 0; display: flex; opacity: 0; translate: 0 1.2rem; filter: blur(12px); transition: opacity .5s var(--ease), translate .6s var(--ease), filter .6s var(--ease); mask-image: linear-gradient(transparent, #000 18%, #000 78%, transparent); }
+.full-lyrics.open { opacity: 1; translate: 0 0; filter: none; }
+.lyrics { flex: 0 1 28rem; min-width: 0; overflow-y: auto; padding: 32vh 2rem 32vh 0; scrollbar-width: none; text-shadow: 0 0 18px rgb(8 4 16 / .7); }
+/* Synchrone Texte führt allein die Wiedergabe: kein Scrollen, nur die Zeilen rund um die gesungene bleiben sichtbar. */
+.lyrics.synced { overflow: hidden; }
+.lyric { display: block; width: 100%; margin: 0 0 1.1rem; padding: 0; text-align: left; background: none; box-shadow: none; font: 800 clamp(1.5rem, 2.5vw, 2.5rem)/1.18 var(--font-body); letter-spacing: -.015em; color: rgb(255 255 255 / .8); text-wrap: balance; }
+.lyrics.synced .lyric { color: #fff; opacity: calc(1 - var(--d, 0) * .4); filter: blur(calc(var(--d, 0) * .8px)); scale: calc(1 - var(--d, 0) * .02); transform-origin: left center; transition: filter .5s var(--ease), opacity .5s var(--ease), scale .5s var(--ease); }
+.lyrics.synced .lyric.past { opacity: calc(.9 - var(--d, 0) * .5); }
+.full-lyrics.open .lyrics.synced .lyric { animation: lyric-in .8s var(--ease) backwards; animation-delay: calc(var(--d, 0) * 90ms); }
+@keyframes lyric-in { from { opacity: 0; translate: 0 2rem; filter: blur(10px); } }
+button.lyric { cursor: pointer; }
+button.lyric:hover:not(:disabled), button.lyric:active:not(:disabled) { filter: none; box-shadow: none; transform: none; }
+.lyrics.synced .lyric.on { opacity: 1; filter: none; scale: 1; }
+/* Die gesungene Zeile füllt sich von links, so lange wie die Zeile dauert. */
+.lyric.on span { background: linear-gradient(90deg, #fff 50%, rgb(255 255 255 / .45) 50%) 100% 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: line-fill var(--dur) linear var(--at) forwards; }
+.lyrics.paused .lyric.on span { animation-play-state: paused; }
+@keyframes line-fill { to { background-position: 0 0; } }
+.lyric.gap { display: flex; gap: .55rem; padding: .4rem 0 1.1rem; }
+.lyric.gap span { width: .7rem; height: .7rem; border-radius: 50%; background: rgb(255 255 255 / .55); }
+.lyric.gap.on span { background: var(--accent); animation: breathe 1.6s ease-in-out infinite; }
+.lyric.gap.on span:nth-child(2) { animation-delay: .2s; }
+.lyric.gap.on span:nth-child(3) { animation-delay: .4s; }
+@keyframes breathe { 50% { scale: 1.5; opacity: .5; } }
 .lyrics-state { align-self: center; padding: 1.5rem; text-align: center; }
-@media (prefers-reduced-motion: reduce) { .lyric { transition: none; } .lyric.on { scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .lyrics.synced .lyric, .full-lyrics, .full-cover { transition: none; } .full-lyrics.open .lyrics.synced .lyric { animation: none; } .lyric.on span { animation: none; color: #fff; background: none; } .lyric.gap.on span { animation: none; } }
 .full-cover { justify-self: end; width: min(100%, 52vh); aspect-ratio: 1; object-fit: cover; border-radius: 1.2rem; box-shadow: 0 3rem 6rem -2rem color-mix(in srgb, var(--accent) 70%, black); }
 .full-info svg { filter: drop-shadow(0 0 6px rgb(8 4 16 / .8)); }
 .full .muted { color: rgb(255 255 255 / .78); }
@@ -51,9 +74,20 @@
 .full .player-volume { width: 100%; max-width: 14rem; }
 @keyframes rise { from { translate: 0 3rem; opacity: 0; } }
 /* Warteschlange im Vollbild: Seitenpanel über dem unscharfen Cover; der Inhalt rückt nach links. */
-.full > .queue { position: absolute; top: 0; right: 0; bottom: 0; left: auto; margin: 0; height: auto; z-index: 3; background: rgb(17 10 31 / .62); backdrop-filter: blur(26px) saturate(1.3); border-left-color: rgb(255 255 255 / .1); box-shadow: -1.5rem 0 3rem -1rem rgb(0 0 0 / .6); }
+/* Warteschlange im Vollbild: schwebende Glasfläche, bündig mit der oberen Leiste (rechter Rand, Unterkante) und mit den Rundungen des Covers. */
+.full > .queue { position: absolute; top: 4.4rem; right: 1.25rem; bottom: 1.25rem; left: auto; width: 21rem; margin: 0; height: auto; z-index: 3; border: 1px solid rgb(255 255 255 / .12); border-radius: 1.2rem; overflow: hidden; background: rgb(17 10 31 / .55); backdrop-filter: blur(26px) saturate(1.3); box-shadow: 0 2rem 4rem -1.5rem rgb(0 0 0 / .7); animation: queue-in .5s var(--ease); }
+@keyframes queue-in { from { translate: 1.5rem 0; opacity: 0; filter: blur(8px); } }
+/* Der Schalter oben rechts schließt die Warteschlange; das eigene Schließen-Kreuz entfällt. */
+.full > .queue > header { padding: .9rem .9rem .3rem 1.4rem; }
+.full > .queue > header .icon:last-child { display: none; }
+.full > .queue-scroll, .full > .queue .queue-scroll { padding: 0 .6rem 1.2rem; mask-image: linear-gradient(transparent, #000 .8rem, #000 calc(100% - 1.6rem), transparent); }
+.full > .queue .queue-item { border-radius: .8rem; }
+.full > .queue .queue-item:hover, .full > .queue .queue-item:focus-within { background: rgb(255 255 255 / .08); }
+.full > .queue .queue-item.active { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
+.full > .queue .queue-item.active strong { color: #fff; }
+.full > .queue .queue-actions { background: rgb(38 26 66); box-shadow: -.8rem 0 .8rem rgb(38 26 66); }
 .full > .queue h3 { color: rgb(255 255 255 / .8); }
-.full.queue-open .full-body { padding-right: calc(22rem + 2rem); }
+.full.queue-open .full-body { padding-right: calc(21rem + 1.25rem + 2.5rem); }
 @media (min-width: 1600px) {
   .full-info { max-width: 38rem; }
   .full-title h1 { font-size: 3.2rem; }
@@ -62,7 +96,7 @@
 /* Schmales Fenster: Die Warteschlange legt sich über die ganze Fläche, die Leiste mit Schließen und Warteschlange bleibt oben. */
 @media (max-width: 1100px) {
   .full.queue-open .full-body { padding-right: clamp(2rem, 7vw, 7rem); }
-  .full > .queue { width: min(22rem, 100%); }
+  .full > .queue { width: min(21rem, calc(100% - 2.5rem)); }
 }
 
 /* Unter 1180 px bliebe neben der Seitenleiste zu wenig Platz: Die Warteschlange legt sich über den Inhalt statt ihn zu stauchen. */
