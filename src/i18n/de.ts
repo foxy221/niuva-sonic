@@ -4,6 +4,7 @@ import type { Messages } from "./en";
 export const de: Record<keyof Messages, string> = {
   // Allgemein
   "common.play": "Abspielen",
+  "common.pause": "Pause",
   "common.cancel": "Abbrechen",
   "common.close": "Schließen",
   "common.loading": "Lädt",
@@ -153,8 +154,8 @@ export const de: Record<keyof Messages, string> = {
   "playlists.empty": "Noch keine Playlists. Lege oben die erste an.",
   "playlists.fromServer": "vom Server",
   "playlist.notFound": "Playlist nicht gefunden.",
-  "playlist.generated": "vom Server erzeugt",
-  "playlist.readonlyNote": "Diese Playlist wird vom Server verwaltet und lässt sich hier nicht ändern.",
+  "playlist.generated": "Server-Playlist",
+  "playlist.readonlyNote": "Wird vom Server verwaltet, hier nur zum Anhören.",
   "playlist.name": "Name",
   "playlist.comment": "Kommentar",
   "playlist.public": "Öffentlich",

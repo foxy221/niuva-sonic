@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import { Disc3, Download, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Stethoscope, Tags } from "lucide-react";
 import { useNowPlayingAccent } from "../design/useAccent";
@@ -12,6 +12,9 @@ import { useT, type MessageKey } from "../i18n";
 import FullPlayer from "./FullPlayer";
 import PlayerBar from "./PlayerBar";
 import QueuePanel from "./QueuePanel";
+import SidebarPlaylists from "./SidebarPlaylists";
+import { useNowPlayingPlaylist } from "../state/playlistSource";
+import Tooltips from "./Tooltips";
 import TopBar from "./TopBar";
 
 const NAV: { to: string; label: MessageKey; Icon: typeof House; end?: boolean }[] = [
@@ -37,6 +40,11 @@ export default function Layout() {
   // Leertaste im Fenster sowie Befehle aus Tray-Menü und Medientasten.
   useKeyboardShortcuts();
   usePlayerCommands();
+  const playlistsOpen = pathname === "/playlists" || pathname.startsWith("/playlist/");
+  const nowPlaylist = useNowPlayingPlaylist();
+  // Neue Seite beginnt oben, sonst bleibt der Scrollstand der vorigen stehen und die Kopfzeile verschwindet unter der Leiste.
+  const contentRef = useRef<HTMLElement | null>(null);
+  useEffect(() => { contentRef.current?.scrollTo?.({ top: 0 }); }, [pathname]);
 
   return (
     <div className="app">
@@ -46,9 +54,11 @@ export default function Layout() {
           {NAV.map(({ to, label, Icon, end }) => (
             <Fragment key={to}>
               {to === "/settings" && <div className="nav-divider" />}
-              <NavLink to={to} end={end}>
+              <NavLink to={to} end={end} className={({ isActive }) => (isActive || (to === "/playlists" && playlistsOpen) ? "active" : undefined)}>
                 <Icon size={20} /> {t(label)}
+                {to === "/playlists" && !playlistsOpen && nowPlaylist.id && <span className={`now${nowPlaylist.playing ? "" : " paused"}`} aria-hidden="true"><i /><i /><i /></span>}
               </NavLink>
+              {to === "/playlists" && <SidebarPlaylists open={playlistsOpen} />}
             </Fragment>
           ))}
         </nav>
@@ -58,7 +68,7 @@ export default function Layout() {
           <button className="icon" onClick={logout} aria-label={t("nav.logout")} title={t("nav.logout")}><LogOut size={18} /></button>
         </div>
       </aside>
-      <main className="content">
+      <main className="content" ref={contentRef}>
         <TopBar />
         <div className="page" key={pathname}>
           <Outlet />
@@ -68,6 +78,7 @@ export default function Layout() {
       {!fullOpen && <QueuePanel />}
       <PlayerBar />
       <FullPlayer />
+      <Tooltips />
     </div>
   );
 }

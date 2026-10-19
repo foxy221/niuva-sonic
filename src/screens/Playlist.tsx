@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Play, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, Clock3, Lock, Music2, Pause, Play, Save, Server, Trash2, UserRound } from "lucide-react";
 import PlaylistCover from "../components/PlaylistCover";
 import QueryStates from "../components/QueryStates";
 import Switch from "../components/Switch";
 import SongList from "../components/SongList";
-import { formatTime } from "../format";
 import { useClient } from "../hooks/useClient";
 import { useDeletePlaylist, usePlaylist, useReorderPlaylist, useUpdatePlaylist } from "../hooks/playlists";
 import { useT } from "../i18n";
 import { usePlayer } from "../state/player";
+import { usePlaylistSource } from "../state/playlistSource";
 import { moveItem } from "../state/player.logic";
+
+/** „49 min“ oder „1 h 12 min“ statt Uhrzeit-Format. */
+function longTime(seconds: number) {
+  const minutes = Math.round(seconds / 60);
+  return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${Math.max(minutes, 1)} min`;
+}
 
 /** Playlist-Detail: abspielen, umbenennen, Titel entfernen, löschen. */
 export default function Playlist() {
@@ -23,8 +29,12 @@ export default function Playlist() {
   const reorder = useReorderPlaylist(id);
   const remove = useDeletePlaylist();
   const playQueue = usePlayer((s) => s.playQueue);
+  const { play, pause } = usePlayer.getState();
+  const playing = usePlayer((s) => s.playing);
   const data = playlist.data;
   const songs = data?.entry ?? [];
+  // Läuft diese Playlist gerade (oder ist sie pausiert in der Warteschlange), schaltet der Knopf um statt neu zu starten.
+  const isQueued = usePlayer((s) => songs.length > 0 && s.queue.length === songs.length && s.queue.every((q, i) => q.id === songs[i].id));
   const readonly = Boolean(data?.readonly);
 
   const [name, setName] = useState("");
@@ -42,6 +52,17 @@ export default function Playlist() {
     setComment(data?.comment ?? "");
     setIsPublic(Boolean(data?.public));
   }, [loadedId]);
+
+  function start(index: number) {
+    if (data) usePlaylistSource.getState().mark(data.id, songs);
+    playQueue(songs, index);
+  }
+
+  function togglePlay() {
+    if (!isQueued) start(0);
+    else if (playing) pause();
+    else play();
+  }
 
   function save(e: FormEvent) {
     e.preventDefault();
@@ -81,22 +102,22 @@ export default function Playlist() {
               <PlaylistCover id={data.id} serverImage={data.coverArt ? client.coverArtUrl(data.coverArt, 500) : undefined} />
               <div>
                 <h1>{data.name}</h1>
-                <p className="muted">
-                  {t("count.tracks", { count: songs.length })}
-                  {data.duration ? ` · ${formatTime(data.duration)}` : ""}
-                  {data.owner ? ` · ${data.owner}` : ""}
-                  {readonly ? ` · ${t("playlist.generated")}` : ""}
-                </p>
+                <ul className="meta-chips">
+                  {readonly && <li className="chip-server"><Server size={14} /> {t("playlist.generated")}</li>}
+                  <li><Music2 size={15} /> {t("count.tracks", { count: songs.length })}</li>
+                  {data.duration ? <li><Clock3 size={15} /> {longTime(data.duration)}</li> : null}
+                  {data.owner ? <li><UserRound size={15} /> {data.owner}</li> : null}
+                </ul>
                 <p className="song-actions">
-                  <button type="button" onClick={() => playQueue(songs, 0)} disabled={!songs.length}>
-                    <Play size={20} fill="currentColor" /> {t("common.play")}
+                  <button type="button" onClick={togglePlay} disabled={!songs.length}>
+                    {isQueued && playing ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />} {isQueued && playing ? t("common.pause") : t("common.play")}
                   </button>
                 </p>
               </div>
             </div>
 
             {readonly ? (
-              <p className="muted">{t("playlist.readonlyNote")}</p>
+              <p className="readonly-note"><Lock size={16} /> {t("playlist.readonlyNote")}</p>
             ) : (
               <form className="playlist-edit" onSubmit={save}>
                 <label className="field">
@@ -121,7 +142,7 @@ export default function Playlist() {
             {songs.length ? (
               <SongList
                 songs={songs}
-                onPlay={(i) => playQueue(songs, i)}
+                onPlay={start}
                 showAlbum
                 action={readonly ? undefined : { label: t("playlist.removeTrack"), onClick: removeSong, disabled: editingDisabled }}
                 onMove={readonly ? undefined : moveSong}
