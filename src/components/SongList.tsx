@@ -3,6 +3,7 @@ import { ArrowDownToLine, CheckCircle2, ListPlus, ListStart, Play, X } from "luc
 import type { Song } from "../api/types";
 import { formatTime } from "../format";
 import { useT } from "../i18n";
+import { isRadio } from "../radio";
 import { usePlayer } from "../state/player";
 import { offlineSupported, useOffline } from "../state/offline";
 import FavoriteButton from "./FavoriteButton";
@@ -78,7 +79,7 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
           {song.title}
           {showAlbum && (song.artist || song.album) && <span className="muted"> · {[song.artist, song.album].filter(Boolean).join(" – ")}</span>}
         </span>
-        <span className="track-time">{formatTime(song.duration ?? 0)}</span>
+        <span className="track-time">{isRadio(song) ? t("radio.liveShort") : formatTime(song.duration ?? 0)}</span>
       </button>
       <span className="song-actions row-actions">
         {queueActions && (
@@ -87,9 +88,9 @@ export default function SongList({ songs, onPlay, numbers = "index", showAlbum =
             <button type="button" className="icon row-action queue-action" onClick={() => appendToQueue([song])} aria-label={t("song.append")} title={t("song.appendTitle")}><ListPlus size={18} /></button>
           </>
         )}
-        <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />
-        {playlistMenu && <SongPlaylistMenu songId={song.id} />}
-        {downloads && <SongDownloadAction song={song} />}
+        {!isRadio(song) && <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />}
+        {playlistMenu && !isRadio(song) && <SongPlaylistMenu songId={song.id} />}
+        {downloads && !isRadio(song) && <SongDownloadAction song={song} />}
         {action && (
           <button type="button" className="icon row-action" onClick={() => action.onClick(i)} disabled={action.disabled} aria-label={action.label} title={action.label}>
             <X size={18} />

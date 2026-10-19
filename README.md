@@ -45,6 +45,7 @@ The app is a small native Windows program (a few megabytes, built with [Tauri](h
 - Adjustable streaming quality (format and bitrate) and ReplayGain
 - Scrobbling to your server and a queue that survives restarts
 - Full-screen player with an audio-reactive background that follows the cover art
+- Internet radio: the stations configured on your server, with the current song shown live (desktop app)
 - Synchronised lyrics in the full-screen player (servers that support OpenSubsonic `songLyrics`)
 - Keyboard shortcuts: Space, Ctrl+Up/Down (volume), Ctrl+Left/Right (previous/next), Ctrl+K (search), Alt+Left/Right (back/forward)
 
@@ -137,9 +138,9 @@ The goal is **version 1.0.0**: a fully finished Windows app. The main steps:
 
 - **Visualizer polish:** calmer clouds whose colours follow the cover art.
 - **Interface:** top bar with search and profile, playlist mosaic covers, page transitions, a progress bar with hover preview.
-- **Release quality:** Authenticode code signing, a changelog, screenshots.
+- **Release quality:** Authenticode code signing (planned to start with 1.0.0), a changelog, screenshots.
 
-Ideas being evaluated: equaliser and crossfade, sleep timer, filtering the library by format and bitrate, mixes built from your own library, resuming playback across devices, radio and podcasts. Android and other desktop platforms come after 1.0.0.
+Ideas being evaluated: equaliser and crossfade, sleep timer, filtering the library by format and bitrate, mixes built from your own library, resuming playback across devices, podcasts, adding and editing radio stations, station logos. Android and other desktop platforms come after 1.0.0.
 
 ## How it is made
 

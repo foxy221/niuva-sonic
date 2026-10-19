@@ -59,6 +59,12 @@ export function useGenres() {
   return useQuery({ queryKey: keys.genres, queryFn: () => client.getGenres() });
 }
 
+/** Radiosender des Servers; ein Server ohne Radio antwortet mit einem Fehler, den die Seite zeigt. */
+export function useRadioStations() {
+  const client = useClient();
+  return useQuery({ queryKey: keys.radio, queryFn: () => client.getInternetRadioStations(), retry: false });
+}
+
 export function useSongsByGenre(genre: string, count = 100, offset = 0) {
   const client = useClient();
   return useQuery({

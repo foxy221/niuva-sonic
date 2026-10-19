@@ -19,6 +19,7 @@ export const keys = {
   albumList: (type: AlbumListType, size: number, offset: number, filter: AlbumListFilter = {}) =>
     ["albumList", type, size, offset, clean(filter)] as const,
   genres: ["genres"] as const,
+  radio: ["radio"] as const,
   songsByGenre: (genre: string, count: number, offset: number) => ["songsByGenre", genre, count, offset] as const,
   starred: ["starred"] as const,
   playlists: ["playlists"] as const,

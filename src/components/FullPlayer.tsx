@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ListMusic, MicVocal } from "lucide-react";
 import { useUi } from "../design/ui";
+import { isRadio } from "../radio";
+import { useOnAir } from "../state/onAir";
 import { usePlayer } from "../state/player";
 import { useCapabilities } from "../state/capabilities";
 import { useSession } from "../state/session";
 import { useCoverUrl } from "../hooks/useCoverUrl";
 import { useT } from "../i18n";
+import Cover from "./Cover";
 import FavoriteButton from "./FavoriteButton";
 import Lyrics from "./Lyrics";
 import QueuePanel from "./QueuePanel";
@@ -24,6 +27,7 @@ export default function FullPlayer() {
   const [lyricsOpen, setLyricsOpen] = useState(false);
   // Der Text bleibt nach dem Ausschalten kurz eingehängt, damit er ausblenden kann.
   const [lyricsMounted, setLyricsMounted] = useState(false);
+  const onAir = useOnAir(song?.radioUrl);
   const lyricsSupported = useCapabilities((s) => s.supports("songLyrics"));
   const coverRef = useRef<HTMLElement | null>(null);
   const backdrop = useCoverUrl(song?.coverArt, song?.albumId, 64);
@@ -44,6 +48,7 @@ export default function FullPlayer() {
 
   if (!fullOpen || !song || !client) return null;
   const close = () => setFull(false);
+  const radio = isRadio(song);
 
   return (
     <div className={`full${queueOpen ? " queue-open" : ""}`} role="dialog" aria-label={t("player.full")}>
@@ -52,25 +57,25 @@ export default function FullPlayer() {
       <header className="full-top">
         <button className="icon" onClick={close} aria-label={t("player.closeFull")}><ChevronDown size={26} /></button>
         <div className="full-top-actions">
-          {lyricsSupported && <button className={`icon${lyricsOpen ? " on" : ""}`} onClick={() => setLyricsOpen((v) => !v)} aria-label={t("lyrics.title")} aria-pressed={lyricsOpen}><MicVocal size={22} /></button>}
+          {lyricsSupported && !radio && <button className={`icon${lyricsOpen ? " on" : ""}`} onClick={() => setLyricsOpen((v) => !v)} aria-label={t("lyrics.title")} aria-pressed={lyricsOpen}><MicVocal size={22} /></button>}
           <button className={`icon${queueOpen ? " on" : ""}`} onClick={toggleQueue} aria-label={t("player.queue")} aria-pressed={queueOpen}><ListMusic size={22} /></button>
         </div>
       </header>
       <div className="full-body">
-        <div className={`full-left${lyricsOpen ? " with-lyrics" : ""}`}>
-          {cover ? <img ref={(el) => { coverRef.current = el; }} className="full-cover" src={cover} alt="" /> : <div ref={(el) => { coverRef.current = el; }} className="full-cover cover-empty" />}
-          {lyricsMounted && <div className={`full-lyrics${lyricsOpen ? " open" : ""}`} inert={!lyricsOpen}><Lyrics song={song} /></div>}
+        <div className={`full-left${lyricsOpen && !radio ? " with-lyrics" : ""}`}>
+          <Cover imgRef={(el) => { coverRef.current = el; }} className="full-cover" src={cover} radio={radio} iconSize={96} />
+          {lyricsMounted && !radio && <div className={`full-lyrics${lyricsOpen ? " open" : ""}`} inert={!lyricsOpen}><Lyrics song={song} /></div>}
         </div>
         <div className="full-info">
           <div className="full-title">
             <div>
               <h1>{song.title}</h1>
               <p>
-                {song.artistId ? <Link to={`/artist/${song.artistId}`} onClick={close}>{song.artist}</Link> : song.artist}
+                {song.artistId ? <Link to={`/artist/${song.artistId}`} onClick={close}>{song.artist}</Link> : onAir ?? song.artist}
                 {song.album && <span className="muted"> · {song.albumId ? <Link to={`/album/${song.albumId}`} onClick={close}>{song.album}</Link> : song.album}</span>}
               </p>
             </div>
-            <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />
+            {!radio && <FavoriteButton starred={Boolean(song.starred)} songId={song.id} label={t("favorite.track")} />}
           </div>
           <SeekBar />
           <Transport size={28} />

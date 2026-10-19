@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
-import { Disc3, Download, Heart, House, ListMusic, LogOut, Mic2, Search, Settings, Stethoscope, Tags } from "lucide-react";
+import { Disc3, Download, Heart, House, ListMusic, LogOut, Mic2, Radio, Search, Settings, Stethoscope, Tags } from "lucide-react";
 import { useNowPlayingAccent } from "../design/useAccent";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlayerCommands } from "../hooks/usePlayerCommands";
@@ -13,6 +13,7 @@ import FullPlayer from "./FullPlayer";
 import PlayerBar from "./PlayerBar";
 import QueuePanel from "./QueuePanel";
 import SidebarPlaylists from "./SidebarPlaylists";
+import { isRadio } from "../radio";
 import { useNowPlayingPlaylist } from "../state/playlistSource";
 import Tooltips from "./Tooltips";
 import TopBar from "./TopBar";
@@ -25,6 +26,7 @@ const NAV: { to: string; label: MessageKey; Icon: typeof House; end?: boolean }[
   { to: "/genres", label: "nav.genres", Icon: Tags },
   { to: "/favorites", label: "nav.favorites", Icon: Heart },
   { to: "/playlists", label: "nav.playlists", Icon: ListMusic },
+  { to: "/radio", label: "nav.radio", Icon: Radio },
   { to: "/offline", label: "nav.offline", Icon: Download },
   { to: "/settings", label: "nav.settings", Icon: Settings },
   { to: "/diagnostics", label: "nav.diagnostics", Icon: Stethoscope },
@@ -36,11 +38,13 @@ export default function Layout() {
   const { pathname } = useLocation();
   const fullOpen = useUi((s) => s.fullOpen);
   const current = usePlayer((s) => s.queue[s.index]);
+  const playing = usePlayer((s) => s.playing);
   useNowPlayingAccent(useCoverUrl(current?.coverArt, current?.albumId, 64));
   // Leertaste im Fenster sowie Befehle aus Tray-Menü und Medientasten.
   useKeyboardShortcuts();
   usePlayerCommands();
   const playlistsOpen = pathname === "/playlists" || pathname.startsWith("/playlist/");
+  const radioActive = isRadio(current);
   const nowPlaylist = useNowPlayingPlaylist();
   // Neue Seite beginnt oben, sonst bleibt der Scrollstand der vorigen stehen und die Kopfzeile verschwindet unter der Leiste.
   const contentRef = useRef<HTMLElement | null>(null);
@@ -57,6 +61,7 @@ export default function Layout() {
               <NavLink to={to} end={end} className={({ isActive }) => (isActive || (to === "/playlists" && playlistsOpen) ? "active" : undefined)}>
                 <Icon size={20} /> {t(label)}
                 {to === "/playlists" && !playlistsOpen && nowPlaylist.id && <span className={`now${nowPlaylist.playing ? "" : " paused"}`} aria-hidden="true"><i /><i /><i /></span>}
+                {to === "/radio" && radioActive && <span className={`now${playing ? "" : " paused"}`} aria-hidden="true"><i /><i /><i /></span>}
               </NavLink>
               {to === "/playlists" && <SidebarPlaylists open={playlistsOpen} />}
             </Fragment>

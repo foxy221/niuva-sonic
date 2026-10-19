@@ -279,3 +279,17 @@ describe("OpenSubsonic-Erweiterungen", () => {
     expect(await client().getOpenSubsonicExtensions()).toEqual([]);
   });
 });
+
+describe("Internetradio", () => {
+  it("liest die Sender aus getInternetRadioStations", async () => {
+    fetchMock.mockResolvedValue(ok({ internetRadioStations: { internetRadioStation: [{ id: "1", name: "Soma FM", streamUrl: "https://ice.somafm.com/groovesalad" }] } }));
+    const stations = await client().getInternetRadioStations();
+    expect(lastEndpoint()).toBe("getInternetRadioStations");
+    expect(stations).toEqual([{ id: "1", name: "Soma FM", streamUrl: "https://ice.somafm.com/groovesalad" }]);
+  });
+
+  it("liefert eine leere Liste, wenn der Server keine Sender hat", async () => {
+    fetchMock.mockResolvedValue(ok({ internetRadioStations: {} }));
+    expect(await client().getInternetRadioStations()).toEqual([]);
+  });
+});

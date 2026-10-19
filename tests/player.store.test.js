@@ -153,3 +153,20 @@ describe("Sofortiges Speichern", () => {
     await vi.waitFor(() => expect(localStorage.getItem("playerQueue")).toBeNull());
   });
 });
+
+describe("Radiosender", () => {
+  const station = { id: "radio:7", title: "Soma FM", artist: "Live", radioUrl: "https://ice.example/stream" };
+
+  it("spielt die Adresse des Senders, ohne zu scrobbeln oder zu springen", () => {
+    usePlayer.getState().playQueue([station], 0);
+    expect(audio().src).toBe("https://ice.example/stream");
+    expect(SubsonicClient.prototype.scrobble).not.toHaveBeenCalled();
+    usePlayer.getState().seek(30);
+    expect(usePlayer.getState().position).toBe(0);
+  });
+
+  it("lädt einen folgenden Sender nicht vor", () => {
+    usePlayer.getState().playQueue([song("a"), station], 0);
+    expect(standby().src).not.toBe("https://ice.example/stream");
+  });
+});

@@ -93,6 +93,8 @@ export interface Song {
   /** ISO-Zeitstempel der letzten Wiedergabe. */
   played?: string;
   replayGain?: ReplayGain;
+  /** Nur bei Radiosendern: Adresse des Live-Streams. Solche Einträge liegen nicht auf dem Server. */
+  radioUrl?: string;
 }
 
 /** Obergrenze und Zielformat für `stream`; leer heißt Originaldatei. */
@@ -118,6 +120,14 @@ export interface ArtistInfo {
   mediumImageUrl?: string;
   largeImageUrl?: string;
   similarArtist?: Artist[];
+}
+
+/** Ein Sender aus `getInternetRadioStations`. */
+export interface InternetRadioStation {
+  id: string;
+  name: string;
+  streamUrl: string;
+  homePageUrl?: string;
 }
 
 export interface Genre {

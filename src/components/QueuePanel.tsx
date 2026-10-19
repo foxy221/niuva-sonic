@@ -3,17 +3,20 @@ import type { ReactNode } from "react";
 import { ListMusic, ListX, X } from "lucide-react";
 import { useUi } from "../design/ui";
 import { formatTime } from "../format";
+import { isRadio } from "../radio";
+import { useOnAir } from "../state/onAir";
 import { usePlayer } from "../state/player";
 import { useSession } from "../state/session";
 import { useCoverUrl } from "../hooks/useCoverUrl";
 import { useT } from "../i18n";
 import type { Song } from "../api/types";
+import Cover from "./Cover";
 import { SortableList, SortableRow } from "./Sortable";
 
 /** Cover einer Zeile: lokal, wenn der Titel offline vorliegt. */
 function QueueCover({ song }: { song: Song }) {
   const src = useCoverUrl(song.coverArt, song.albumId, 80);
-  return src ? <img src={src} alt="" loading="lazy" /> : <div className="cover-empty" />;
+  return <Cover src={src} radio={isRadio(song)} iconSize={18} loading="lazy" />;
 }
 
 /**
@@ -26,6 +29,7 @@ export default function QueuePanel() {
   const queue = usePlayer((s) => s.queue);
   const index = usePlayer((s) => s.index);
   const playing = usePlayer((s) => s.playing);
+  const onAir = useOnAir(queue[index]?.radioUrl);
   const { jumpTo, moveInQueue, removeFromQueue, clearQueue } = usePlayer.getState();
   const client = useSession((s) => s.client);
   const currentRef = useRef<HTMLLIElement>(null);
@@ -46,9 +50,9 @@ export default function QueuePanel() {
           <QueueCover song={song} />
           <span className="queue-text">
             <strong>{song.title}</strong>
-            <span className="muted">{song.artist}</span>
+            <span className="muted">{(current && onAir) || song.artist}</span>
           </span>
-          {current && playing ? <span className="eq" aria-label={t("queue.playing")}><i /><i /><i /></span> : <span className="track-time">{formatTime(song.duration ?? 0)}</span>}
+          {current && playing ? <span className="eq" aria-label={t("queue.playing")}><i /><i /><i /></span> : <span className="track-time">{isRadio(song) ? t("radio.liveShort") : formatTime(song.duration ?? 0)}</span>}
         </button>
         <span className="queue-actions">
           <button type="button" className="icon" onClick={() => removeFromQueue(i)} aria-label={t("queue.removeLong")} title={t("queue.remove")}><X size={16} /></button>

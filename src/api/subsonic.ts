@@ -11,6 +11,7 @@ import type {
   ArtistWithAlbums,
   Credentials,
   Genre,
+  InternetRadioStation,
   OpenSubsonicExtension,
   Playlist,
   PlaylistWithSongs,
@@ -33,7 +34,7 @@ export class SubsonicError extends Error {
 }
 
 const isTauri = () => "__TAURI_INTERNALS__" in window;
-const httpFetch: typeof fetch = (input, init) => (isTauri() ? tauriFetch(input as string, init) : fetch(input, init));
+export const httpFetch: typeof fetch = (input, init) => (isTauri() ? tauriFetch(input as string, init) : fetch(input, init));
 
 export function normalizeServerUrl(raw: string) {
   let url = raw.trim().replace(/\/+$/, "");
@@ -160,6 +161,14 @@ export class SubsonicClient {
   async getLyricsBySongId(id: string): Promise<StructuredLyrics[]> {
     const r = await this.call<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>("getLyricsBySongId", { id });
     return (r.lyricsList?.structuredLyrics ?? []).map((entry) => ({ ...entry, synced: Boolean(entry.synced), line: entry.line ?? [] }));
+  }
+
+  // --- Internetradio ----------------------------------------------------
+
+  /** Vom Server verwaltete Radiosender; ohne Sender fehlt das Feld ganz. */
+  async getInternetRadioStations(): Promise<InternetRadioStation[]> {
+    const r = await this.call<{ internetRadioStations?: { internetRadioStation?: InternetRadioStation[] } }>("getInternetRadioStations");
+    return r.internetRadioStations?.internetRadioStation ?? [];
   }
 
   // --- Favoriten --------------------------------------------------------

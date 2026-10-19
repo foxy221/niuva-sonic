@@ -9,6 +9,7 @@ import Artists from "./screens/Artists";
 import Artist from "./screens/Artist";
 import Genres from "./screens/Genres";
 import Genre from "./screens/Genre";
+import Radio from "./screens/Radio";
 import Favorites from "./screens/Favorites";
 import Playlists from "./screens/Playlists";
 import Playlist from "./screens/Playlist";
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="favorites" element={<Favorites />} />
           <Route path="playlists" element={<Playlists />} />
           <Route path="playlist/:id" element={<Playlist />} />
+          <Route path="radio" element={<Radio />} />
           <Route path="offline" element={<Offline />} />
           <Route path="offline/album/:id" element={<OfflineAlbum />} />
           <Route path="settings" element={<Settings />} />

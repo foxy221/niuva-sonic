@@ -1,6 +1,7 @@
 import { useState, type CSSProperties, type PointerEvent } from "react";
 import { formatTime } from "../format";
 import { useT } from "../i18n";
+import { isRadio } from "../radio";
 import { usePlayer } from "../state/player";
 
 /** Fortschrittsbalken mit Zeitangaben; beim Überfahren zeigt eine Marke die Zeit am Mauszeiger. */
@@ -9,6 +10,7 @@ export default function SeekBar() {
   const position = usePlayer((s) => s.position);
   const duration = usePlayer((s) => s.duration);
   const seek = usePlayer((s) => s.seek);
+  const live = usePlayer((s) => isRadio(s.queue[s.index]));
   const progress = duration ? Math.min(100, (position / duration) * 100) : 0;
   const [hover, setHover] = useState<{ x: number; time: number } | null>(null);
 
@@ -17,6 +19,17 @@ export default function SeekBar() {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
     setHover({ x, time: (x / rect.width) * duration });
+  }
+
+  // Ein Live-Stream hat weder Ende noch Sprungmarken: nur die Laufzeit seit dem Start.
+  if (live) {
+    return (
+      <div className="seek">
+        <span className="muted">{formatTime(position)}</span>
+        <div className="seek-track"><span className="live-badge">{t("radio.live")}</span></div>
+        <span className="muted" aria-hidden="true" />
+      </div>
+    );
   }
 
   return (

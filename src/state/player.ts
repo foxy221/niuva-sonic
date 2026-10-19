@@ -105,6 +105,8 @@ const client = () => useSession.getState().client;
 const playback = () => useSettings.getState().settings;
 
 function streamUrlFor(song: Song) {
+  // Radiosender haben eine feste Adresse und liegen weder lokal noch beim Server.
+  if (song.radioUrl) return song.radioUrl;
   // Lieber die lokale Datei: schneller Start, kein Datenverkehr, läuft offline.
   const local = useOffline.getState().sourceFor(song.id);
   if (local) return local;
@@ -124,17 +126,17 @@ function applyVolume(song?: Song) {
 /** Wiedergabe melden. Ein Fehler dabei darf die Musik nicht stören. */
 function reportScrobble(id: string, submission: boolean, time?: number) {
   const session = client();
-  if (!session || !playback().scrobble) return;
+  if (!session || !playback().scrobble || id.startsWith("radio:")) return;
   session.scrobble({ id, submission, time }).catch(() => {});
 }
 
-function updateMediaSession(song: Song, artwork: string) {
+function updateMediaSession(song: Song, artwork?: string) {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
     title: song.title,
     artist: song.artist,
     album: song.album,
-    artwork: [{ src: artwork, sizes: "512x512" }],
+    artwork: artwork ? [{ src: artwork, sizes: "512x512" }] : [],
   });
 }
 
@@ -303,7 +305,7 @@ function load(index: number, options: { autoplay?: boolean; position?: number; p
   if (!(autoplay && position === 0 && playback().gapless && engine.takePreloaded(url))) engine.load(url, { autoplay, position });
   if (!autoplay) setPlaybackState("paused");
   // Cover zuerst lokal: offline startet die App sonst ohne Bild im Overlay.
-  const artwork = useOffline.getState().coverSource(song.coverArt ?? song.id) ?? session.coverArtUrl(song.coverArt ?? song.id, 512);
+  const artwork = song.radioUrl ? undefined : useOffline.getState().coverSource(song.coverArt ?? song.id) ?? session.coverArtUrl(song.coverArt ?? song.id, 512);
   updateMediaSession(song, artwork);
   preloadNext();
   scheduleSave();
@@ -318,7 +320,8 @@ function preloadNext() {
     return;
   }
   const next = nextIndex(index, queue.length, repeat, true);
-  engine.preload(next === null || next === index ? null : streamUrlFor(queue[next]));
+  // Ein Live-Stream vorzuladen hieße, ihn schon vor dem Hören zu puffern.
+  engine.preload(next === null || next === index || queue[next].radioUrl ? null : streamUrlFor(queue[next]));
 }
 
 /** `automatic` heißt: der Titel ist zu Ende gelaufen. */
@@ -486,7 +489,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   prev() {
     const { index, queue, repeat } = get();
     if (index < 0 || !queue.length) return;
-    if (engine.position > 3) {
+    if (engine.position > 3 && !queue[index].radioUrl) {
       get().seek(0);
       return;
     }
@@ -499,7 +502,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   },
 
   seek(seconds) {
-    if (!Number.isFinite(seconds) || get().index < 0) return;
+    if (!Number.isFinite(seconds) || get().index < 0 || get().queue[get().index].radioUrl) return;
     const position = Math.max(0, Math.min(seconds, get().duration || seconds));
     engine.seek(position);
     // Ein Sprung ist keine Hörzeit: die Scrobble-Regel darf dadurch nicht greifen.
